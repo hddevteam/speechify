@@ -1,0 +1,63 @@
+{
+  "name": "speechify",
+  "displayName": "Speechify",
+  "description": "",
+  "version": "1.0.1",
+  "engines": {
+    "vscode": "^1.82.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "extension.speechify",
+        "title": "Speechify"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "extension.speechify",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Speechify",
+      "properties": {
+        "speechify.azureSpeechServicesKey": {
+          "type": "string",
+          "default": "",
+          "description": "Azure SpeechServices Key"
+        },
+        "speechify.speechServicesRegion": {
+          "type": "string",
+          "default": "eastus",
+          "description": "SpeechServices Region"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "node ./test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.1",
+    "@types/node": "16.x",
+    "@types/vscode": "^1.82.0",
+    "@vscode/test-electron": "^2.3.4",
+    "eslint": "^8.47.0",
+    "glob": "^10.3.3",
+    "mocha": "^10.2.0",
+    "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "axios": "^1.5.0"
+  }
+}
