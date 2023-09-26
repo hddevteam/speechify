@@ -1,6 +1,6 @@
 # Speechify README
 
-This is the README for your extension "speechify". This extension allows you to convert selected text into speech using Azure Text to Speech service. It supports multiple languages including English and Chinese, and the voice can be customized based on language.
+This extension allows you to convert selected text into speech using Azure Text to Speech service. It supports multiple languages including English and Chinese, and the voice can be customized based on language.
 
 ## Features
 

@@ -44,10 +44,7 @@ function getSpeechFromAzureTTS(text, language, currentFile) {
     const year = date.getFullYear();
     const month = ("0" + (date.getMonth() + 1)).slice(-2);
     const day = ("0" + date.getDate()).slice(-2);
-    const hours = ("0" + date.getHours()).slice(-2);
-    const minutes = ("0" + date.getMinutes()).slice(-2);
-    const seconds = ("0" + date.getSeconds()).slice(-2);
-    const currentDate = `${year}${month}${day}_${hours}${minutes}${seconds}`;
+    const currentDate = `${year}${month}${day}`;
 
     const newFileName = `${currentFileName}_${currentDate}.mp3`;
     const filePath = path.join(currentDir, newFileName);
@@ -69,14 +66,22 @@ function getSpeechFromAzureTTS(text, language, currentFile) {
 
     axios.post(url, ssml, { headers, responseType: "arraybuffer" }).then(response => {
         const audioData = Buffer.from(response.data, 'binary');
+        let statusBarMessage = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         fs.writeFile(filePath, audioData, function (err) {
             if (err) {
                 console.error(err);
+                vscode.window.showErrorMessage(`Error occurred while saving audio! ❌ Error: ${err.message}`);
             } else {
                 console.log(`Audio saved as ${filePath}`);
+                statusBarMessage.text = `✨ Speech audio saved successfully ✔️`;
+                statusBarMessage.show();
+                
+                // Hide the status bar message after 10 seconds
+                setTimeout(() => {
+                    statusBarMessage.hide();
+                }, 10000);  // 10000 milliseconds = 10 seconds
             }
-        });
-
+        });               
     }).catch(error => {
         console.error(error);
     });
@@ -103,7 +108,7 @@ function activate(context) {
 }
 
 // Deactivation of the extension
-function deactivate() { }
+function deactivate() {}
 
 module.exports = {
     activate,
