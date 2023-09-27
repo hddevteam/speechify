@@ -2,7 +2,6 @@ const vscode = require('vscode');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const { detectFirstLanguage } = require("./languageDetection");
 
 let config = vscode.workspace.getConfiguration('speechify');
 let subscriptionKey = config.get('azureSpeechServicesKey');
@@ -11,28 +10,15 @@ let region = config.get('speechServicesRegion');
 const endpoint = `https://${region}.tts.speech.microsoft.com`;
 
 
-// Function to get voice attributes based on language
-function getVoiceAttributes(language) {
-    if (language === "en-US") {
-        return {
-            name: "en-US-JennyNeural",
-            gender: "Female",
-            style: "friendly"
-        };
-    } else if (language === "zh-CN") {
-        return {
-            name: "zh-CN-YunyangNeural",
-            gender: "Male",
-            style: "friendly"
-        };
-    } else {
-        return {
-            name: "en-US-JennyNeural",
-            gender: "Female",
-            style: "friendly"
-        };
-    }
+function getVoiceAttributes() {
+    let config = vscode.workspace.getConfiguration('speechify');
+    return {
+        name: config.get('voiceName'),
+        gender: config.get('voiceGender'),
+        style: config.get('voiceStyle')
+    };
 }
+
 
 // Function to request speech from AzureTTS
 function getSpeechFromAzureTTS(text, language, currentFile) {
@@ -75,13 +61,13 @@ function getSpeechFromAzureTTS(text, language, currentFile) {
                 console.log(`Audio saved as ${filePath}`);
                 statusBarMessage.text = `✨ Speech audio saved successfully ✔️`;
                 statusBarMessage.show();
-                
+
                 // Hide the status bar message after 10 seconds
                 setTimeout(() => {
                     statusBarMessage.hide();
                 }, 10000);  // 10000 milliseconds = 10 seconds
             }
-        });               
+        });
     }).catch(error => {
         console.error(error);
     });
@@ -98,17 +84,17 @@ function activate(context) {
         const selection = editor.selection;
         const text = editor.document.getText(selection);
         const currentFile = editor.document.fileName;
+        const language = getVoiceAttributes().name.split('-').slice(0,2).join('-'); // assume that the language is the prefix of the voice name
 
-        detectFirstLanguage(text).then(language => {
-            getSpeechFromAzureTTS(text, language, currentFile);
-        });
+        getSpeechFromAzureTTS(text, language, currentFile);
     });
 
     context.subscriptions.push(disposable);
 }
 
+
 // Deactivation of the extension
-function deactivate() {}
+function deactivate() { }
 
 module.exports = {
     activate,

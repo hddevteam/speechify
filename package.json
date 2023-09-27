@@ -2,7 +2,7 @@
   "name": "speechify",
   "displayName": "Speechify",
   "description": "",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "engines": {
     "vscode": "^1.82.0"
   },
@@ -38,6 +38,21 @@
           "type": "string",
           "default": "eastus",
           "description": "SpeechServices Region"
+        },
+        "speechify.voiceName": {
+          "type": "string",
+          "default": "zh-CN-YunyangNeural",
+          "description": "Voice Name"
+        },
+        "speechify.voiceGender": {
+          "type": "string",
+          "default": "Male",
+          "description": "Voice Gender"
+        },
+        "speechify.voiceStyle": {
+          "type": "string",
+          "default": "friendly",
+          "description": "Voice Style"
         }
       }
     }
