@@ -9,6 +9,7 @@
   "categories": [
     "Other"
   ],
+  "publisher": "luckyXmobile",
   "activationEvents": [],
   "main": "./extension.js",
   "contributes": {
