@@ -41,4 +41,8 @@ Fix the issue the file name of the converted speech may not correct.
 
 ### 1.0.2
 
-Add new configuration options for voice attributes, no need to support auto language detection.
+Add new configuration options for voice attributes.
+
+### 1.0.3
+
+Add icon for the extension.
