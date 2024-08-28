@@ -1,19 +1,159 @@
 这个插件在点击右键时，能够调用我的插件，然后插件能够读取当前选中的内容，调用azure的语音服务，将内容转换成语音文件。
-我想实现在配置中添加对以下选项的配置
-            voice name，例如"zh-CN-YunyangNeural",
-            gender，例如 "Male",
-            style， 例如 "friendly"
 
-默认配置值为zh-CN-YunyangNeural, Male, friendly
-
-去掉自动检测语言，而是直接使用配置的语言
-
-
+```js
 const vscode = require('vscode');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const { detectFirstLanguage } = require("./languageDetection");
+
+let voiceList = [];
+const voiceListPath = path.join(__dirname, 'voice-list.json');
+
+// Load voice-list.json file
+function loadVoiceList() {
+    try {
+        const data = fs.readFileSync(voiceListPath, 'utf-8');
+        voiceList = JSON.parse(data);
+        console.log("Voice list loaded successfully");
+    } catch (error) {
+        console.error("Error loading voice list: ", error);
+    }
+}
+
+loadVoiceList();
+
+function getVoiceAttributes() {
+    let config = vscode.workspace.getConfiguration('speechify');
+    return {
+        name: config.get('voiceName'),
+        gender: config.get('voiceGender'),
+        style: config.get('voiceStyle')
+    };
+}
+
+// Function to create quick pick items for dropdown lists
+function createQuickPickItems(attribute, list, defaultValue) {
+    const seen = new Set();
+    const filteredList = list.filter(item => {
+        if (seen.has(item[attribute])) {
+            return false;
+        }
+        seen.add(item[attribute]);
+        return true;
+    });
+
+    const items = filteredList.map(item => ({
+        label: item[attribute],
+        description: attribute === 'ShortName' || attribute === 'Style' ? item.LocalName : ''
+    }));
+
+    // Move defaultValue to the top if it exists
+    if (defaultValue) {
+        const defaultIndex = items.findIndex(item => item.label === defaultValue);
+        if (defaultIndex !== -1) {
+            const [defaultItem] = items.splice(defaultIndex, 1);
+            items.unshift(defaultItem);
+        }
+    }
+
+    return items;
+}
+
+// Function to show dropdowns and get the user selections
+async function configureSpeechifyVoiceSettings() {
+    const config = getVoiceAttributes();
+    const defaultVoice = voiceList.find(voice => voice.ShortName === config.name);
+
+    if (!defaultVoice) {
+        vscode.window.showErrorMessage('Default voice not found in the voice list.');
+        return;
+    }
+
+    console.log('defaultVoice:', defaultVoice);
+    console.log('defaultVoice.LocaleName:', defaultVoice.LocaleName);
+
+    // Select LocaleName
+    let localeNamePick;
+    const localeNameItems = createQuickPickItems('LocaleName', voiceList, defaultVoice.LocaleName);
+    if (localeNameItems.length === 1) {
+        localeNamePick = localeNameItems[0];
+    } else if (localeNameItems.length > 1) {
+        localeNamePick = await vscode.window.showQuickPick(localeNameItems, {
+            placeHolder: 'Select Locale Name'
+        });
+    }
+
+    if (!localeNamePick) return;
+
+    const selectedVoicesByLocale = voiceList.filter(voice => voice.LocaleName === localeNamePick.label);
+
+    // Select Gender
+    let genderPick;
+    const genderItems = createQuickPickItems('Gender', selectedVoicesByLocale, defaultVoice.Gender);
+    if (genderItems.length === 1) {
+        genderPick = genderItems[0];
+    } else if (genderItems.length > 1) {
+        genderPick = await vscode.window.showQuickPick(genderItems, {
+            placeHolder: 'Select Gender'
+        });
+    }
+
+    if (!genderPick) return;
+
+    const selectedVoicesByGender = selectedVoicesByLocale.filter(voice => voice.Gender === genderPick.label);
+
+    // Select ShortName
+    let shortNamePick;
+    const shortNameItems = createQuickPickItems('ShortName', selectedVoicesByGender, defaultVoice.ShortName);
+    if (shortNameItems.length === 1) {
+        shortNamePick = shortNameItems[0];
+    } else if (shortNameItems.length > 1) {
+        shortNamePick = await vscode.window.showQuickPick(shortNameItems, {
+            placeHolder: 'Select Voice'
+        });
+    }
+
+    if (!shortNamePick) return;
+
+    // Find the selected voice to get its StyleList
+    const selectedVoice = selectedVoicesByGender.find(voice => voice.ShortName === shortNamePick.label);
+    if (!selectedVoice) return;
+
+    // Select Style
+    let stylePick;
+    const styleItems = selectedVoice.StyleList?.map(style => ({
+        label: style,
+        description: ''
+    })) || [];
+
+    if (styleItems.length === 1) {
+        stylePick = styleItems[0];
+    } else if (styleItems.length > 1) {
+        // Move default style to the top if it exists
+        const defaultStyleIndex = styleItems.findIndex(item => item.label === config.style);
+        if (defaultStyleIndex !== -1) {
+            const [defaultStyleItem] = styleItems.splice(defaultStyleIndex, 1);
+            styleItems.unshift(defaultStyleItem);
+        }
+
+        stylePick = await vscode.window.showQuickPick(styleItems, {
+            placeHolder: 'Select Voice Style'
+        });
+    }
+
+    // Use empty string if no style is selected
+    const styleValue = stylePick ? stylePick.label : '';
+
+    // Save the selections to configuration
+    const updateConfig = vscode.workspace.getConfiguration('speechify');
+    await updateConfig.update('voiceName', shortNamePick.label, vscode.ConfigurationTarget.Global);
+    await updateConfig.update('voiceGender', genderPick.label, vscode.ConfigurationTarget.Global);
+    await updateConfig.update('voiceStyle', styleValue, vscode.ConfigurationTarget.Global);
+
+    vscode.window.showInformationMessage(`Voice configuration updated: ${shortNamePick.label}`);
+}
+
+
 
 let config = vscode.workspace.getConfiguration('speechify');
 let subscriptionKey = config.get('azureSpeechServicesKey');
@@ -22,32 +162,8 @@ let region = config.get('speechServicesRegion');
 const endpoint = `https://${region}.tts.speech.microsoft.com`;
 
 
-// Function to get voice attributes based on language
-function getVoiceAttributes(language) {
-    if (language === "en-US") {
-        return {
-            name: "en-US-JennyNeural",
-            gender: "Female",
-            style: "friendly"
-        };
-    } else if (language === "zh-CN") {
-        return {
-            name: "zh-CN-YunyangNeural",
-            gender: "Male",
-            style: "friendly"
-        };
-    } else {
-        return {
-            name: "en-US-JennyNeural",
-            gender: "Female",
-            style: "friendly"
-        };
-    }
-}
-
 // Function to request speech from AzureTTS
 function getSpeechFromAzureTTS(text, language, currentFile) {
-
     const currentDir = path.dirname(currentFile);
     const currentFileName = path.basename(currentFile, path.extname(currentFile));
 
@@ -86,13 +202,13 @@ function getSpeechFromAzureTTS(text, language, currentFile) {
                 console.log(`Audio saved as ${filePath}`);
                 statusBarMessage.text = `✨ Speech audio saved successfully ✔️`;
                 statusBarMessage.show();
-                
+
                 // Hide the status bar message after 10 seconds
                 setTimeout(() => {
                     statusBarMessage.hide();
                 }, 10000);  // 10000 milliseconds = 10 seconds
             }
-        });               
+        });
     }).catch(error => {
         console.error(error);
     });
@@ -109,111 +225,34 @@ function activate(context) {
         const selection = editor.selection;
         const text = editor.document.getText(selection);
         const currentFile = editor.document.fileName;
+        const language = getVoiceAttributes().name.split('-').slice(0, 2).join('-'); // assume that the language is the prefix of the voice name
 
-        detectFirstLanguage(text).then(language => {
-            getSpeechFromAzureTTS(text, language, currentFile);
-        });
+        getSpeechFromAzureTTS(text, language, currentFile);
     });
 
+    // Register the configure voice settings command
+    let configureVoiceDisposable = vscode.commands.registerCommand('extension.configureSpeechifyVoiceSettings', configureSpeechifyVoiceSettings);
+
     context.subscriptions.push(disposable);
+    context.subscriptions.push(configureVoiceDisposable);
 }
 
 // Deactivation of the extension
-function deactivate() {}
+function deactivate() { }
 
 module.exports = {
     activate,
     deactivate
 }
 
-
-//languageDetection.js
-
-/* eslint-disable no-control-regex */
-function detectLanguage(text) {
-    const englishRegex = /\b[a-zA-Z]+\b/g;
-    const chineseRegex = /[\u4E00-\u9FFF]/g;
-
-    const englishCount = (text.match(englishRegex) || []).length;
-    const chineseCount = (text.match(chineseRegex) || []).length;
-
-    if (englishCount > chineseCount) {
-        return "en-US";
-    } else if (chineseCount > englishCount) {
-        return "zh-CN";
-    } else {
-        return "unknown";
-    }
-}
-
-exports.detectFirstLanguage = async function (message) {
-    const sentences = message.split(/([.。!?！？])/).filter(sentence => sentence.trim());
-    const firstLanguage = detectLanguage(sentences[0]);
-    return firstLanguage;
-};
-
-//package.json
-{
-  "name": "speechify",
-  "displayName": "Speechify",
-  "description": "",
-  "version": "1.0.1",
-  "engines": {
-    "vscode": "^1.82.0"
-  },
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": [],
-  "main": "./extension.js",
-  "contributes": {
-    "commands": [
-      {
-        "command": "extension.speechify",
-        "title": "Speechify"
-      }
-    ],
-    "menus": {
-      "editor/context": [
-        {
-          "command": "extension.speechify",
-          "group": "navigation"
-        }
-      ]
-    },
-    "configuration": {
-      "title": "Speechify",
-      "properties": {
-        "speechify.azureSpeechServicesKey": {
-          "type": "string",
-          "default": "",
-          "description": "Azure SpeechServices Key"
-        },
-        "speechify.speechServicesRegion": {
-          "type": "string",
-          "default": "eastus",
-          "description": "SpeechServices Region"
-        }
-      }
-    }
-  },
-  "scripts": {
-    "lint": "eslint .",
-    "pretest": "npm run lint",
-    "test": "node ./test/runTest.js"
-  },
-  "devDependencies": {
-    "@types/mocha": "^10.0.1",
-    "@types/node": "16.x",
-    "@types/vscode": "^1.82.0",
-    "@vscode/test-electron": "^2.3.4",
-    "eslint": "^8.47.0",
-    "glob": "^10.3.3",
-    "mocha": "^10.2.0",
-    "typescript": "^5.1.6"
-  },
-  "dependencies": {
-    "axios": "^1.5.0"
-  }
-}
-
+接下来，我希望在updateConfig和getSpeechFromAzureTTS时，弹出一个对话框，显示当前的语音配置信息，这些配置信息从voiceList.json中读取，
+我需要显示的信息有：
+"DisplayName": "Yunxiao Multilingual",
+"ShortName": "zh-TW-HsiaoYuNeural",
+"Gender": "Female",
+"LocaleName": "Chinese (Taiwanese Mandarin, Traditional)",
+"SampleRateHertz": "48000",
+"Status": "GA",
+"WordsPerMinute": "223"
+这样可行吗？如果可行，如何实现？
+```

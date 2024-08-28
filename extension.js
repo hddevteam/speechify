@@ -146,10 +146,18 @@ async function configureSpeechifyVoiceSettings() {
     await updateConfig.update('voiceName', shortNamePick.label, vscode.ConfigurationTarget.Global);
     await updateConfig.update('voiceGender', genderPick.label, vscode.ConfigurationTarget.Global);
     await updateConfig.update('voiceStyle', styleValue, vscode.ConfigurationTarget.Global);
-
-    vscode.window.showInformationMessage(`Voice configuration updated: ${shortNamePick.label}`);
+    showVoiceConfig(shortNamePick.label);
 }
 
+function showVoiceConfig(shortName) {
+    const selectedVoice = voiceList.find(voice => voice.ShortName === shortName);
+
+    if (selectedVoice) {
+        const message = `
+        Voice: ${selectedVoice.DisplayName}, Locale: ${selectedVoice.LocaleName}, ${selectedVoice.Gender}, Sample Rate: ${selectedVoice.SampleRateHertz} Hz, Words Per Minute: ${selectedVoice.WordsPerMinute}, Status: ${selectedVoice.Status}, Short Name: ${selectedVoice.ShortName}`;
+        vscode.window.showInformationMessage(message);
+    }
+}
 
 
 let config = vscode.workspace.getConfiguration('speechify');
@@ -173,6 +181,8 @@ function getSpeechFromAzureTTS(text, language, currentFile) {
     const newFileName = `${currentFileName}_${currentDate}.mp3`;
     const filePath = path.join(currentDir, newFileName);
     const voiceAttributes = getVoiceAttributes(language);
+
+    showVoiceConfig(voiceAttributes.name);
 
     const ssml = `<speak version='1.0' xml:lang='${language}'>
                     <voice xml:lang='${language}' xml:gender='${voiceAttributes.gender}' name='${voiceAttributes.name}' style='${voiceAttributes.style}'>
