@@ -3,7 +3,7 @@
   "displayName": "Speechify",
   "description": "",
   "icon": "./icon.png",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "engines": {
     "vscode": "^1.82.0"
   },
@@ -11,13 +11,18 @@
     "Other"
   ],
   "publisher": "luckyXmobile",
-  "activationEvents": [],
+  "activationEvents": [
+  ],
   "main": "./extension.js",
   "contributes": {
     "commands": [
       {
         "command": "extension.speechify",
         "title": "Speechify"
+      },
+      {
+        "command": "extension.configureSpeechifyVoiceSettings",
+        "title": "Configure Speechify Voice Settings"
       }
     ],
     "menus": {
