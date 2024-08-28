@@ -221,6 +221,38 @@ function getSpeechFromAzureTTS(text, language, currentFile) {
     });
 }
 
+// Function to configure Azure settings
+async function configureSpeechifyAzureSettings() {
+    const config = vscode.workspace.getConfiguration('speechify');
+
+    const azureKey = config.get('azureSpeechServicesKey');
+    const azureRegion = config.get('speechServicesRegion');
+
+    // Input box for Azure Speech Services Key
+    const newAzureKey = await vscode.window.showInputBox({
+        value: azureKey,
+        placeHolder: 'Enter Azure Speech Services Key',
+        prompt: 'Azure Speech Services Key'
+    });
+
+    if (newAzureKey === undefined) return; // User cancelled input
+
+    // Input box for Azure Speech Services Region
+    const newAzureRegion = await vscode.window.showInputBox({
+        value: azureRegion,
+        placeHolder: 'Enter Azure Speech Services Region',
+        prompt: 'Azure Speech Services Region'
+    });
+
+    if (newAzureRegion === undefined) return; // User cancelled input
+
+    // Save the new settings
+    await config.update('azureSpeechServicesKey', newAzureKey, vscode.ConfigurationTarget.Global);
+    await config.update('speechServicesRegion', newAzureRegion, vscode.ConfigurationTarget.Global);
+
+    vscode.window.showInformationMessage('Azure Speech Services settings have been updated.');
+}
+
 // Activation of the extension
 function activate(context) {
     let disposable = vscode.commands.registerCommand('extension.speechify', function () {
@@ -239,8 +271,11 @@ function activate(context) {
 
     // Register the configure voice settings command
     let configureVoiceDisposable = vscode.commands.registerCommand('extension.configureSpeechifyVoiceSettings', configureSpeechifyVoiceSettings);
+    // Register the configure Azure settings command
+    let configureAzureDisposable = vscode.commands.registerCommand('extension.configureSpeechifyAzureSettings', configureSpeechifyAzureSettings);
 
     context.subscriptions.push(disposable);
+    context.subscriptions.push(configureAzureDisposable);
     context.subscriptions.push(configureVoiceDisposable);
 }
 
