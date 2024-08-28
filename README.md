@@ -46,3 +46,7 @@ Add new configuration options for voice attributes.
 ### 1.0.3
 
 Add icon for the extension.
+
+### 1.1.0
+
+Add new configuration options to simplify the voice selection process. You can just select Confgure Speechify Voice Settings from the command palette and choose the voice you want to use.
