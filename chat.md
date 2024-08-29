@@ -149,10 +149,18 @@ async function configureSpeechifyVoiceSettings() {
     await updateConfig.update('voiceName', shortNamePick.label, vscode.ConfigurationTarget.Global);
     await updateConfig.update('voiceGender', genderPick.label, vscode.ConfigurationTarget.Global);
     await updateConfig.update('voiceStyle', styleValue, vscode.ConfigurationTarget.Global);
-
-    vscode.window.showInformationMessage(`Voice configuration updated: ${shortNamePick.label}`);
+    showVoiceConfig(shortNamePick.label);
 }
 
+function showVoiceConfig(shortName) {
+    const selectedVoice = voiceList.find(voice => voice.ShortName === shortName);
+
+    if (selectedVoice) {
+        const message = `
+        Voice: ${selectedVoice.DisplayName}, Locale: ${selectedVoice.LocaleName}, ${selectedVoice.Gender}, Sample Rate: ${selectedVoice.SampleRateHertz} Hz, Words Per Minute: ${selectedVoice.WordsPerMinute}, Status: ${selectedVoice.Status}, Short Name: ${selectedVoice.ShortName}`;
+        vscode.window.showInformationMessage(message);
+    }
+}
 
 
 let config = vscode.workspace.getConfiguration('speechify');
@@ -176,6 +184,8 @@ function getSpeechFromAzureTTS(text, language, currentFile) {
     const newFileName = `${currentFileName}_${currentDate}.mp3`;
     const filePath = path.join(currentDir, newFileName);
     const voiceAttributes = getVoiceAttributes(language);
+
+    showVoiceConfig(voiceAttributes.name);
 
     const ssml = `<speak version='1.0' xml:lang='${language}'>
                     <voice xml:lang='${language}' xml:gender='${voiceAttributes.gender}' name='${voiceAttributes.name}' style='${voiceAttributes.style}'>
@@ -214,6 +224,38 @@ function getSpeechFromAzureTTS(text, language, currentFile) {
     });
 }
 
+// Function to configure Azure settings
+async function configureSpeechifyAzureSettings() {
+    const config = vscode.workspace.getConfiguration('speechify');
+
+    const azureKey = config.get('azureSpeechServicesKey');
+    const azureRegion = config.get('speechServicesRegion');
+
+    // Input box for Azure Speech Services Key
+    const newAzureKey = await vscode.window.showInputBox({
+        value: azureKey,
+        placeHolder: 'Enter Azure Speech Services Key',
+        prompt: 'Azure Speech Services Key'
+    });
+
+    if (newAzureKey === undefined) return; // User cancelled input
+
+    // Input box for Azure Speech Services Region
+    const newAzureRegion = await vscode.window.showInputBox({
+        value: azureRegion,
+        placeHolder: 'Enter Azure Speech Services Region',
+        prompt: 'Azure Speech Services Region'
+    });
+
+    if (newAzureRegion === undefined) return; // User cancelled input
+
+    // Save the new settings
+    await config.update('azureSpeechServicesKey', newAzureKey, vscode.ConfigurationTarget.Global);
+    await config.update('speechServicesRegion', newAzureRegion, vscode.ConfigurationTarget.Global);
+
+    vscode.window.showInformationMessage('Azure Speech Services settings have been updated.');
+}
+
 // Activation of the extension
 function activate(context) {
     let disposable = vscode.commands.registerCommand('extension.speechify', function () {
@@ -232,8 +274,11 @@ function activate(context) {
 
     // Register the configure voice settings command
     let configureVoiceDisposable = vscode.commands.registerCommand('extension.configureSpeechifyVoiceSettings', configureSpeechifyVoiceSettings);
+    // Register the configure Azure settings command
+    let configureAzureDisposable = vscode.commands.registerCommand('extension.configureSpeechifyAzureSettings', configureSpeechifyAzureSettings);
 
     context.subscriptions.push(disposable);
+    context.subscriptions.push(configureAzureDisposable);
     context.subscriptions.push(configureVoiceDisposable);
 }
 
@@ -245,14 +290,7 @@ module.exports = {
     deactivate
 }
 
-接下来，我希望在updateConfig和getSpeechFromAzureTTS时，弹出一个对话框，显示当前的语音配置信息，这些配置信息从voiceList.json中读取，
-我需要显示的信息有：
-"DisplayName": "Yunxiao Multilingual",
-"ShortName": "zh-TW-HsiaoYuNeural",
-"Gender": "Female",
-"LocaleName": "Chinese (Taiwanese Mandarin, Traditional)",
-"SampleRateHertz": "48000",
-"Status": "GA",
-"WordsPerMinute": "223"
-这样可行吗？如果可行，如何实现？
+
+我希望在生成音频时，改为使用vscode.window.showInformationMessage来显示音频生成成功的消息，这样用户就能够更直观的看到音频生成成功的消息。
+另外，在生成SSML时，要考虑到用户输入的文本中可能包含特殊字符，需要对这些特殊字符进行转义，以避免SSML解析错误。
 ```

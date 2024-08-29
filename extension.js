@@ -166,6 +166,15 @@ let region = config.get('speechServicesRegion');
 
 const endpoint = `https://${region}.tts.speech.microsoft.com`;
 
+// Function to escape special characters in SSML
+function escapeSpecialChars(text) {
+    return text.replace(/&/g, '&amp;')
+               .replace(/</g, '&lt;')
+               .replace(/>/g, '&gt;')
+               .replace(/"/g, '&quot;')
+               .replace(/'/g, '&apos;');
+}
+
 
 // Function to request speech from AzureTTS
 function getSpeechFromAzureTTS(text, language, currentFile) {
@@ -184,9 +193,11 @@ function getSpeechFromAzureTTS(text, language, currentFile) {
 
     showVoiceConfig(voiceAttributes.name);
 
+    const escapedText = escapeSpecialChars(text);
+
     const ssml = `<speak version='1.0' xml:lang='${language}'>
                     <voice xml:lang='${language}' xml:gender='${voiceAttributes.gender}' name='${voiceAttributes.name}' style='${voiceAttributes.style}'>
-                        ${text}
+                        ${escapedText}
                     </voice>
                 </speak>`;
 
@@ -200,26 +211,21 @@ function getSpeechFromAzureTTS(text, language, currentFile) {
 
     axios.post(url, ssml, { headers, responseType: "arraybuffer" }).then(response => {
         const audioData = Buffer.from(response.data, 'binary');
-        let statusBarMessage = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         fs.writeFile(filePath, audioData, function (err) {
             if (err) {
                 console.error(err);
                 vscode.window.showErrorMessage(`Error occurred while saving audio! ❌ Error: ${err.message}`);
             } else {
                 console.log(`Audio saved as ${filePath}`);
-                statusBarMessage.text = `✨ Speech audio saved successfully ✔️`;
-                statusBarMessage.show();
-
-                // Hide the status bar message after 10 seconds
-                setTimeout(() => {
-                    statusBarMessage.hide();
-                }, 10000);  // 10000 milliseconds = 10 seconds
+                vscode.window.showInformationMessage(`✨ Speech audio saved successfully as ${filePath} ✔️`);
             }
         });
     }).catch(error => {
         console.error(error);
+        vscode.window.showErrorMessage(`Error occurred while generating speech! ❌ Error: ${error.message}`);
     });
 }
+
 
 // Function to configure Azure settings
 async function configureSpeechifyAzureSettings() {
