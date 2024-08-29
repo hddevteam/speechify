@@ -4,7 +4,8 @@ This extension allows you to convert selected text into speech using Azure Text 
 
 ## Features
 
-Once the extension is installed and configured with Azure Text to Speech service keys, you can select any text in your editor and convert it into speech. The speech is saved as an MP3 file in the same directory as your current file.
+Once the extension is installed and configured with Azure Text to Speech service keys, you can select any text in your editor and convert it into speech with right-click context menu and select "Speechify".  
+The speech is saved as an MP3 file in the same directory as your current file.
 
 The converted speech can be played back using any standard media player.
 
@@ -44,3 +45,6 @@ Add icon for the extension.
 
 Add new configuration options to simplify the voice selection process. You can just select Confgure Speechify Voice Settings from the command palette and choose the voice you want to use.
 Add a new command to configure Azure settings for the Speechify extension. This command allows users to enter their Azure Speech Services Key and Region, which will be used for text-to-speech conversion. 
+
+### 1.1.1
+Fixed the issue that the extension may not work properly when the text content contains special characters.
