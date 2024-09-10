@@ -49,10 +49,6 @@
         {
           "command": "extension.configureSpeechifyVoiceSettings",
           "group": "navigation"
-        },
-        {
-          "command": "extension.configureSpeechifyAzureSettings",
-          "group": "navigation"
         }
       ]
     },
