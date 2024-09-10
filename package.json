@@ -21,21 +21,37 @@
     "commands": [
       {
         "command": "extension.speechify",
-        "title": "Speechify"
+        "title": "Speechify: Convert Text to Speech"
+      },
+      {
+        "command": "extension.showSpeechifyVoiceSettings",
+        "title": "Speechify: Show Voice Settings"
       },
       {
         "command": "extension.configureSpeechifyVoiceSettings",
-        "title": "Configure Speechify Voice Settings"
+        "title": "Speechify: Configure Voice Settings"
       },
       {
         "command": "extension.configureSpeechifyAzureSettings",
-        "title": "Configure Speechify Azure Settings"
+        "title": "Speechify: Configure Azure Settings"
       }
     ],
     "menus": {
       "editor/context": [
         {
           "command": "extension.speechify",
+          "group": "navigation"
+        },
+        {
+          "command": "extension.showSpeechifyVoiceSettings",
+          "group": "navigation"
+        },
+        {
+          "command": "extension.configureSpeechifyVoiceSettings",
+          "group": "navigation"
+        },
+        {
+          "command": "extension.configureSpeechifyAzureSettings",
           "group": "navigation"
         }
       ]

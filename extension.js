@@ -259,7 +259,6 @@ async function configureSpeechifyAzureSettings() {
     vscode.window.showInformationMessage('Azure Speech Services settings have been updated.');
 }
 
-// Activation of the extension
 function activate(context) {
     let disposable = vscode.commands.registerCommand('extension.speechify', function () {
         const editor = vscode.window.activeTextEditor;
@@ -279,11 +278,19 @@ function activate(context) {
     let configureVoiceDisposable = vscode.commands.registerCommand('extension.configureSpeechifyVoiceSettings', configureSpeechifyVoiceSettings);
     // Register the configure Azure settings command
     let configureAzureDisposable = vscode.commands.registerCommand('extension.configureSpeechifyAzureSettings', configureSpeechifyAzureSettings);
+    // Register the show voice settings command
+    let showVoiceSettingsDisposable = vscode.commands.registerCommand('extension.showSpeechifyVoiceSettings', () => {
+        const voiceAttributes = getVoiceAttributes();
+        showVoiceConfig(voiceAttributes.name);
+    });
 
     context.subscriptions.push(disposable);
     context.subscriptions.push(configureAzureDisposable);
     context.subscriptions.push(configureVoiceDisposable);
+    context.subscriptions.push(showVoiceSettingsDisposable);
 }
+
+
 
 // Deactivation of the extension
 function deactivate() { }
