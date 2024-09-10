@@ -48,3 +48,6 @@ Add a new command to configure Azure settings for the Speechify extension. This 
 
 ### 1.1.1
 Fixed the issue that the extension may not work properly when the text content contains special characters.
+
+### 1.2.0
+Modify the right click context menu to show Congfigure Voice Settings and Show Voice Settings commands.
