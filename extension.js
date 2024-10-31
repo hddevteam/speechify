@@ -5,9 +5,13 @@ const path = require('path');
 
 const { marked } = require('marked'); // 引入 marked 库
 
-// 新增函数，从 HTML 中提取文本
 function extractTextFromMarkdown(markdown) {
-    const html = marked(markdown);
+    // 使用正则表达式去掉代码块和行内代码
+    const noCodeMarkdown = markdown
+        .replace(/```[\s\S]*?```/g, '') // 去掉代码块
+        // .replace(/`([^`]+)`/g, ''); // 去掉行内代码
+    
+    const html = marked(noCodeMarkdown); // 将去掉代码段的 Markdown 转换为 HTML
     const text = html.replace(/<[^>]*>/g, ''); // 移除 HTML 标签
     return text.trim(); // 去掉多余的空格
 }
