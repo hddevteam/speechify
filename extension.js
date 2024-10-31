@@ -3,6 +3,15 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
+const { marked } = require('marked'); // 引入 marked 库
+
+// 新增函数，从 HTML 中提取文本
+function extractTextFromMarkdown(markdown) {
+    const html = marked(markdown);
+    const text = html.replace(/<[^>]*>/g, ''); // 移除 HTML 标签
+    return text.trim(); // 去掉多余的空格
+}
+
 let voiceList = [];
 const voiceListPath = path.join(__dirname, 'voice-list.json');
 
@@ -194,7 +203,7 @@ function getSpeechFromAzureTTS(text, language, currentFile) {
     showVoiceConfig(voiceAttributes.name);
 
     const escapedText = escapeSpecialChars(text);
-
+    console.log('escapedText:', escapedText);
     const ssml = `<speak version='1.0' xml:lang='${language}'>
                     <voice xml:lang='${language}' xml:gender='${voiceAttributes.gender}' name='${voiceAttributes.name}' style='${voiceAttributes.style}'>
                         ${escapedText}
@@ -270,8 +279,16 @@ function activate(context) {
         const text = editor.document.getText(selection);
         const currentFile = editor.document.fileName;
         const language = getVoiceAttributes().name.split('-').slice(0, 2).join('-'); // assume that the language is the prefix of the voice name
+        // 检查当前文件是否为 Markdown 文件
+        if (path.extname(currentFile) === '.md') {
+            // 使用 `extractTextFromMarkdown` 函数处理 Markdown 文本
+            const filteredText = extractTextFromMarkdown(text);
+            console.log('filteredText:', filteredText);
+            getSpeechFromAzureTTS(filteredText, language, currentFile);
+        } else {
+            getSpeechFromAzureTTS(text, language, currentFile);
+        }
 
-        getSpeechFromAzureTTS(text, language, currentFile);
     });
 
     // Register the configure voice settings command
