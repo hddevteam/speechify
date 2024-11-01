@@ -213,7 +213,7 @@ function splitTextIntoChunks(text, maxLength) {
     return chunks;
 }
 
-// Function to request speech from AzureTTS
+// Function to request speech from AzureTTS with retry logic
 async function getSpeechFromAzureTTS(text, language, currentFile) {
     const currentDir = path.dirname(currentFile);
     const currentFileName = path.basename(currentFile, path.extname(currentFile));
@@ -221,11 +221,14 @@ async function getSpeechFromAzureTTS(text, language, currentFile) {
     const voiceAttributes = getVoiceAttributes(language);
     showVoiceConfig(voiceAttributes.name);
 
-    const chunks = splitTextIntoChunks(text, 3000); // Split text into chunks of 1000 characters
+    const chunks = splitTextIntoChunks(text, 3000); // Split text into chunks of 3000 characters
 
-    for (let index = 0; index < chunks.length; index++) {
+    const totalParts = chunks.length;
+
+    for (let index = 0; index < totalParts; index++) {
+        vscode.window.showInformationMessage(`Generating speech for chunk ${index + 1} of ${totalParts}...`);
         const chunk = chunks[index];
-        console.log('converting chunk number:', index + 1, ' of ', chunks.length);
+        console.log('Converting chunk number:', index + 1, 'of', totalParts);
         const escapedText = escapeSpecialChars(chunk);
         console.log('escapedText:', escapedText);
 
@@ -235,8 +238,14 @@ async function getSpeechFromAzureTTS(text, language, currentFile) {
         const day = ("0" + date.getDate()).slice(-2);
         const currentDate = `${year}${month}${day}`;
 
-        // Create a new file name for each chunk
-        const newFileName = `${currentFileName}_${currentDate}_${index + 1}.mp3`;
+        // Determine the file name based on the number of chunks
+        let newFileName;
+        if (totalParts === 1) {
+            newFileName = `${currentFileName}_${currentDate}.mp3`; // No sequence number
+        } else {
+            newFileName = `${currentFileName}_${currentDate}_part${index + 1}_of_${totalParts}.mp3`; // With sequence number
+        }
+        
         const filePath = path.join(currentDir, newFileName);
         
         const ssml = `<speak version='1.0' xml:lang='${language}'>
@@ -246,28 +255,50 @@ async function getSpeechFromAzureTTS(text, language, currentFile) {
                       </speak>`;
 
         const url = `${endpoint}/cognitiveservices/v1`;
-
         const headers = {
             "Content-Type": "application/ssml+xml",
             "X-Microsoft-OutputFormat": "audio-16khz-128kbitrate-mono-mp3",
             "Ocp-Apim-Subscription-Key": subscriptionKey
         };
 
-        try {
-            const response = await axios.post(url, ssml, { headers, responseType: "arraybuffer" });
-            const audioData = Buffer.from(response.data, 'binary');
-            fs.writeFile(filePath, audioData, function (err) {
-                if (err) {
-                    console.error(err);
-                    vscode.window.showErrorMessage(`Error occurred while saving audio! ❌ Error: ${err.message}`);
-                } else {
-                    console.log(`Audio saved as ${filePath}`);
-                    vscode.window.showInformationMessage(`✨ Speech audio saved successfully as ${filePath} ✔️`);
+        // Retry logic
+        let retries = 0;
+        const maxRetries = 2;
+
+        while (retries <= maxRetries) {
+            try {
+                const response = await axios.post(url, ssml, { headers, responseType: "arraybuffer" });
+                const audioData = Buffer.from(response.data, 'binary');
+                
+                fs.writeFile(filePath, audioData, (err) => {
+                    if (err) {
+                        console.error(err);
+                        vscode.window.showErrorMessage(`Error occurred while saving audio! ❌ Error: ${err.message}`);
+                    } else {
+                        console.log(`Audio saved as ${filePath}`);
+                        vscode.window.showInformationMessage(`✨ Speech file ${newFileName} generated successfully! ✨`);
+                    }
+                });
+
+                // If the request was successful, break out of the retry loop
+                break; 
+            } catch (error) {
+                console.error(`Attempt ${retries + 1} failed:`, error.message);
+
+                // If the error is not a network error, we do not retry
+                if (error.code !== 'ECONNRESET' && error.response) {
+                    vscode.window.showErrorMessage(`Error occurred while generating speech for chunk ${index + 1}! ❌ Error: ${error.message}`);
+                    break; // Break if it's a different error
                 }
-            });
-        } catch (error) {
-            console.error(error);
-            vscode.window.showErrorMessage(`Error occurred while generating speech for chunk ${index + 1}! ❌ Error: ${error.message}`);
+
+                // Increment the retry count
+                retries++;
+                if (retries > maxRetries) {
+                    vscode.window.showErrorMessage(`Failed to generate speech for chunk ${index + 1} after ${maxRetries + 1} attempts! ❌`);
+                } else {
+                    console.log(`Retrying... (${retries}/${maxRetries})`);
+                }
+            }
         }
     }
 }
