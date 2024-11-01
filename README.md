@@ -51,3 +51,7 @@ Fixed the issue that the extension may not work properly when the text content c
 
 ### 1.2.0
 Modify the right click context menu to show Congfigure Voice Settings and Show Voice Settings commands.
+
+### 1.3.0
+Split the text content into multiple parts to generate multiple audio files if the text content is too long.
+Added retry mechanism to handle the case that the request is failed due to network issue.
