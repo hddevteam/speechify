@@ -9,8 +9,8 @@ function extractTextFromMarkdown(markdown) {
     // 使用正则表达式去掉代码块和行内代码
     const noCodeMarkdown = markdown
         .replace(/```[\s\S]*?```/g, '') // 去掉代码块
-        // .replace(/`([^`]+)`/g, ''); // 去掉行内代码
-    
+    // .replace(/`([^`]+)`/g, ''); // 去掉行内代码
+
     const html = marked(noCodeMarkdown); // 将去掉代码段的 Markdown 转换为 HTML
     const text = html.replace(/<[^>]*>/g, ''); // 移除 HTML 标签
     return text.trim(); // 去掉多余的空格
@@ -182,62 +182,96 @@ const endpoint = `https://${region}.tts.speech.microsoft.com`;
 // Function to escape special characters in SSML
 function escapeSpecialChars(text) {
     return text.replace(/&/g, '&amp;')
-               .replace(/</g, '&lt;')
-               .replace(/>/g, '&gt;')
-               .replace(/"/g, '&quot;')
-               .replace(/'/g, '&apos;');
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
 }
 
 
+// Function to split text into chunks of specified max length
+function splitTextIntoChunks(text, maxLength) {
+    const chunks = [];
+    let currentChunk = '';
+
+    const sentences = text.split(/\n/); // Split by new line to preserve sentence structure
+    for (const sentence of sentences) {
+        // Check if adding this sentence would exceed the max length
+        if ((currentChunk + sentence).length > maxLength) {
+            if (currentChunk) {
+                chunks.push(currentChunk.trim());
+            }
+            currentChunk = sentence + '\n'; // Start a new chunk
+        } else {
+            currentChunk += sentence + '\n'; // Add sentence to current chunk
+        }
+    }
+    if (currentChunk) {
+        chunks.push(currentChunk.trim()); // Add the last chunk
+    }
+
+    return chunks;
+}
+
 // Function to request speech from AzureTTS
-function getSpeechFromAzureTTS(text, language, currentFile) {
+async function getSpeechFromAzureTTS(text, language, currentFile) {
     const currentDir = path.dirname(currentFile);
     const currentFileName = path.basename(currentFile, path.extname(currentFile));
 
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = ("0" + (date.getMonth() + 1)).slice(-2);
-    const day = ("0" + date.getDate()).slice(-2);
-    const currentDate = `${year}${month}${day}`;
-
-    const newFileName = `${currentFileName}_${currentDate}.mp3`;
-    const filePath = path.join(currentDir, newFileName);
     const voiceAttributes = getVoiceAttributes(language);
-
     showVoiceConfig(voiceAttributes.name);
 
-    const escapedText = escapeSpecialChars(text);
-    console.log('escapedText:', escapedText);
-    const ssml = `<speak version='1.0' xml:lang='${language}'>
-                    <voice xml:lang='${language}' xml:gender='${voiceAttributes.gender}' name='${voiceAttributes.name}' style='${voiceAttributes.style}'>
-                        ${escapedText}
-                    </voice>
-                </speak>`;
+    const chunks = splitTextIntoChunks(text, 3000); // Split text into chunks of 1000 characters
 
-    const url = `${endpoint}/cognitiveservices/v1`;
+    for (let index = 0; index < chunks.length; index++) {
+        const chunk = chunks[index];
+        console.log('converting chunk number:', index + 1, ' of ', chunks.length);
+        const escapedText = escapeSpecialChars(chunk);
+        console.log('escapedText:', escapedText);
 
-    const headers = {
-        "Content-Type": "application/ssml+xml",
-        "X-Microsoft-OutputFormat": "audio-16khz-128kbitrate-mono-mp3",
-        "Ocp-Apim-Subscription-Key": subscriptionKey
-    };
+        const date = new Date();
+        const year = date.getFullYear();
+        const month = ("0" + (date.getMonth() + 1)).slice(-2);
+        const day = ("0" + date.getDate()).slice(-2);
+        const currentDate = `${year}${month}${day}`;
 
-    axios.post(url, ssml, { headers, responseType: "arraybuffer" }).then(response => {
-        const audioData = Buffer.from(response.data, 'binary');
-        fs.writeFile(filePath, audioData, function (err) {
-            if (err) {
-                console.error(err);
-                vscode.window.showErrorMessage(`Error occurred while saving audio! ❌ Error: ${err.message}`);
-            } else {
-                console.log(`Audio saved as ${filePath}`);
-                vscode.window.showInformationMessage(`✨ Speech audio saved successfully as ${filePath} ✔️`);
-            }
-        });
-    }).catch(error => {
-        console.error(error);
-        vscode.window.showErrorMessage(`Error occurred while generating speech! ❌ Error: ${error.message}`);
-    });
+        // Create a new file name for each chunk
+        const newFileName = `${currentFileName}_${currentDate}_${index + 1}.mp3`;
+        const filePath = path.join(currentDir, newFileName);
+        
+        const ssml = `<speak version='1.0' xml:lang='${language}'>
+                          <voice xml:lang='${language}' xml:gender='${voiceAttributes.gender}' name='${voiceAttributes.name}' style='${voiceAttributes.style}'>
+                              ${escapedText}
+                          </voice>
+                      </speak>`;
+
+        const url = `${endpoint}/cognitiveservices/v1`;
+
+        const headers = {
+            "Content-Type": "application/ssml+xml",
+            "X-Microsoft-OutputFormat": "audio-16khz-128kbitrate-mono-mp3",
+            "Ocp-Apim-Subscription-Key": subscriptionKey
+        };
+
+        try {
+            const response = await axios.post(url, ssml, { headers, responseType: "arraybuffer" });
+            const audioData = Buffer.from(response.data, 'binary');
+            fs.writeFile(filePath, audioData, function (err) {
+                if (err) {
+                    console.error(err);
+                    vscode.window.showErrorMessage(`Error occurred while saving audio! ❌ Error: ${err.message}`);
+                } else {
+                    console.log(`Audio saved as ${filePath}`);
+                    vscode.window.showInformationMessage(`✨ Speech audio saved successfully as ${filePath} ✔️`);
+                }
+            });
+        } catch (error) {
+            console.error(error);
+            vscode.window.showErrorMessage(`Error occurred while generating speech for chunk ${index + 1}! ❌ Error: ${error.message}`);
+        }
+    }
 }
+
 
 
 // Function to configure Azure settings
