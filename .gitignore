@@ -1,3 +1,20 @@
 node_modules
 .vscode-test/
 *.vsix
+
+# Test and development configuration files
+test-config.json
+dev-config.json
+*.key
+*.secret
+
+# TypeScript compilation output
+out/
+dist/
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
