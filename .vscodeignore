@@ -1,9 +1,67 @@
+# VS Code specific files
 .vscode/**
 .vscode-test/**
+
+# Test files
 test/**
+src/test/**
+out/test/**
+scripts/test-runner.js
+**/test/**
+**/*.test.js
+**/*.test.ts
+
+# Development files
 .gitignore
 .yarnrc
 vsc-extension-quickstart.md
 **/jsconfig.json
 **/*.map
 **/.eslintrc.json
+.eslintrc.json
+tsconfig.json
+webpack.config.js
+
+# Documentation and development files
+docs/**
+chat.md
+CONTRIBUTING.md
+DEVELOPMENT_PLAN.md
+MANUAL_PUBLISHING.md
+SECURITY.md
+ROADMAP.md
+TESTING.md
+MIGRATION_REPORT.md
+*.md
+!README.md
+
+# Node.js dependencies (should not be included)
+node_modules/**
+
+# Build artifacts - keep only bundled dist
+src/**
+out/**
+
+# Keep only the bundled output
+!dist/extension.js
+
+# Configuration examples
+test-config.json.example
+*.example
+
+# Workspace files
+*.code-workspace
+
+# Git files
+.git/**
+.github/**
+
+# Package files
+*.vsix
+
+# Scripts
+scripts/**
+
+# Temporary files
+tmp/**
+temp/**

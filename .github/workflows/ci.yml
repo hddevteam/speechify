@@ -69,19 +69,8 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
-    - name: Compile TypeScript
-      run: npm run compile
-      
-    - name: Package extension
-      run: |
-        npm install -g vsce
-        vsce package
-        
-    - name: Upload VSIX artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: speechify-extension
-        path: '*.vsix'
+    - name: Build with webpack
+      run: npm run package
         
   security:
     runs-on: ubuntu-latest
