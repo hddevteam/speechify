@@ -1,6 +1,6 @@
 {
-  "speechify.displayName": "Speechify",
-  "speechify.description": "Convert text to speech using Azure Speech Services",
+  "speechify.displayName": "Speechify - AI Text to Speech & Voice Converter",
+  "speechify.description": "Transform text into natural speech using Azure AI Speech Services. High-quality neural voices for accessibility, content creation, and language learning. Supports Chinese, English, and multiple languages with professional voice synthesis.",
   "speechify.command.speechify": "Speechify: Convert Text to Speech",
   "speechify.command.voiceSettings": "Speechify: Show Voice Settings", 
   "speechify.command.configureVoice": "Speechify: Configure Voice Settings",

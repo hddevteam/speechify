@@ -1,6 +1,6 @@
 {
-  "speechify.displayName": "Speechify",
-  "speechify.description": "使用 Azure 语音服务将文字转换为语音",
+  "speechify.displayName": "Speechify - AI语音合成与文本转语音",
+  "speechify.description": "使用Azure AI语音服务将文本转换为自然语音。高质量神经网络语音，支持无障碍访问、内容创作和语言学习。支持中文、英文和多种语言的专业语音合成。",
   "speechify.command.speechify": "Speechify: 文字转语音",
   "speechify.command.voiceSettings": "Speechify: 显示语音设置",
   "speechify.command.configureVoice": "Speechify: 配置语音设置", 

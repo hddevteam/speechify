@@ -1,0 +1,98 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x, 20.x]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run linting
+      run: npm run lint
+      
+    - name: Compile TypeScript
+      run: npm run compile
+      
+    - name: Run tests
+      run: |
+        # Install xvfb for headless VS Code testing
+        sudo apt-get update
+        sudo apt-get install -y xvfb
+        
+        # Run tests with virtual display
+        xvfb-run -a npm run test:integration
+      env:
+        DISPLAY: ':99.0'
+        
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Use Node.js 18.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18.x
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Compile TypeScript
+      run: npm run compile
+      
+    - name: Package extension
+      run: |
+        npm install -g vsce
+        vsce package
+        
+    - name: Upload VSIX artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: speechify-extension
+        path: '*.vsix'
+        
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run security audit
+      run: npm audit --audit-level moderate
+      
+    - name: Check for sensitive files
+      run: |
+        # Check for accidentally committed sensitive files
+        if find . -name "test-config.json" -not -path "./node_modules/*"; then
+          echo "Error: test-config.json found in repository"
+          exit 1
+        fi
+        
+        if find . -name "*.key" -not -path "./node_modules/*"; then
+          echo "Error: Key files found in repository"
+          exit 1
+        fi
