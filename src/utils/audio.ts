@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { AudioFormat, SpeechifyError } from '../types';
+import { AudioFormat } from '../types';
 
 /**
  * Audio file utilities
@@ -15,32 +15,40 @@ export class AudioUtils {
    */
   public static generateOutputPath(
     sourceFilePath: string,
-    text: string,
     chunkIndex?: number,
+    totalChunks?: number,
     format: AudioFormat = this.DEFAULT_FORMAT
   ): string {
     const sourceDir = path.dirname(sourceFilePath);
     const sourceBaseName = path.basename(sourceFilePath, path.extname(sourceFilePath));
+    const timestamp = this.generateFriendlyTimestamp();
     
-    // Create a safe filename from text
-    const textPreview = this.sanitizeFileName(text.substring(0, 50));
-    const chunkSuffix = chunkIndex !== undefined ? `_part${chunkIndex + 1}` : '';
-    const timestamp = Date.now();
+    let fileName: string;
     
-    const fileName = `${sourceBaseName}_speechify_${textPreview}${chunkSuffix}_${timestamp}.${format}`;
+    if (chunkIndex !== undefined && totalChunks !== undefined && totalChunks > 1) {
+      // Multiple chunks: only include part number
+      const partNumber = String(chunkIndex + 1).padStart(2, '0');
+      fileName = `${sourceBaseName}_speechify_part${partNumber}_${timestamp}.${format}`;
+    } else {
+      // Single file: simple naming
+      fileName = `${sourceBaseName}_speechify_${timestamp}.${format}`;
+    }
     
     return path.join(sourceDir, fileName);
   }
 
   /**
-   * Sanitize filename to remove invalid characters
+   * Generate friendly timestamp for filenames
    */
-  private static sanitizeFileName(text: string): string {
-    return text
-      .replace(/[^a-zA-Z0-9\s-_]/g, '') // Remove invalid chars
-      .replace(/\s+/g, '_') // Replace spaces with underscores
-      .replace(/_+/g, '_') // Replace multiple underscores with single
-      .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+  private static generateFriendlyTimestamp(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    
+    return `${year}${month}${day}_${hours}${minutes}`;
   }
 
   /**
@@ -172,11 +180,10 @@ export class AudioUtils {
   /**
    * Create structured error
    */
-  private static createError(code: string, message: string, details?: any): SpeechifyError {
-    return {
-      code,
-      message,
-      details
-    };
+  private static createError(code: string, message: string, details?: any): Error {
+    const error = new Error(message);
+    (error as any).code = code;
+    (error as any).details = details;
+    return error;
   }
 }

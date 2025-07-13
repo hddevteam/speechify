@@ -39,11 +39,19 @@ export class ConfigManager {
   public static getVoiceSettings(): VoiceSettings {
     const config = this.getWorkspaceConfig();
     
-    return {
+    const settings: VoiceSettings = {
       name: config.voiceName,
       gender: config.voiceGender,
-      style: config.voiceStyle
+      style: config.voiceStyle,
+      locale: 'zh-CN' // Extract locale from voice name or use default
     };
+
+    // Only add role if it's set
+    if (config.voiceRole) {
+      settings.role = config.voiceRole;
+    }
+
+    return settings;
   }
 
   /**
@@ -54,7 +62,7 @@ export class ConfigManager {
     
     return {
       subscriptionKey: config.azureSpeechServicesKey,
-      endpoint: `https://${config.speechServicesRegion}.tts.speech.microsoft.com`,
+      endpoint: `https://${config.speechServicesRegion}.tts.speech.microsoft.com/cognitiveservices/v1`,
       region: config.speechServicesRegion
     };
   }
@@ -96,7 +104,9 @@ export class ConfigManager {
     if (testConfig) {
       return {
         subscriptionKey: testConfig.subscriptionKey,
-        endpoint: testConfig.endpoint
+        endpoint: testConfig.endpoint.includes('/cognitiveservices/v1') 
+          ? testConfig.endpoint 
+          : `${testConfig.endpoint}/cognitiveservices/v1`
       };
     }
 

@@ -15,15 +15,11 @@ export class AzureSpeechService {
   public static createSSML(text: string, voice: VoiceSettings): string {
     const locale = voice.locale || this.getLocaleFromVoiceName(voice.name);
     
-    return `
-      <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${locale}">
-        <voice name="${voice.name}">
-          <prosody style="${voice.style}">
-            ${this.escapeXml(text)}
-          </prosody>
-        </voice>
-      </speak>
-    `.trim();
+    return `<speak version='1.0' xml:lang='${locale}'>
+                <voice xml:lang='${locale}' xml:gender='${voice.gender}' name='${voice.name}' style='${voice.style}'>
+                    ${this.escapeXml(text)}
+                </voice>
+            </speak>`;
   }
 
   /**
@@ -43,7 +39,7 @@ export class AzureSpeechService {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+      .replace(/'/g, '&apos;');
   }
 
   /**

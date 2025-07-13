@@ -14,7 +14,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('extension.speechify', convertTextToSpeech),
         vscode.commands.registerCommand('extension.showSpeechifyVoiceSettings', showVoiceSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyVoiceSettings', configureSpeechifyVoiceSettings),
-        vscode.commands.registerCommand('extension.configureSpeechifyAzureSettings', configureSpeechifyAzureSettings)
+        vscode.commands.registerCommand('extension.configureSpeechifyAzureSettings', configureSpeechifyAzureSettings),
+        vscode.commands.registerCommand('extension.selectSpeechifyVoiceStyle', selectVoiceStyle),
+        vscode.commands.registerCommand('extension.selectSpeechifyVoiceRole', selectVoiceRole)
     ];
 
     // Add commands to subscriptions
@@ -162,5 +164,29 @@ async function configureSpeechifyAzureSettings(): Promise<void> {
     } catch (error) {
         console.error('Failed to configure Azure settings:', error);
         vscode.window.showErrorMessage(I18n.t('errors.failedToConfigureAzure'));
+    }
+}
+
+/**
+ * Quick select voice style for current voice
+ */
+async function selectVoiceStyle(): Promise<void> {
+    try {
+        await SpeechService.selectVoiceStyleQuickly();
+    } catch (error) {
+        console.error('Failed to select voice style:', error);
+        vscode.window.showErrorMessage(I18n.t('errors.failedToSelectStyle'));
+    }
+}
+
+/**
+ * Select voice role for roleplay voices
+ */
+async function selectVoiceRole(): Promise<void> {
+    try {
+        await SpeechService.selectVoiceRole();
+    } catch (error) {
+        console.error('Failed to select voice role:', error);
+        vscode.window.showErrorMessage(I18n.t('errors.failedToSelectRole'));
     }
 }

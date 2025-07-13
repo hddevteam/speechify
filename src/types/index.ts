@@ -12,15 +12,24 @@ export interface VoiceSettings {
   gender: string;
   style: string;
   locale?: string;
+  role?: string;  // Optional role for roleplay voices
 }
 
 export interface VoiceListItem {
-  name: string;
-  gender: string;
-  style: string;
-  locale: string;
-  displayName?: string;
-  description?: string;
+  Name: string;
+  DisplayName: string;
+  LocalName: string;
+  ShortName: string;
+  Gender: string;
+  Locale: string;
+  LocaleName: string;
+  SampleRateHertz: string;
+  VoiceType: string;
+  Status: string;
+  WordsPerMinute: string;
+  StyleList?: string[];  // Optional array of available styles
+  SecondaryLocaleList?: string[];  // Optional array of secondary locales
+  RolePlayList?: string[];  // Optional array of roleplay options
 }
 
 /**
@@ -32,6 +41,7 @@ export interface SpeechifyConfig {
   voiceName: string;
   voiceGender: string;
   voiceStyle: string;
+  voiceRole?: string;  // Optional role for roleplay voices
 }
 
 /**

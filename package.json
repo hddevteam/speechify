@@ -34,6 +34,14 @@
       {
         "command": "extension.configureSpeechifyAzureSettings",
         "title": "%speechify.command.configureAzure%"
+      },
+      {
+        "command": "extension.selectSpeechifyVoiceStyle",
+        "title": "%speechify.command.selectStyle%"
+      },
+      {
+        "command": "extension.selectSpeechifyVoiceRole",
+        "title": "%speechify.command.selectRole%"
       }
     ],
     "menus": {
@@ -48,6 +56,14 @@
         },
         {
           "command": "extension.configureSpeechifyVoiceSettings",
+          "group": "navigation"
+        },
+        {
+          "command": "extension.selectSpeechifyVoiceStyle",
+          "group": "navigation"
+        },
+        {
+          "command": "extension.selectSpeechifyVoiceRole",
           "group": "navigation"
         }
       ]
@@ -79,6 +95,11 @@
           "type": "string",
           "default": "friendly",
           "description": "%speechify.configuration.voiceStyle%"
+        },
+        "speechify.voiceRole": {
+          "type": "string",
+          "default": "",
+          "description": "%speechify.configuration.voiceRole%"
         }
       }
     }

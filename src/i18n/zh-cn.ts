@@ -8,6 +8,8 @@ const chineseMessages: Messages = {
   'commands.voiceSettings.description': '显示当前的语音配置和设置',
   'commands.configureVoice.title': 'Speechify: 配置语音设置',
   'commands.configureVoice.description': '配置语音名称、性别和风格偏好',
+  'commands.selectRole.title': 'Speechify: 选择语音角色',
+  'commands.selectRole.description': '为神经语音选择角色扮演角色',
   'commands.configureAzure.title': 'Speechify: 配置 Azure 设置',
   'commands.configureAzure.description': '配置 Azure 语音服务凭据和区域',
   
@@ -16,7 +18,12 @@ const chineseMessages: Messages = {
   'notifications.success.speechGeneratedMultiple': '语音生成成功！已创建 {0} 个音频文件。',
   'notifications.success.configUpdated': '配置更新成功。',
   'notifications.success.voiceSettingsUpdated': '语音设置更新成功。',
+  'notifications.success.voiceStyleUpdated': '语音风格更新成功。',
+  'notifications.success.voiceStyleChanged': '语音风格已更新为：{0}',
+  'notifications.success.voiceRoleChanged': '语音角色已更新为：{0}',
   'notifications.success.azureSettingsUpdated': 'Azure 语音服务配置已更新。',
+  'notifications.info.noStylesAvailable': '语音 "{0}" 不支持不同的风格。',
+  'notifications.info.noRolesAvailable': '语音 "{0}" 不支持不同的角色。',
   
   // Errors
   'errors.noActiveEditor': '未找到活动编辑器。请先打开一个文件。',
@@ -25,9 +32,15 @@ const chineseMessages: Messages = {
   'errors.configurationIncomplete': 'Azure 语音服务配置不完整。',
   'errors.speechGenerationFailed': '语音生成失败：{0}',
   'errors.voiceListNotAvailable': '语音列表不可用。',
+  'errors.voiceListEmpty': '语音列表为空。',
+  'errors.voiceConfigurationFailed': '语音配置失败。',
   'errors.failedToLoadVoiceSettings': '加载语音设置失败。',
   'errors.failedToConfigureVoice': '配置语音设置失败。',
   'errors.failedToConfigureAzure': '配置 Azure 设置失败。',
+  'errors.failedToSelectStyle': '选择语音风格失败。',
+  'errors.currentVoiceNotFound': '在语音列表中找不到当前语音。',
+  'errors.voiceNoStyles': '语音 "{0}" 不支持不同的风格。',
+  'errors.failedToSelectRole': '选择语音角色失败。',
   'errors.invalidCredentials': 'Azure 凭据无效。',
   'errors.rateLimited': '请求频率超限。请稍后重试。',
   'errors.invalidRequest': '请求参数无效。',
@@ -44,8 +57,10 @@ const chineseMessages: Messages = {
   'config.prompts.regionPlaceholder': '例如：eastus, westus2 等',
   'config.prompts.selectVoice': '选择语音名称',
   'config.prompts.selectLocale': '选择语言区域',
+  'config.prompts.selectLanguage': '选择语言/地区',
   'config.prompts.selectGender': '选择语音性别',
   'config.prompts.selectStyle': '选择语音风格',
+  'config.prompts.selectRole': '选择语音角色',
   
   // Progress
   'progress.convertingToSpeech': '正在转换文字为语音...',

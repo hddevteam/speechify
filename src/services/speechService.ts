@@ -85,8 +85,8 @@ export class SpeechService {
         try {
           const outputPath = AudioUtils.generateOutputPath(
             sourceFilePath,
-            chunk,
-            chunks.length > 1 ? i : undefined
+            chunks.length > 1 ? i : undefined,
+            chunks.length
           );
 
           // Synthesize speech
@@ -237,7 +237,7 @@ export class SpeechService {
   }
 
   /**
-   * Configure voice settings
+   * Configure voice settings with step-by-step selection
    */
   public static async configureVoiceSettings(): Promise<void> {
     const voiceList = this.getVoiceList();
@@ -247,26 +247,304 @@ export class SpeechService {
       return;
     }
 
+    try {
+      // Step 1: Select Locale (Language)
+      const selectedLocale = await this.selectLocale(voiceList);
+      if (!selectedLocale) return;
+
+      // Step 2: Select Voice (with gender indication)
+      const selectedVoice = await this.selectVoiceByLocale(voiceList, selectedLocale);
+      if (!selectedVoice) return;
+
+      // Step 3: Select Style (if available)
+      const selectedStyle = await this.selectVoiceStyle(selectedVoice);
+      if (!selectedStyle) return;
+
+      // Update configuration
+      await ConfigManager.updateWorkspaceConfig('voiceName', selectedVoice.ShortName);
+      await ConfigManager.updateWorkspaceConfig('voiceGender', selectedVoice.Gender);
+      await ConfigManager.updateWorkspaceConfig('voiceStyle', selectedStyle);
+
+      vscode.window.showInformationMessage(
+        I18n.t('notifications.success.voiceSettingsUpdated') + 
+        ` ${selectedVoice.DisplayName} (${selectedVoice.Gender}, ${selectedStyle})`
+      );
+    } catch (error) {
+      vscode.window.showErrorMessage(I18n.t('errors.voiceConfigurationFailed'));
+      console.error('Voice configuration failed:', error);
+    }
+  }
+
+  /**
+   * Step 1: Select language/locale
+   */
+  private static async selectLocale(voiceList: VoiceListItem[]): Promise<string | undefined> {
     const currentSettings = ConfigManager.getVoiceSettings();
+    const currentVoice = voiceList.find(v => v.ShortName === currentSettings.name);
+    const currentLocaleName = currentVoice?.LocaleName;
+    
+    const uniqueLocales = this.getUniqueValues(voiceList, 'LocaleName');
+    const localeItems = uniqueLocales.map(localeName => {
+      const voice = voiceList.find(v => v.LocaleName === localeName);
+      return {
+        label: localeName,
+        description: voice?.Locale || '',
+        detail: `${voiceList.filter(v => v.LocaleName === localeName).length} voices available`
+      };
+    }).sort((a, b) => a.label.localeCompare(b.label));
 
-    // Voice name selection
-    const voiceItems = this.createVoiceQuickPickItems(voiceList, 'name', currentSettings.name);
-    const selectedVoice = await vscode.window.showQuickPick(voiceItems, {
-      placeHolder: I18n.t('config.prompts.selectVoice')
-    });
-
-    if (selectedVoice) {
-      await ConfigManager.updateWorkspaceConfig('voiceName', selectedVoice.label);
-      
-      // Update other settings based on selected voice
-      const voice = voiceList.find(v => v.name === selectedVoice.label);
-      if (voice) {
-        await ConfigManager.updateWorkspaceConfig('voiceGender', voice.gender);
-        await ConfigManager.updateWorkspaceConfig('voiceStyle', voice.style);
+    // Move current locale to top and mark with ★
+    if (currentLocaleName) {
+      const currentIndex = localeItems.findIndex(item => item.label === currentLocaleName);
+      if (currentIndex !== -1) {
+        const [currentItem] = localeItems.splice(currentIndex, 1);
+        if (currentItem) {
+          currentItem.label = `★ ${currentItem.label}`;
+          localeItems.unshift(currentItem);
+        }
       }
     }
 
-    vscode.window.showInformationMessage(I18n.t('notifications.success.voiceSettingsUpdated'));
+    const selectedLocale = await vscode.window.showQuickPick(localeItems, {
+      placeHolder: I18n.t('config.prompts.selectLanguage'),
+      title: 'Step 1/3: Select Language'
+    });
+
+    // Remove ★ symbol if present
+    const selectedLocaleName = selectedLocale?.label.startsWith('★ ') ? 
+      selectedLocale.label.substring(2) : 
+      selectedLocale?.label;
+
+    return selectedLocaleName;
+  }
+
+  /**
+   * Step 2: Select voice with gender indication
+   */
+  private static async selectVoiceByLocale(voiceList: VoiceListItem[], localeName: string): Promise<VoiceListItem | undefined> {
+    const currentSettings = ConfigManager.getVoiceSettings();
+    const voicesForLocale = voiceList.filter(v => v.LocaleName === localeName);
+    
+    const voiceItems = voicesForLocale.map(voice => ({
+      label: `${voice.DisplayName} ${voice.LocalName ? `(${voice.LocalName})` : ''} - ${voice.Gender}`,
+      description: voice.ShortName,
+      detail: voice.StyleList && voice.StyleList.length > 0 
+        ? `Styles: ${voice.StyleList.join(', ')}` 
+        : 'Default style only',
+      voice: voice
+    })).sort((a, b) => {
+      // Sort by gender first, then by name
+      if (a.voice.Gender !== b.voice.Gender) {
+        return a.voice.Gender.localeCompare(b.voice.Gender);
+      }
+      return a.voice.DisplayName.localeCompare(b.voice.DisplayName);
+    });
+
+    // Move current voice to top and mark with ★
+    const currentIndex = voiceItems.findIndex(item => item.voice.ShortName === currentSettings.name);
+    if (currentIndex !== -1) {
+      const [currentItem] = voiceItems.splice(currentIndex, 1);
+      if (currentItem) {
+        currentItem.label = `★ ${currentItem.label}`;
+        voiceItems.unshift(currentItem);
+      }
+    }
+
+    const selectedVoiceItem = await vscode.window.showQuickPick(voiceItems, {
+      placeHolder: I18n.t('config.prompts.selectVoice'),
+      title: `Step 2/3: Select Voice for ${localeName}`
+    });
+
+    return selectedVoiceItem?.voice;
+  }
+
+  /**
+   * Step 3: Select voice style
+   */
+  private static async selectVoiceStyle(voice: VoiceListItem): Promise<string | undefined> {
+    const currentSettings = ConfigManager.getVoiceSettings();
+    const availableStyles = voice.StyleList || ['general'];
+    
+    if (availableStyles.length === 1) {
+      // Only one style available, use it directly
+      return availableStyles[0];
+    }
+
+    // Multiple styles available, let user choose
+    const styleItems = availableStyles.map(style => ({
+      label: style,
+      description: this.getStyleDescription(style)
+    }));
+
+    // Move current style to top and mark with ★
+    const currentIndex = styleItems.findIndex(item => item.label === currentSettings.style);
+    if (currentIndex !== -1) {
+      const [currentItem] = styleItems.splice(currentIndex, 1);
+      if (currentItem) {
+        currentItem.label = `★ ${currentItem.label}`;
+        styleItems.unshift(currentItem);
+      }
+    }
+
+    const selectedStyleItem = await vscode.window.showQuickPick(styleItems, {
+      placeHolder: `Select style for ${voice.DisplayName}`,
+      title: `Step 3/3: Select Voice Style`
+    });
+
+    // Remove ★ symbol if present
+    const selectedStyle = selectedStyleItem?.label.startsWith('★ ') ? 
+      selectedStyleItem.label.substring(2) : 
+      selectedStyleItem?.label;
+
+    return selectedStyle || 'general';
+  }
+
+  /**
+   * Get friendly description for voice styles
+   */
+  private static getStyleDescription(style: string): string {
+    const styleDescriptions: { [key: string]: string } = {
+      'general': 'Default neutral style',
+      'cheerful': 'Happy and upbeat',
+      'sad': 'Melancholy and sorrowful', 
+      'angry': 'Annoyed and angry',
+      'fearful': 'Scared and nervous',
+      'disgruntled': 'Contemptuous and complaining',
+      'serious': 'Serious and commanding',
+      'affectionate': 'Warm and affectionate',
+      'gentle': 'Mild, polite and pleasant',
+      'calm': 'Cool, collected and composed',
+      'newscast': 'Formal and professional news style',
+      'customerservice': 'Friendly customer service style',
+      'assistant': 'Digital assistant style',
+      'chat': 'Casual conversational style',
+      'hopeful': 'Optimistic and inspiring',
+      'excited': 'Energetic and enthusiastic'
+    };
+    
+    return styleDescriptions[style] || 'Voice style';
+  }
+
+  /**
+   * Quick select voice style for current voice
+   */
+  public static async selectVoiceStyleQuickly(): Promise<void> {
+    const voiceSettings = ConfigManager.getVoiceSettings();
+    const voiceList = this.getVoiceList();
+    
+    // Find current voice
+    const currentVoice = voiceList.find(voice => voice.ShortName === voiceSettings.name);
+    
+    if (!currentVoice) {
+      vscode.window.showErrorMessage(I18n.t('errors.currentVoiceNotFound'));
+      return;
+    }
+    
+    // Check if voice has styles
+    if (!currentVoice.StyleList || currentVoice.StyleList.length === 0) {
+      vscode.window.showInformationMessage(
+        I18n.t('errors.voiceNoStyles', currentVoice.DisplayName)
+      );
+      return;
+    }
+    
+    // Create style options with current selection at top
+    const styleItems = currentVoice.StyleList.map(style => ({
+      label: style,
+      description: ''
+    }));
+    
+    // Move current style to top and mark with ★
+    const currentStyleIndex = styleItems.findIndex(item => item.label === voiceSettings.style);
+    if (currentStyleIndex !== -1) {
+      const [currentStyleItem] = styleItems.splice(currentStyleIndex, 1);
+      if (currentStyleItem) {
+        currentStyleItem.label = `★ ${currentStyleItem.label}`;
+        styleItems.unshift(currentStyleItem);
+      }
+    }
+    
+    const selectedStyleItem = await vscode.window.showQuickPick(styleItems, {
+      placeHolder: I18n.t('config.prompts.selectStyle'),
+      title: `Select style for ${currentVoice.DisplayName}`
+    });
+    
+    if (!selectedStyleItem) return;
+    
+    // Remove ★ symbol if present
+    const selectedStyle = selectedStyleItem.label.startsWith('★ ') ? 
+      selectedStyleItem.label.substring(2) : 
+      selectedStyleItem.label;
+    
+    // Update configuration
+    await ConfigManager.updateWorkspaceConfig('voiceStyle', selectedStyle);
+    
+    vscode.window.showInformationMessage(
+      I18n.t('notifications.success.voiceStyleChanged', selectedStyle)
+    );
+  }
+
+  /**
+   * Select voice role for roleplay-enabled voices
+   */
+  public static async selectVoiceRole(): Promise<void> {
+    try {
+      const voiceList = await this.getVoiceList();
+      if (!voiceList || voiceList.length === 0) {
+        vscode.window.showErrorMessage(I18n.t('errors.voiceListNotAvailable'));
+        return;
+      }
+
+      // Get current voice settings
+      const voiceSettings = await ConfigManager.getVoiceSettings();
+      if (!voiceSettings) {
+        vscode.window.showErrorMessage(I18n.t('errors.failedToLoadVoiceSettings'));
+        return;
+      }
+
+      // Find current voice
+      const currentVoice = voiceList.find(voice => voice.ShortName === voiceSettings.name);
+      if (!currentVoice) {
+        vscode.window.showErrorMessage(I18n.t('errors.currentVoiceNotFound'));
+        return;
+      }
+
+      // Check if voice has roleplay options
+      if (!currentVoice.RolePlayList || currentVoice.RolePlayList.length === 0) {
+        vscode.window.showInformationMessage(
+          I18n.t('notifications.info.noRolesAvailable', currentVoice.DisplayName)
+        );
+        return;
+      }
+
+      // Create role selection items with current role marked
+      const currentRole = voiceSettings.role || 'default';
+      const roleItems = currentVoice.RolePlayList.map(role => ({
+        label: currentRole === role ? `★ ${role}` : role,
+        description: currentRole === role ? I18n.t('settings.current') : '',
+        role: role
+      }));
+
+      // Show role selection
+      const selectedItem = await vscode.window.showQuickPick(roleItems, {
+        placeHolder: I18n.t('config.prompts.selectRole'),
+        canPickMany: false
+      });
+
+      if (!selectedItem) {
+        return; // User cancelled
+      }
+
+      // Update configuration
+      await ConfigManager.updateWorkspaceConfig('voiceRole', selectedItem.role);
+
+      vscode.window.showInformationMessage(
+        I18n.t('notifications.success.voiceRoleChanged', selectedItem.role)
+      );
+    } catch (error) {
+      console.error('Failed to select voice role:', error);
+      vscode.window.showErrorMessage(I18n.t('errors.failedToSelectRole'));
+    }
   }
 
   /**

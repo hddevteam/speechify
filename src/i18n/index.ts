@@ -9,6 +9,8 @@ export interface Messages {
   'commands.voiceSettings.description': string;
   'commands.configureVoice.title': string;
   'commands.configureVoice.description': string;
+  'commands.selectRole.title': string;
+  'commands.selectRole.description': string;
   'commands.configureAzure.title': string;
   'commands.configureAzure.description': string;
   
@@ -18,6 +20,11 @@ export interface Messages {
   'notifications.success.configUpdated': string;
   'notifications.success.voiceSettingsUpdated': string;
   'notifications.success.azureSettingsUpdated': string;
+  'notifications.success.voiceStyleUpdated': string;
+  'notifications.success.voiceStyleChanged': string;
+  'notifications.success.voiceRoleChanged': string;
+  'notifications.info.noStylesAvailable': string;
+  'notifications.info.noRolesAvailable': string;
   
   // Errors
   'errors.noActiveEditor': string;
@@ -26,9 +33,15 @@ export interface Messages {
   'errors.configurationIncomplete': string;
   'errors.speechGenerationFailed': string;
   'errors.voiceListNotAvailable': string;
+  'errors.voiceListEmpty': string;
+  'errors.voiceConfigurationFailed': string;
   'errors.failedToLoadVoiceSettings': string;
   'errors.failedToConfigureVoice': string;
   'errors.failedToConfigureAzure': string;
+  'errors.failedToSelectStyle': string;
+  'errors.currentVoiceNotFound': string;
+  'errors.voiceNoStyles': string;
+  'errors.failedToSelectRole': string;
   'errors.invalidCredentials': string;
   'errors.rateLimited': string;
   'errors.invalidRequest': string;
@@ -45,8 +58,10 @@ export interface Messages {
   'config.prompts.regionPlaceholder': string;
   'config.prompts.selectVoice': string;
   'config.prompts.selectLocale': string;
+  'config.prompts.selectLanguage': string;
   'config.prompts.selectGender': string;
   'config.prompts.selectStyle': string;
+  'config.prompts.selectRole': string;
   
   // Progress
   'progress.convertingToSpeech': string;
@@ -55,8 +70,8 @@ export interface Messages {
   'progress.configuringSettings': string;
   
   // Actions
-  'actions.configureNow': string;
   'actions.later': string;
+  'actions.configureNow': string;
   'actions.showInExplorer': string;
   'actions.openFile': string;
   'actions.configureVoice': string;

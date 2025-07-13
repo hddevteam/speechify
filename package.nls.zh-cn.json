@@ -5,10 +5,13 @@
   "speechify.command.voiceSettings": "Speechify: 显示语音设置",
   "speechify.command.configureVoice": "Speechify: 配置语音设置", 
   "speechify.command.configureAzure": "Speechify: 配置 Azure 设置",
+  "speechify.command.selectStyle": "Speechify: 选择语音风格",
+  "speechify.command.selectRole": "Speechify: 选择语音角色",
   "speechify.configuration.title": "Speechify",
   "speechify.configuration.azureSpeechServicesKey": "Azure 语音服务订阅密钥",
   "speechify.configuration.speechServicesRegion": "Azure 语音服务区域",
   "speechify.configuration.voiceName": "语音合成的语音名称",
   "speechify.configuration.voiceGender": "语音性别偏好",
-  "speechify.configuration.voiceStyle": "语音风格偏好"
+  "speechify.configuration.voiceStyle": "语音风格偏好",
+  "speechify.configuration.voiceRole": "支持角色扮演的语音角色"
 }
