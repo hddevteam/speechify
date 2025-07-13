@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "speechify",
+			"path": "."
+		},
+		{
+			"name": "cuemode",
+			"path": "../cuemode"
+		}
+	],
+	"settings": {}
+}
