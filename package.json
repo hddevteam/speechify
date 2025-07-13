@@ -1,7 +1,7 @@
 {
   "name": "speechify",
-  "displayName": "Speechify",
-  "description": "",
+  "displayName": "%speechify.displayName%",
+  "description": "%speechify.description%",
   "icon": "./icon.png",
   "version": "1.3.0",
   "engines": {
@@ -21,19 +21,19 @@
     "commands": [
       {
         "command": "extension.speechify",
-        "title": "Speechify: Convert Text to Speech"
+        "title": "%speechify.command.speechify%"
       },
       {
         "command": "extension.showSpeechifyVoiceSettings",
-        "title": "Speechify: Show Voice Settings"
+        "title": "%speechify.command.voiceSettings%"
       },
       {
         "command": "extension.configureSpeechifyVoiceSettings",
-        "title": "Speechify: Configure Voice Settings"
+        "title": "%speechify.command.configureVoice%"
       },
       {
         "command": "extension.configureSpeechifyAzureSettings",
-        "title": "Speechify: Configure Azure Settings"
+        "title": "%speechify.command.configureAzure%"
       }
     ],
     "menus": {
@@ -53,32 +53,32 @@
       ]
     },
     "configuration": {
-      "title": "Speechify",
+      "title": "%speechify.configuration.title%",
       "properties": {
         "speechify.azureSpeechServicesKey": {
           "type": "string",
           "default": "",
-          "description": "Azure SpeechServices Key"
+          "description": "%speechify.configuration.azureSpeechServicesKey%"
         },
         "speechify.speechServicesRegion": {
           "type": "string",
           "default": "eastus",
-          "description": "SpeechServices Region"
+          "description": "%speechify.configuration.speechServicesRegion%"
         },
         "speechify.voiceName": {
           "type": "string",
           "default": "zh-CN-YunyangNeural",
-          "description": "Voice Name"
+          "description": "%speechify.configuration.voiceName%"
         },
         "speechify.voiceGender": {
           "type": "string",
           "default": "Male",
-          "description": "Voice Gender"
+          "description": "%speechify.configuration.voiceGender%"
         },
         "speechify.voiceStyle": {
           "type": "string",
           "default": "friendly",
-          "description": "Voice Style"
+          "description": "%speechify.configuration.voiceStyle%"
         }
       }
     }

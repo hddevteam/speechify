@@ -1,0 +1,14 @@
+{
+  "speechify.displayName": "Speechify",
+  "speechify.description": "Convert text to speech using Azure Speech Services",
+  "speechify.command.speechify": "Speechify: Convert Text to Speech",
+  "speechify.command.voiceSettings": "Speechify: Show Voice Settings", 
+  "speechify.command.configureVoice": "Speechify: Configure Voice Settings",
+  "speechify.command.configureAzure": "Speechify: Configure Azure Settings",
+  "speechify.configuration.title": "Speechify",
+  "speechify.configuration.azureSpeechServicesKey": "Azure Speech Services subscription key",
+  "speechify.configuration.speechServicesRegion": "Azure Speech Services region",
+  "speechify.configuration.voiceName": "Voice name for speech synthesis",
+  "speechify.configuration.voiceGender": "Voice gender preference",
+  "speechify.configuration.voiceStyle": "Voice style preference"
+}

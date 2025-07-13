@@ -3,6 +3,7 @@ import { ProcessingResult, VoiceListItem } from '../types';
 import { ConfigManager } from '../utils/config';
 import { AzureSpeechService } from '../utils/azure';
 import { AudioUtils } from '../utils/audio';
+import { I18n } from '../i18n';
 
 /**
  * Main speech synthesis service
@@ -18,7 +19,7 @@ export class SpeechService {
     try {
       // Validate configuration
       if (!ConfigManager.isConfigurationComplete()) {
-        throw new Error('Azure Speech Services configuration is incomplete');
+        throw new Error(I18n.t('errors.configurationIncomplete'));
       }
 
       // Get configuration
@@ -29,7 +30,7 @@ export class SpeechService {
       const cleanText = AzureSpeechService.extractTextFromMarkdown(text);
       
       if (!cleanText.trim()) {
-        throw new Error('No text content to convert');
+        throw new Error(I18n.t('errors.noTextContent'));
       }
 
       // Split text into chunks
@@ -65,7 +66,7 @@ export class SpeechService {
     // Show progress
     const progressOptions = {
       location: vscode.ProgressLocation.Notification,
-      title: 'Converting text to speech...',
+      title: I18n.t('progress.convertingToSpeech'),
       cancellable: false
     };
 
@@ -77,7 +78,7 @@ export class SpeechService {
         // Update progress
         const percentage = (i / chunks.length) * 100;
         progress.report({
-          message: `Processing chunk ${i + 1} of ${chunks.length}`,
+          message: I18n.t('progress.processingChunk', (i + 1).toString(), chunks.length.toString()),
           increment: percentage
         });
 
@@ -180,7 +181,7 @@ export class SpeechService {
       };
       
       if (value === defaultValue) {
-        item.description = '(current)';
+        item.description = I18n.t('settings.current');
       }
       
       return item;
@@ -192,17 +193,17 @@ export class SpeechService {
    */
   public static async showConfigurationWizard(): Promise<void> {
     const result = await vscode.window.showInformationMessage(
-      'Speechify requires Azure Speech Services configuration. Would you like to configure it now?',
-      'Configure Azure Settings',
-      'Configure Voice Settings',
-      'Cancel'
+      I18n.t('messages.azureConfigurationRequired'),
+      I18n.t('actions.configureAzure'),
+      I18n.t('actions.configureVoice'),
+      I18n.t('actions.cancel')
     );
 
     switch (result) {
-      case 'Configure Azure Settings':
+      case I18n.t('actions.configureAzure'):
         await this.configureAzureSettings();
         break;
-      case 'Configure Voice Settings':
+      case I18n.t('actions.configureVoice'):
         await this.configureVoiceSettings();
         break;
     }
@@ -213,9 +214,9 @@ export class SpeechService {
    */
   public static async configureAzureSettings(): Promise<void> {
     const subscriptionKey = await vscode.window.showInputBox({
-      prompt: 'Enter your Azure Speech Services subscription key',
+      prompt: I18n.t('config.prompts.subscriptionKey'),
       password: true,
-      placeHolder: 'Your subscription key'
+      placeHolder: I18n.t('config.prompts.subscriptionKeyPlaceholder')
     });
 
     if (subscriptionKey) {
@@ -223,16 +224,16 @@ export class SpeechService {
     }
 
     const region = await vscode.window.showInputBox({
-      prompt: 'Enter your Azure Speech Services region',
+      prompt: I18n.t('config.prompts.region'),
       value: 'eastus',
-      placeHolder: 'e.g., eastus, westus2, etc.'
+      placeHolder: I18n.t('config.prompts.regionPlaceholder')
     });
 
     if (region) {
       await ConfigManager.updateWorkspaceConfig('speechServicesRegion', region);
     }
 
-    vscode.window.showInformationMessage('Azure Speech Services configuration updated.');
+    vscode.window.showInformationMessage(I18n.t('notifications.success.azureSettingsUpdated'));
   }
 
   /**
@@ -242,7 +243,7 @@ export class SpeechService {
     const voiceList = this.getVoiceList();
     
     if (voiceList.length === 0) {
-      vscode.window.showErrorMessage('Voice list not available.');
+      vscode.window.showErrorMessage(I18n.t('errors.voiceListNotAvailable'));
       return;
     }
 
@@ -251,7 +252,7 @@ export class SpeechService {
     // Voice name selection
     const voiceItems = this.createVoiceQuickPickItems(voiceList, 'name', currentSettings.name);
     const selectedVoice = await vscode.window.showQuickPick(voiceItems, {
-      placeHolder: 'Select voice name'
+      placeHolder: I18n.t('config.prompts.selectVoice')
     });
 
     if (selectedVoice) {
@@ -265,7 +266,7 @@ export class SpeechService {
       }
     }
 
-    vscode.window.showInformationMessage('Voice settings updated.');
+    vscode.window.showInformationMessage(I18n.t('notifications.success.voiceSettingsUpdated'));
   }
 
   /**

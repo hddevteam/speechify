@@ -1,12 +1,13 @@
 import * as vscode from 'vscode';
 import { SpeechService } from './services/speechService';
 import { ConfigManager } from './utils/config';
+import { I18n } from './i18n';
 
 /**
  * Extension activation function
  */
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-    console.log('Speechify extension is now active!');
+    console.log(I18n.t('messages.extensionActivated'));
 
     // Register commands
     const commands = [
@@ -22,12 +23,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     // Check initial configuration
     if (!ConfigManager.isConfigurationComplete()) {
         const result = await vscode.window.showInformationMessage(
-            'Speechify requires Azure Speech Services configuration to work properly.',
-            'Configure Now',
-            'Later'
+            I18n.t('messages.configurationRequired'),
+            I18n.t('actions.configureNow'),
+            I18n.t('actions.later')
         );
         
-        if (result === 'Configure Now') {
+        if (result === I18n.t('actions.configureNow')) {
             await SpeechService.showConfigurationWizard();
         }
     }
@@ -37,7 +38,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
  * Extension deactivation function
  */
 export function deactivate(): void {
-    console.log('Speechify extension is now deactivated!');
+    console.log(I18n.t('messages.extensionDeactivated'));
 }
 
 /**
@@ -47,7 +48,7 @@ async function convertTextToSpeech(): Promise<void> {
     try {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            vscode.window.showErrorMessage('No active editor found. Please open a file first.');
+            vscode.window.showErrorMessage(I18n.t('errors.noActiveEditor'));
             return;
         }
 
@@ -55,7 +56,7 @@ async function convertTextToSpeech(): Promise<void> {
         const selectedText = editor.document.getText(selection);
 
         if (!selectedText.trim()) {
-            vscode.window.showErrorMessage('No text selected. Please select some text first.');
+            vscode.window.showErrorMessage(I18n.t('errors.noTextSelected'));
             return;
         }
 
@@ -72,21 +73,21 @@ async function convertTextToSpeech(): Promise<void> {
         
         if (result.success) {
             const message = result.processedChunks === 1 
-                ? `Speech generated successfully! Audio saved to: ${result.outputPaths[0]}`
-                : `Speech generated successfully! ${result.processedChunks} audio files created.`;
+                ? I18n.t('notifications.success.speechGenerated', result.outputPaths[0] || '')
+                : I18n.t('notifications.success.speechGeneratedMultiple', result.processedChunks.toString());
             
             const action = await vscode.window.showInformationMessage(
                 message,
-                'Show in Explorer',
-                'Open File'
+                I18n.t('actions.showInExplorer'),
+                I18n.t('actions.openFile')
             );
             
-            if (action === 'Show in Explorer' && result.outputPaths.length > 0) {
+            if (action === I18n.t('actions.showInExplorer') && result.outputPaths.length > 0) {
                 const filePath = result.outputPaths[0];
                 if (filePath) {
                     await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(filePath));
                 }
-            } else if (action === 'Open File' && result.outputPaths.length > 0) {
+            } else if (action === I18n.t('actions.openFile') && result.outputPaths.length > 0) {
                 const filePath = result.outputPaths[0];
                 if (filePath) {
                     await vscode.env.openExternal(vscode.Uri.file(filePath));
@@ -94,15 +95,15 @@ async function convertTextToSpeech(): Promise<void> {
             }
         } else {
             const errorMessage = result.errors.length > 0 
-                ? `Failed to generate speech: ${result.errors.join(', ')}`
-                : 'Failed to generate speech due to unknown error.';
+                ? I18n.t('errors.speechGenerationFailed', result.errors.join(', '))
+                : I18n.t('errors.speechGenerationFailed', 'Unknown error');
             
             vscode.window.showErrorMessage(errorMessage);
         }
     } catch (error) {
         console.error('Text to speech conversion failed:', error);
         vscode.window.showErrorMessage(
-            `Failed to convert text to speech: ${error instanceof Error ? error.message : 'Unknown error'}`
+            I18n.t('errors.speechGenerationFailed', error instanceof Error ? error.message : 'Unknown error')
         );
     }
 }
@@ -116,27 +117,27 @@ async function showVoiceSettings(): Promise<void> {
         const voiceSettings = ConfigManager.getVoiceSettings();
         
         const settingsInfo = [
-            `Voice Name: ${voiceSettings.name}`,
-            `Voice Gender: ${voiceSettings.gender}`,
-            `Voice Style: ${voiceSettings.style}`,
-            `Region: ${config.speechServicesRegion}`,
-            `Has API Key: ${config.azureSpeechServicesKey ? 'Yes' : 'No'}`
+            `${I18n.t('settings.voiceName')}: ${voiceSettings.name}`,
+            `${I18n.t('settings.voiceGender')}: ${voiceSettings.gender}`,
+            `${I18n.t('settings.voiceStyle')}: ${voiceSettings.style}`,
+            `${I18n.t('settings.region')}: ${config.speechServicesRegion}`,
+            `${I18n.t('settings.hasApiKey')}: ${config.azureSpeechServicesKey ? I18n.t('settings.yes') : I18n.t('settings.no')}`
         ].join('\\n');
         
         const action = await vscode.window.showInformationMessage(
-            `Current Speechify Settings:\\n${settingsInfo}`,
-            'Configure Voice',
-            'Configure Azure'
+            I18n.t('messages.currentSettings', settingsInfo),
+            I18n.t('actions.configureVoice'),
+            I18n.t('actions.configureAzure')
         );
         
-        if (action === 'Configure Voice') {
+        if (action === I18n.t('actions.configureVoice')) {
             await configureSpeechifyVoiceSettings();
-        } else if (action === 'Configure Azure') {
+        } else if (action === I18n.t('actions.configureAzure')) {
             await configureSpeechifyAzureSettings();
         }
     } catch (error) {
         console.error('Failed to show voice settings:', error);
-        vscode.window.showErrorMessage('Failed to load voice settings.');
+        vscode.window.showErrorMessage(I18n.t('errors.failedToLoadVoiceSettings'));
     }
 }
 
@@ -148,7 +149,7 @@ async function configureSpeechifyVoiceSettings(): Promise<void> {
         await SpeechService.configureVoiceSettings();
     } catch (error) {
         console.error('Failed to configure voice settings:', error);
-        vscode.window.showErrorMessage('Failed to configure voice settings.');
+        vscode.window.showErrorMessage(I18n.t('errors.failedToConfigureVoice'));
     }
 }
 
@@ -160,6 +161,6 @@ async function configureSpeechifyAzureSettings(): Promise<void> {
         await SpeechService.configureAzureSettings();
     } catch (error) {
         console.error('Failed to configure Azure settings:', error);
-        vscode.window.showErrorMessage('Failed to configure Azure settings.');
+        vscode.window.showErrorMessage(I18n.t('errors.failedToConfigureAzure'));
     }
 }
