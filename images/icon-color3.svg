@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- 颜色方案3: 青绿渐变系 (清新自然感) -->
+    <linearGradient id="docGradient3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#059669;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#047857;stop-opacity:1" />
+    </linearGradient>
+    
+    <radialGradient id="waveGradient3" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:0.3" />
+    </radialGradient>
+    
+    <filter id="glow3" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#10B981" flood-opacity="0.4"/>
+    </filter>
+    
+    <filter id="docShadow3" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  
+  <!-- 颜色方案3: 青绿渐变系 -->
+  <g transform="translate(256, 256)">
+    
+    <!-- 元素2: 居中声波圆环 (主导元素) -->
+    <g>
+      <!-- 声波中心强化 -->
+      <circle cx="0" cy="0" r="20" fill="#10B981" filter="url(#glow3)"/>
+      
+      <!-- 主要声波环 -->
+      <circle cx="0" cy="0" r="80" 
+              stroke="url(#waveGradient3)" 
+              stroke-width="12" 
+              fill="none" 
+              opacity="0.95"/>
+      
+      <circle cx="0" cy="0" r="120" 
+              stroke="url(#waveGradient3)" 
+              stroke-width="10" 
+              fill="none" 
+              opacity="0.7"/>
+      
+      <circle cx="0" cy="0" r="160" 
+              stroke="url(#waveGradient3)" 
+              stroke-width="8" 
+              fill="none" 
+              opacity="0.5"/>
+      
+      <circle cx="0" cy="0" r="200" 
+              stroke="url(#waveGradient3)" 
+              stroke-width="6" 
+              fill="none" 
+              opacity="0.3"/>
+    </g>
+    
+    <!-- 元素1: 居中文档 (平衡元素) -->
+    <rect x="-60" y="-80" width="120" height="160" rx="16" 
+          fill="url(#docGradient3)" 
+          filter="url(#docShadow3)"/>
+    
+    <!-- 文档内容 - 使用暖色对比 -->
+    <rect x="-40" y="-50" width="80" height="12" rx="6" fill="#FFFBEB" opacity="0.95"/>
+    <rect x="-40" y="-25" width="70" height="12" rx="6" fill="#FEF3C7" opacity="0.8"/>
+    <rect x="-40" y="0" width="75" height="12" rx="6" fill="#FDE68A" opacity="0.65"/>
+    <rect x="-40" y="25" width="60" height="12" rx="6" fill="#FCD34D" opacity="0.5"/>
+    
+  </g>
+</svg>

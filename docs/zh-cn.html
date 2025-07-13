@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Speechify - 使用 Azure 语音服务将您的文本转换为高质量语音。强大的 VS Code 扩展，支持60多种语言的200多个语音。">
+    <meta name="keywords" content="VS Code 扩展, 文本转语音, Azure 语音服务, TTS, 辅助功能, 语音合成, 内容创作, 音频生成">
+    <meta name="author" content="Speechify 扩展团队">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="Speechify - VS Code 文本转语音扩展">
+    <meta property="og:description" content="使用 Azure 语音服务将您的文本转换为高质量语音。支持60多种语言的200多个语音，适用于内容创作者、无障碍用户和语言学习者。">
+    <meta property="og:image" content="./assets/images/icon-256.png">
+    <meta property="og:url" content="https://hddevteam.github.io/speechify/zh-cn.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Speechify">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Speechify - VS Code 文本转语音扩展">
+    <meta name="twitter:description" content="使用 Azure 语音服务将您的文本转换为高质量语音。支持60多种语言的200多个语音。">
+    <meta name="twitter:image" content="./assets/images/icon-256.png">
+    
+    <!-- Additional SEO Tags -->
+    <link rel="canonical" href="https://hddevteam.github.io/speechify/zh-cn.html">
+    <meta name="theme-color" content="#BE185D">
+    
+    <title>Speechify - VS Code 文本转语音扩展</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="./assets/images/icon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="./assets/images/icon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./assets/images/icon-16.png">
+    <link rel="apple-touch-icon" sizes="256x256" href="./assets/images/icon-256.png">
+    
+    <!-- CSS Styles -->
+    <link rel="stylesheet" href="./assets/css/style.css">
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-logo">
+                <img src="./assets/images/icon.svg" alt="Speechify Logo" class="nav-icon">
+                <span class="nav-title">Speechify</span>
+            </a>
+            <div class="nav-links">
+                <a href="#features" class="nav-link">功能特色</a>
+                <a href="#use-cases" class="nav-link">应用场景</a>
+                <a href="#installation" class="nav-link">安装指南</a>
+                <a href="#support" class="nav-link">支持</a>
+                <div class="language-switcher">
+                    <button class="lang-btn" data-lang="en">EN</button>
+                    <button class="lang-btn active" data-lang="zh-cn">中文</button>
+                </div>
+                <a href="https://github.com/hddevteam/speechify" class="nav-link" target="_blank" rel="noopener">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <i class="fas fa-microphone"></i>
+                    最新版本 v2.0.0 - 专业文本转语音！
+                </div>
+                <h1 class="hero-title">
+                    将文本转换为<span class="highlight">高质量语音</span>
+                </h1>
+                <p class="hero-description">
+                    Speechify 为 VS Code 带来强大的文本转语音功能。使用 Azure 语音服务，将选定文本或整个文档转换为自然流畅的音频，支持60多种语言的200多个语音。
+                </p>
+                <div class="hero-buttons">
+                    <a href="vscode:extension/luckyXmobile.speechify" class="btn btn-primary">
+                        <i class="fas fa-download"></i>
+                        安装扩展
+                    </a>
+                    <a href="https://github.com/hddevteam/speechify" class="btn btn-secondary" target="_blank" rel="noopener">
+                        <i class="fab fa-github"></i>
+                        查看源码
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-number">200+</div>
+                        <div class="stat-label">语音选择</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">60+</div>
+                        <div class="stat-label">支持语言</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">2</div>
+                        <div class="stat-label">界面语言</div>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="audio-demo-container">
+                    <div class="demo-title">
+                        <i class="fas fa-volume-up"></i>
+                        体验多语言 Speechify 演示
+                    </div>
+                    <div class="language-audio-grid">
+                        <div class="audio-item" data-lang="en">
+                            <div class="audio-flag">🇺🇸</div>
+                            <div class="audio-info">
+                                <div class="audio-lang">English</div>
+                                <div class="audio-voice">Azure Neural Voice</div>
+                            </div>
+                            <button class="audio-play-btn" data-audio="en" title="Play English Demo" aria-label="播放英文 Speechify 演示">
+                                <i class="fas fa-play" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="audio-item" data-lang="zh">
+                            <div class="audio-flag">🇨🇳</div>
+                            <div class="audio-info">
+                                <div class="audio-lang">中文</div>
+                                <div class="audio-voice">Azure 神经语音</div>
+                            </div>
+                            <button class="audio-play-btn" data-audio="zh" title="播放中文演示" aria-label="播放中文 Speechify 演示">
+                                <i class="fas fa-play" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="audio-item" data-lang="es">
+                            <div class="audio-flag">🇪🇸</div>
+                            <div class="audio-info">
+                                <div class="audio-lang">Español</div>
+                                <div class="audio-voice">Voz Neural Azure</div>
+                            </div>
+                            <button class="audio-play-btn" data-audio="es" title="播放西班牙语演示" aria-label="播放西班牙语 Speechify 演示">
+                                <i class="fas fa-play" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="audio-item" data-lang="fr">
+                            <div class="audio-flag">🇫🇷</div>
+                            <div class="audio-info">
+                                <div class="audio-lang">Français</div>
+                                <div class="audio-voice">Voix Neurale Azure</div>
+                            </div>
+                            <button class="audio-play-btn" data-audio="fr" title="播放法语演示" aria-label="播放法语 Speechify 演示">
+                                <i class="fas fa-play" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="audio-item" data-lang="ja">
+                            <div class="audio-flag">🇯🇵</div>
+                            <div class="audio-info">
+                                <div class="audio-lang">日本語</div>
+                                <div class="audio-voice">Azure ニューラル音声</div>
+                            </div>
+                            <button class="audio-play-btn" data-audio="ja" title="播放日语演示" aria-label="播放日语 Speechify 演示">
+                                <i class="fas fa-play" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="audio-player-status">
+                        <div class="currently-playing hidden">
+                            <i class="fas fa-music" aria-hidden="true"></i>
+                            <span class="playing-text">正在播放: </span>
+                            <span class="playing-lang"></span>
+                        </div>
+                        <div class="audio-features">
+                            <div class="feature-item">
+                                <i class="fas fa-microphone"></i>
+                                <span>高质量音频</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-globe"></i>
+                                <span>60+ 种语言</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-bolt"></i>
+                                <span>实时处理</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">强大的文本转语音功能</h2>
+                <p class="section-description">
+                    专业音频内容创作和无障碍访问所需的一切功能
+                </p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-cloud"></i>
+                    </div>
+                    <h3 class="feature-title">Azure 语音服务</h3>
+                    <p class="feature-description">
+                        访问60多种语言的200多个高质量语音，支持先进的神经语音合成技术和企业级可靠性。
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-palette"></i>
+                    </div>
+                    <h3 class="feature-title">语音定制</h3>
+                    <p class="feature-description">
+                        选择说话风格、调整语速、音调和音量。为增强语音输出和创意内容选择角色扮演字符。
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <h3 class="feature-title">VS Code 集成</h3>
+                    <p class="feature-description">
+                        通过简单的键盘快捷键和右键菜单集成，无缝转换选定文本或整个文档。
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <h3 class="feature-title">多语言支持</h3>
+                    <p class="feature-description">
+                        英文和中文界面完全本地化，具有可扩展的国际化架构和自动语言检测。
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3 class="feature-title">实时处理</h3>
+                    <p class="feature-description">
+                        实时进度反馈和大文档处理的智能分块功能，优化性能和内存管理。
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-folder-open"></i>
+                    </div>
+                    <h3 class="feature-title">智能音频管理</h3>
+                    <p class="feature-description">
+                        自动文件命名、格式选择（MP3、WAV）和有序的音频输出处理，智能分块管理。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Use Cases Section -->
+    <section id="use-cases" class="use-cases">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">应用场景</h2>
+                <p class="section-description">
+                    Speechify 增强各种内容创作和无障碍访问场景
+                </p>
+            </div>
+            
+            <div class="use-cases-grid">
+                <div class="use-case-card">
+                    <div class="use-case-icon">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <h3 class="use-case-title">内容创作</h3>
+                    <p class="use-case-description">
+                        为视频、播客和多媒体内容创建专业旁白，使用高质量 AI 生成的语音。
+                    </p>
+                </div>
+                
+                <div class="use-case-card">
+                    <div class="use-case-icon">
+                        <i class="fas fa-universal-access"></i>
+                    </div>
+                    <h3 class="use-case-title">无障碍访问</h3>
+                    <p class="use-case-description">
+                        支持视力障碍用户和阅读困难人群，将文档和代码转换为清晰的音频。
+                    </p>
+                </div>
+                
+                <div class="use-case-card">
+                    <div class="use-case-icon">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <h3 class="use-case-title">语言学习</h3>
+                    <p class="use-case-description">
+                        通过多种语言和地区口音的母语级语音提高发音和听力技能。
+                    </p>
+                </div>
+                
+                <div class="use-case-card">
+                    <div class="use-case-icon">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <h3 class="use-case-title">教育内容</h3>
+                    <p class="use-case-description">
+                        将书面教程、文档和学习材料转换为引人入胜的音频内容，适应不同学习风格。
+                    </p>
+                </div>
+                
+                <div class="use-case-card">
+                    <div class="use-case-icon">
+                        <i class="fas fa-book-reader"></i>
+                    </div>
+                    <h3 class="use-case-title">文档审阅</h3>
+                    <p class="use-case-description">
+                        在多任务处理或代码审查和规划会议期间收听文档、README 文件和代码注释。
+                    </p>
+                </div>
+                
+                <div class="use-case-card">
+                    <div class="use-case-icon">
+                        <i class="fas fa-microphone-alt"></i>
+                    </div>
+                    <h3 class="use-case-title">语音原型</h3>
+                    <p class="use-case-description">
+                        使用逼真的语音合成快速原型化语音界面、聊天机器人和音频应用程序，实现快速开发。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section id="installation" class="installation">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">快速安装</h2>
+                <p class="section-description">
+                    在不到2分钟内准备好您的文本转语音扩展
+                </p>
+            </div>
+            
+            <div class="installation-steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3 class="step-title">从 VS Code 市场安装</h3>
+                        <p class="step-description">
+                            在 VS Code 扩展中搜索 "Speechify" (<kbd>Ctrl+Shift+X</kbd>) 或点击上方安装按钮。
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3 class="step-title">配置 Azure 语音服务</h3>
+                        <p class="step-description">
+                            在 VS Code 设置中设置您的 Azure 语音服务订阅密钥和区域以获得完整功能。
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3 class="step-title">开始转换文本</h3>
+                        <p class="step-description">
+                            选择文本并使用 <kbd>Ctrl+Shift+P</kbd> → "Speechify: Convert to Speech" 开始创建音频内容。
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="install-button-container">
+                <a href="vscode:extension/luckyXmobile.speechify" class="btn btn-primary btn-large">
+                    <i class="fas fa-download"></i>
+                    从 VS Code 市场安装
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Support Section -->
+    <section id="support" class="support">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">支持与社区</h2>
+                <p class="section-description">
+                    获取帮助并为 Speechify 项目做出贡献
+                </p>
+            </div>
+            
+            <div class="support-grid">
+                <div class="support-card">
+                    <div class="support-icon">
+                        <i class="fab fa-github"></i>
+                    </div>
+                    <h3 class="support-title">问题报告</h3>
+                    <p class="support-description">
+                        发现了错误或有功能请求？在我们的 GitHub 仓库中创建问题，我们将帮助您快速解决。
+                    </p>
+                    <a href="https://github.com/hddevteam/speechify/issues" class="support-link" target="_blank" rel="noopener">
+                        <i class="fas fa-external-link-alt"></i>
+                        提交问题
+                    </a>
+                </div>
+                
+                <div class="support-card">
+                    <div class="support-icon">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <h3 class="support-title">文档</h3>
+                    <p class="support-description">
+                        综合指南、配置选项、Azure 设置说明和多语言开发文档。
+                    </p>
+                    <a href="https://github.com/hddevteam/speechify/blob/main/README.zh-CN.md" class="support-link" target="_blank" rel="noopener">
+                        <i class="fas fa-external-link-alt"></i>
+                        阅读文档
+                    </a>
+                </div>
+                
+                <div class="support-card">
+                    <div class="support-icon">
+                        <i class="fas fa-code-branch"></i>
+                    </div>
+                    <h3 class="support-title">贡献</h3>
+                    <p class="support-description">
+                        通过贡献代码、翻译、文档或报告错误和建议新功能来帮助改进 Speechify。
+                    </p>
+                    <a href="https://github.com/hddevteam/speechify/blob/main/CONTRIBUTING.md" class="support-link" target="_blank" rel="noopener">
+                        <i class="fas fa-external-link-alt"></i>
+                        参与贡献
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <div class="footer-logo">
+                        <img src="./assets/images/icon.svg" alt="Speechify Logo">
+                        <span>Speechify</span>
+                    </div>
+                    <p class="footer-description">
+                        使用 Azure 语音服务将您的文本转换为高质量语音。
+                        专业的 VS Code 文本转语音扩展，具有高级语音定制功能。
+                    </p>
+                </div>
+                
+                <div class="footer-links">
+                    <div class="footer-section">
+                        <h4>资源</h4>
+                        <ul class="footer-list">
+                            <li><a href="https://marketplace.visualstudio.com/items?itemName=luckyXmobile.speechify" target="_blank" rel="noopener">VS Code 市场</a></li>
+                            <li><a href="https://github.com/hddevteam/speechify" target="_blank" rel="noopener">GitHub 仓库</a></li>
+                            <li><a href="https://github.com/hddevteam/speechify/blob/main/README.zh-CN.md" target="_blank" rel="noopener">文档</a></li>
+                            <li><a href="https://github.com/hddevteam/speechify/blob/main/CHANGELOG.md" target="_blank" rel="noopener">更新日志</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h4>支持</h4>
+                        <ul class="footer-list">
+                            <li><a href="https://github.com/hddevteam/speechify/issues" target="_blank" rel="noopener">问题报告</a></li>
+                            <li><a href="https://github.com/hddevteam/speechify/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">贡献指南</a></li>
+                            <li><a href="https://github.com/hddevteam/speechify/blob/main/LICENSE" target="_blank" rel="noopener">MIT 许可证</a></li>
+                            <li><a href="https://docs.microsoft.com/zh-cn/azure/cognitive-services/speech-service/" target="_blank" rel="noopener">Azure 语音文档</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2024 Speechify 扩展。保留所有权利。</p>
+                <div class="footer-social">
+                    <a href="https://github.com/hddevteam" target="_blank" rel="noopener" aria-label="GitHub">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="./assets/js/main.js"></script>
+</body>
+</html>

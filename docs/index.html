@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Speechify - Transform your text into high-quality speech with Azure Speech Services. A powerful VS Code extension with 200+ voices in 60+ languages.">
+    <meta name="keywords" content="VS Code extension, text-to-speech, Azure Speech Services, TTS, accessibility, voice synthesis, content creation, audio generation">
+    <meta name="author" content="Speechify Extension Team">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="Speechify - VS Code Text-to-Speech Extension">
+    <meta property="og:description" content="Transform your text into high-quality speech with Azure Speech Services. 200+ voices in 60+ languages for content creators, accessibility users, and language learners.">
+    <meta property="og:image" content="./assets/images/icon-256.png">
+    <meta property="og:url" content="https://hddevteam.github.io/speechify/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Speechify">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Speechify - VS Code Text-to-Speech Extension">
+    <meta name="twitter:description" content="Transform your text into high-quality speech with Azure Speech Services. 200+ voices in 60+ languages.">
+    <meta name="twitter:image" content="./assets/images/icon-256.png">
+    
+    <!-- Additional SEO Tags -->
+    <link rel="canonical" href="https://hddevteam.github.io/speechify/">
+    <meta name="theme-color" content="#BE185D">
+    
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Speechify",
+      "version": "1.3.0",
+      "description": "Text-to-speech extension for VS Code with Azure Speech Services integration",
+      "url": "https://hddevteam.github.io/speechify/",
+      "downloadUrl": "https://marketplace.visualstudio.com/items?itemName=luckyXmobile.speechify",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": ["Windows", "macOS", "Linux"],
+      "programmingLanguage": "TypeScript",
+      "author": {
+        "@type": "Organization",
+        "name": "HDDev Team",
+        "url": "https://github.com/hddevteam"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
+    
+    <title>Speechify - VS Code Text-to-Speech Extension</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="./assets/images/icon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="./assets/images/icon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./assets/images/icon-16.png">
+    <link rel="apple-touch-icon" sizes="256x256" href="./assets/images/icon-256.png">
+    
+    <!-- CSS Styles -->
+    <link rel="stylesheet" href="./assets/css/style.css">
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-logo">
+                <img src="./assets/images/icon.svg" alt="Speechify Logo" class="nav-icon">
+                <span class="nav-title">Speechify</span>
+            </a>
+            <div class="nav-links">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#use-cases" class="nav-link">Use Cases</a>
+                <a href="#installation" class="nav-link">Installation</a>
+                <a href="#support" class="nav-link">Support</a>
+                <div class="language-switcher">
+                    <button class="lang-btn active" data-lang="en">EN</button>
+                    <button class="lang-btn" data-lang="zh-cn">中文</button>
+                </div>
+                <a href="https://github.com/hddevteam/speechify" class="nav-link" target="_blank" rel="noopener">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <i class="fas fa-microphone"></i>
+                    Latest v2.0.0 - Professional Text-to-Speech!
+                </div>
+                <h1 class="hero-title">
+                    Transform Text into <span class="highlight">High-Quality Speech</span>
+                </h1>
+                <p class="hero-description">
+                    Speechify brings powerful text-to-speech capabilities directly to VS Code. Convert selected text or 
+                    entire documents into natural-sounding audio with 200+ voices in 60+ languages using Azure Speech Services.
+                </p>
+                <div class="hero-buttons">
+                    <a href="vscode:extension/luckyXmobile.speechify" class="btn btn-primary">
+                        <i class="fas fa-download"></i>
+                        Install Extension
+                    </a>
+                    <a href="https://github.com/hddevteam/speechify" class="btn btn-secondary" target="_blank" rel="noopener">
+                        <i class="fab fa-github"></i>
+                        View Source
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-number">200+</div>
+                        <div class="stat-label">Voices</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">60+</div>
+                        <div class="stat-label">Languages</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">2</div>
+                        <div class="stat-label">UI Languages</div>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="audio-demo-container">
+                    <div class="demo-title">
+                        <i class="fas fa-volume-up"></i>
+                        Experience Speechify in Multiple Languages
+                    </div>
+                    <div class="language-audio-grid">
+                        <div class="audio-item" data-lang="en">
+                            <div class="audio-flag">🇺🇸</div>
+                            <div class="audio-info">
+                                <div class="audio-lang">English</div>
+                                <div class="audio-voice">Azure Neural Voice</div>
+                            </div>
+                            <button class="audio-play-btn" data-audio="en" title="Play English Demo" aria-label="Play Speechify demo in English">
+                                <i class="fas fa-play" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="audio-item" data-lang="zh">
+                            <div class="audio-flag">🇨🇳</div>
+                            <div class="audio-info">
+                                <div class="audio-lang">中文</div>
+                                <div class="audio-voice">Azure 神经语音</div>
+                            </div>
+                            <button class="audio-play-btn" data-audio="zh" title="播放中文演示" aria-label="播放中文 Speechify 演示">
+                                <i class="fas fa-play" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="audio-item" data-lang="es">
+                            <div class="audio-flag">🇪🇸</div>
+                            <div class="audio-info">
+                                <div class="audio-lang">Español</div>
+                                <div class="audio-voice">Voz Neural Azure</div>
+                            </div>
+                            <button class="audio-play-btn" data-audio="es" title="Reproducir demo en español" aria-label="Reproducir demo de Speechify en español">
+                                <i class="fas fa-play" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="audio-item" data-lang="fr">
+                            <div class="audio-flag">🇫🇷</div>
+                            <div class="audio-info">
+                                <div class="audio-lang">Français</div>
+                                <div class="audio-voice">Voix Neurale Azure</div>
+                            </div>
+                            <button class="audio-play-btn" data-audio="fr" title="Lire la démo en français" aria-label="Lire la démo de Speechify en français">
+                                <i class="fas fa-play" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="audio-item" data-lang="ja">
+                            <div class="audio-flag">🇯🇵</div>
+                            <div class="audio-info">
+                                <div class="audio-lang">日本語</div>
+                                <div class="audio-voice">Azure ニューラル音声</div>
+                            </div>
+                            <button class="audio-play-btn" data-audio="ja" title="日本語デモを再生" aria-label="日本語でSpeechifyデモを再生">
+                                <i class="fas fa-play" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="audio-player-status">
+                        <div class="currently-playing hidden">
+                            <i class="fas fa-music" aria-hidden="true"></i>
+                            <span class="playing-text">Now Playing: </span>
+                            <span class="playing-lang"></span>
+                        </div>
+                        <div class="audio-features">
+                            <div class="feature-item">
+                                <i class="fas fa-microphone"></i>
+                                <span>High-Quality Audio</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-globe"></i>
+                                <span>60+ Languages</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-bolt"></i>
+                                <span>Real-time Processing</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Powerful Text-to-Speech Features</h2>
+                <p class="section-description">
+                    Everything you need for professional audio content creation and accessibility
+                </p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-cloud"></i>
+                    </div>
+                    <h3 class="feature-title">Azure Speech Services</h3>
+                    <p class="feature-description">
+                        Access 200+ high-quality voices in 60+ languages with advanced neural speech synthesis 
+                        and enterprise-grade reliability.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-palette"></i>
+                    </div>
+                    <h3 class="feature-title">Voice Customization</h3>
+                    <p class="feature-description">
+                        Choose speaking styles, adjust speed, pitch, and volume. Select roleplay characters 
+                        for enhanced speech output and creative content.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <h3 class="feature-title">VS Code Integration</h3>
+                    <p class="feature-description">
+                        Seamlessly convert selected text or entire documents with simple keyboard shortcuts 
+                        and right-click context menu integration.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <h3 class="feature-title">Multi-language Support</h3>
+                    <p class="feature-description">
+                        Full interface localization in English and Chinese with extensible i18n architecture 
+                        and automatic language detection.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3 class="feature-title">Real-time Processing</h3>
+                    <p class="feature-description">
+                        Live progress feedback and intelligent chunking for large document processing 
+                        with optimized performance and memory management.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-folder-open"></i>
+                    </div>
+                    <h3 class="feature-title">Smart Audio Management</h3>
+                    <p class="feature-description">
+                        Automatic file naming, format selection (MP3, WAV), and organized audio output 
+                        handling with intelligent chunk management.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Use Cases Section -->
+    <section id="use-cases" class="use-cases">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Perfect For</h2>
+                <p class="section-description">
+                    Speechify enhances various content creation and accessibility scenarios
+                </p>
+            </div>
+            
+            <div class="use-cases-grid">
+                <div class="use-case-card">
+                    <div class="use-case-icon">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <h3 class="use-case-title">Content Creation</h3>
+                    <p class="use-case-description">
+                        Create professional voiceovers for videos, podcasts, and multimedia content 
+                        with high-quality AI-generated speech.
+                    </p>
+                </div>
+                
+                <div class="use-case-card">
+                    <div class="use-case-icon">
+                        <i class="fas fa-universal-access"></i>
+                    </div>
+                    <h3 class="use-case-title">Accessibility</h3>
+                    <p class="use-case-description">
+                        Support visually impaired users and those with reading difficulties by 
+                        converting documentation and code into clear audio.
+                    </p>
+                </div>
+                
+                <div class="use-case-card">
+                    <div class="use-case-icon">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <h3 class="use-case-title">Language Learning</h3>
+                    <p class="use-case-description">
+                        Improve pronunciation and listening skills with native speaker voices 
+                        in multiple languages and regional accents.
+                    </p>
+                </div>
+                
+                <div class="use-case-card">
+                    <div class="use-case-icon">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                    </div>
+                    <h3 class="use-case-title">Educational Content</h3>
+                    <p class="use-case-description">
+                        Transform written tutorials, documentation, and learning materials 
+                        into engaging audio content for diverse learning styles.
+                    </p>
+                </div>
+                
+                <div class="use-case-card">
+                    <div class="use-case-icon">
+                        <i class="fas fa-book-reader"></i>
+                    </div>
+                    <h3 class="use-case-title">Documentation Review</h3>
+                    <p class="use-case-description">
+                        Listen to documentation, README files, and code comments while 
+                        multitasking or during code reviews and planning sessions.
+                    </p>
+                </div>
+                
+                <div class="use-case-card">
+                    <div class="use-case-icon">
+                        <i class="fas fa-microphone-alt"></i>
+                    </div>
+                    <h3 class="use-case-title">Voice Prototyping</h3>
+                    <p class="use-case-description">
+                        Quickly prototype voice interfaces, chatbots, and audio applications 
+                        with realistic speech synthesis for rapid development.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section id="installation" class="installation">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Quick Installation</h2>
+                <p class="section-description">
+                    Get your text-to-speech extension ready in less than 2 minutes
+                </p>
+            </div>
+            
+            <div class="installation-steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Install from VS Code Marketplace</h3>
+                        <p class="step-description">
+                            Search for "Speechify" in VS Code Extensions (<kbd>Ctrl+Shift+X</kbd>) or click the install button above.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Configure Azure Speech Services</h3>
+                        <p class="step-description">
+                            Set up your Azure Speech Services subscription key and region in VS Code settings for full functionality.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Start Converting Text</h3>
+                        <p class="step-description">
+                            Select text and use <kbd>Ctrl+Shift+P</kbd> → "Speechify: Convert to Speech" to begin creating audio content.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="install-button-container">
+                <a href="vscode:extension/luckyXmobile.speechify" class="btn btn-primary btn-large">
+                    <i class="fas fa-download"></i>
+                    Install from VS Code Marketplace
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Support Section -->
+    <section id="support" class="support">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Support & Community</h2>
+                <p class="section-description">
+                    Get help and contribute to the Speechify project
+                </p>
+            </div>
+            
+            <div class="support-grid">
+                <div class="support-card">
+                    <div class="support-icon">
+                        <i class="fab fa-github"></i>
+                    </div>
+                    <h3 class="support-title">Report Issues</h3>
+                    <p class="support-description">
+                        Found a bug or have a feature request? Create an issue on our GitHub repository 
+                        and we'll help you resolve it quickly.
+                    </p>
+                    <a href="https://github.com/hddevteam/speechify/issues" class="support-link" target="_blank" rel="noopener">
+                        <i class="fas fa-external-link-alt"></i>
+                        Open Issues
+                    </a>
+                </div>
+                
+                <div class="support-card">
+                    <div class="support-icon">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <h3 class="support-title">Documentation</h3>
+                    <p class="support-description">
+                        Comprehensive guides, configuration options, Azure setup instructions, 
+                        and development documentation in multiple languages.
+                    </p>
+                    <a href="https://github.com/hddevteam/speechify#readme" class="support-link" target="_blank" rel="noopener">
+                        <i class="fas fa-external-link-alt"></i>
+                        Read Docs
+                    </a>
+                </div>
+                
+                <div class="support-card">
+                    <div class="support-icon">
+                        <i class="fas fa-code-branch"></i>
+                    </div>
+                    <h3 class="support-title">Contribute</h3>
+                    <p class="support-description">
+                        Help improve Speechify by contributing code, translations, documentation, 
+                        or reporting bugs and suggesting new features.
+                    </p>
+                    <a href="https://github.com/hddevteam/speechify/blob/main/CONTRIBUTING.md" class="support-link" target="_blank" rel="noopener">
+                        <i class="fas fa-external-link-alt"></i>
+                        Contribute
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <div class="footer-logo">
+                        <img src="./assets/images/icon.svg" alt="Speechify Logo">
+                        <span>Speechify</span>
+                    </div>
+                    <p class="footer-description">
+                        Transform your text into high-quality speech with Azure Speech Services. 
+                        Professional text-to-speech extension for VS Code with advanced voice customization.
+                    </p>
+                </div>
+                
+                <div class="footer-links">
+                    <div class="footer-section">
+                        <h4>Resources</h4>
+                        <ul class="footer-list">
+                            <li><a href="https://marketplace.visualstudio.com/items?itemName=luckyXmobile.speechify" target="_blank" rel="noopener">VS Code Marketplace</a></li>
+                            <li><a href="https://github.com/hddevteam/speechify" target="_blank" rel="noopener">GitHub Repository</a></li>
+                            <li><a href="https://github.com/hddevteam/speechify/blob/main/README.md" target="_blank" rel="noopener">Documentation</a></li>
+                            <li><a href="https://github.com/hddevteam/speechify/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h4>Support</h4>
+                        <ul class="footer-list">
+                            <li><a href="https://github.com/hddevteam/speechify/issues" target="_blank" rel="noopener">Report Issues</a></li>
+                            <li><a href="https://github.com/hddevteam/speechify/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contributing</a></li>
+                            <li><a href="https://github.com/hddevteam/speechify/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a></li>
+                            <li><a href="https://docs.microsoft.com/azure/cognitive-services/speech-service/" target="_blank" rel="noopener">Azure Speech Docs</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2024 Speechify Extension. All rights reserved.</p>
+                <div class="footer-social">
+                    <a href="https://github.com/hddevteam" target="_blank" rel="noopener" aria-label="GitHub">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="./assets/js/main.js"></script>
+</body>
+</html>

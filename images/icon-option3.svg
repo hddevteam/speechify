@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- 圆形渐变 -->
+    <radialGradient id="circleGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#00BCF2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#007ACC;stop-opacity:1" />
+    </radialGradient>
+    
+    <!-- 文字渐变 -->
+    <linearGradient id="letterGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E6F3FF;stop-opacity:1" />
+    </linearGradient>
+    
+    <filter id="textShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- 方案三：字母 + 声波圆环 （极简符号）-->
+  <g transform="translate(256, 256)">
+    
+    <!-- 元素1: 大写字母 "S" (Speechify) -->
+    <text x="0" y="30" 
+          font-family="Arial, sans-serif" 
+          font-size="200" 
+          font-weight="bold" 
+          text-anchor="middle" 
+          fill="url(#letterGradient)"
+          filter="url(#textShadow)">S</text>
+    
+    <!-- 元素2: 声波圆环 -->
+    <g>
+      <!-- 内圈 - 强声波 -->
+      <circle cx="0" cy="0" r="180" 
+              stroke="url(#circleGradient)" 
+              stroke-width="12" 
+              fill="none" 
+              opacity="0.9"
+              stroke-dasharray="40 20"/>
+      
+      <!-- 中圈 - 中声波 -->
+      <circle cx="0" cy="0" r="210" 
+              stroke="url(#circleGradient)" 
+              stroke-width="8" 
+              fill="none" 
+              opacity="0.6"
+              stroke-dasharray="30 25"/>
+      
+      <!-- 外圈 - 弱声波 -->
+      <circle cx="0" cy="0" r="240" 
+              stroke="url(#circleGradient)" 
+              stroke-width="6" 
+              fill="none" 
+              opacity="0.3"
+              stroke-dasharray="20 30"/>
+    </g>
+    
+  </g>
+</svg>

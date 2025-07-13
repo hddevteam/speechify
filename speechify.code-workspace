@@ -9,5 +9,7 @@
 			"path": "../cuemode"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "speechify"
+	}
 }

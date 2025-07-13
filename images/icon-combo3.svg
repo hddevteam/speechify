@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- 重叠渐变效果 -->
+    <linearGradient id="docGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#007ACC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#005A9E;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 动态声波渐变 -->
+    <linearGradient id="dynamicWave" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00BCF2;stop-opacity:0.9" />
+      <stop offset="50%" style="stop-color:#FFFFFF;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#007ACC;stop-opacity:0.6" />
+    </linearGradient>
+    
+    <filter id="integration" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#00BCF2" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- 组合C：中心重叠，一体化设计 -->
+  <g transform="translate(256, 256)">
+    
+    <!-- 元素1: 中心文档 -->
+    <rect x="-80" y="-100" width="160" height="200" rx="18" 
+          fill="url(#docGradient)" 
+          filter="url(#integration)"/>
+    
+    <!-- 强化文档内容 - 更大更清晰 -->
+    <rect x="-60" y="-70" width="120" height="18" rx="9" fill="#ffffff" opacity="0.95"/>
+    <rect x="-60" y="-35" width="100" height="18" rx="9" fill="#ffffff" opacity="0.85"/>
+    <rect x="-60" y="0" width="110" height="18" rx="9" fill="#ffffff" opacity="0.75"/>
+    <rect x="-60" y="35" width="90" height="18" rx="9" fill="#ffffff" opacity="0.65"/>
+    <rect x="-60" y="70" width="80" height="18" rx="9" fill="#ffffff" opacity="0.55"/>
+    
+    <!-- 元素2: 环绕式声波 - 与文档形成一体 -->
+    <g>
+      <!-- 内层声波 - 紧贴文档 -->
+      <ellipse cx="0" cy="0" rx="110" ry="130" 
+               stroke="url(#dynamicWave)" 
+               stroke-width="8" 
+               fill="none" 
+               opacity="0.8"/>
+      
+      <!-- 中层声波 -->
+      <ellipse cx="0" cy="0" rx="140" ry="160" 
+               stroke="url(#dynamicWave)" 
+               stroke-width="6" 
+               fill="none" 
+               opacity="0.6"/>
+      
+      <!-- 外层声波 -->
+      <ellipse cx="0" cy="0" rx="170" ry="190" 
+               stroke="url(#dynamicWave)" 
+               stroke-width="4" 
+               fill="none" 
+               opacity="0.4"/>
+      
+      <!-- 最外层声波 -->
+      <ellipse cx="0" cy="0" rx="200" ry="220" 
+               stroke="url(#dynamicWave)" 
+               stroke-width="3" 
+               fill="none" 
+               opacity="0.2"/>
+    </g>
+    
+  </g>
+</svg>
