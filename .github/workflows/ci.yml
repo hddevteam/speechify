@@ -38,8 +38,16 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y xvfb
         
-        # Run tests with virtual display
-        xvfb-run -a npm run test:integration
+        # Set test environment variables
+        export CI=true
+        export NODE_ENV=test
+        export DISPLAY=:99.0
+        
+        # Start virtual display
+        Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+        
+        # Run tests with the CI-aware test runner
+        npm run test:integration
       env:
         DISPLAY: ':99.0'
         

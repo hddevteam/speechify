@@ -42,7 +42,7 @@
   "bugs": {
     "url": "https://github.com/hddevteam/speechify/issues"
   },
-  "homepage": "https://github.com/hddevteam/speechify#readme",
+  "homepage": "https://hddevteam.github.io/speechify/",
   "license": "MIT",
   "qna": "marketplace",
   "galleryBanner": {
@@ -143,9 +143,10 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js",
+    "test": "node ./scripts/test-runner.js",
     "test:unit": "mocha out/test/suite/**/*.test.js",
-    "test:integration": "node ./out/test/runTest.js",
+    "test:integration": "node ./scripts/test-runner.js",
+    "test:local": "node ./out/test/runTest.js",
     "package": "vsce package"
   },
   "devDependencies": {

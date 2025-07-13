@@ -1,12 +1,16 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { hasTestConfig, createTempFile, cleanupTempFile, TEST_TEXTS } from '../testUtils';
+import { isRunningInCI, getTimeout } from '../ci-config';
 
 suite('Extension Integration Tests', () => {
     
     vscode.window.showInformationMessage('Start all tests.');
 
-    test('Extension should be present and activate', async () => {
+    test('Extension should be present and activate', async function() {
+        // Use longer timeout in CI environment
+        this.timeout(isRunningInCI() ? getTimeout('activation') : 5000);
+        
         const extension = vscode.extensions.getExtension('luckyxmobile.speechify');
         assert.ok(extension, 'Extension should be present');
         
@@ -43,9 +47,11 @@ suite('Extension Integration Tests', () => {
         assert.notStrictEqual(azureRegion, undefined, 'Azure region should have a default value');
     });
 
-    test('Main speechify command should be callable', async () => {
-        if (!hasTestConfig()) {
-            console.warn('Skipping command execution test - test-config.json not found');
+    test('Main speechify command should be callable', async function() {
+        this.timeout(getTimeout('command'));
+        
+        if (!hasTestConfig() && isRunningInCI()) {
+            console.warn('Skipping command execution test in CI - no Azure configuration');
             return;
         }
 
@@ -67,7 +73,7 @@ suite('Extension Integration Tests', () => {
         
         try {
             // Execute the command - it should not throw
-            await vscode.commands.executeCommand('speechify.speechify');
+            await vscode.commands.executeCommand('extension.speechify');
             
             // If we get here, the command executed without throwing
             assert.ok(true, 'Main speechify command should execute without throwing');
@@ -82,7 +88,7 @@ suite('Extension Integration Tests', () => {
     test('Voice settings command should be callable', async () => {
         try {
             // Execute the voice settings command
-            await vscode.commands.executeCommand('speechify.showVoiceSettings');
+            await vscode.commands.executeCommand('extension.showSpeechifyVoiceSettings');
             assert.ok(true, 'Voice settings command should execute without throwing');
             
         } catch (error) {
@@ -95,7 +101,7 @@ suite('Extension Integration Tests', () => {
     test('Configure voice settings command should be callable', async () => {
         try {
             // Execute the configure voice settings command
-            await vscode.commands.executeCommand('speechify.configureVoiceSettings');
+            await vscode.commands.executeCommand('extension.configureSpeechifyVoiceSettings');
             assert.ok(true, 'Configure voice settings command should execute without throwing');
             
         } catch (error) {
@@ -108,7 +114,7 @@ suite('Extension Integration Tests', () => {
     test('Configure Azure settings command should be callable', async () => {
         try {
             // Execute the configure Azure settings command
-            await vscode.commands.executeCommand('speechify.configureSpeechifyAzureSettings');
+            await vscode.commands.executeCommand('extension.configureSpeechifyAzureSettings');
             assert.ok(true, 'Configure Azure settings command should execute without throwing');
             
         } catch (error) {
@@ -124,7 +130,7 @@ suite('Extension Integration Tests', () => {
         
         try {
             // Try to execute speechify command with no active editor
-            await vscode.commands.executeCommand('speechify.speechify');
+            await vscode.commands.executeCommand('extension.speechify');
             
             // Should not reach here, should throw an error
             assert.fail('Command should throw error when no editor is active');
@@ -136,9 +142,11 @@ suite('Extension Integration Tests', () => {
         }
     });
 
-    test('Extension should handle no text selection gracefully', async () => {
-        if (!hasTestConfig()) {
-            console.warn('Skipping no selection test - test-config.json not found');
+    test('Extension should handle no text selection gracefully', async function() {
+        this.timeout(getTimeout('command'));
+        
+        if (!hasTestConfig() && isRunningInCI()) {
+            console.warn('Skipping no selection test in CI - no Azure configuration');
             return;
         }
 
@@ -155,7 +163,7 @@ suite('Extension Integration Tests', () => {
         
         try {
             // Try to execute speechify command with no selection
-            await vscode.commands.executeCommand('speechify.speechify');
+            await vscode.commands.executeCommand('extension.speechify');
             
             // Should not reach here, should throw an error
             assert.fail('Command should throw error when no text is selected');

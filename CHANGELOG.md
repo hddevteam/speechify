@@ -8,10 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Preparation for version 2.0.0 release with manual publishing workflow
-- Removed automated publishing workflow in favor of manual control
+- Preparation for future enhancements
 
-## [2.0.0] - TBD
+## [2.0.0] - 2025-07-13
 
 ### 🎯 Major Features Added
 - **Complete TypeScript Migration**: Full rewrite from JavaScript to TypeScript with strict type checking
@@ -19,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Enhanced File Naming System**: Clean, intelligent audio file naming without text previews
 - **Comprehensive Testing**: 54 automated tests with real Azure API integration testing
 - **Advanced Error Handling**: Robust error handling with user-friendly multilingual messages
+- **Visual Identity & Branding**: Professional pink-purple gradient icon and visual design
+- **GitHub Pages Website**: Interactive landing page with multilingual audio demos
+- **Multilingual Audio Demos**: 5-language demonstration system using Azure Speech Services
 
 ### 🌍 Internationalization Enhancements
 - **Enhanced i18n System**: Complete message coverage with 70+ keys for English and Chinese
