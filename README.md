@@ -123,7 +123,7 @@ Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/item
 
 ### 2. Azure Setup
 
-⚠️ **Security Notice**: Never commit your Azure subscription keys to version control. Always store them securely in VS Code settings or environment variables.
+🔒 **Security Best Practice**: Never commit your Azure subscription keys to version control. Always store them securely in VS Code settings or environment variables.
 
 1. Get your [Azure Speech Services](https://azure.microsoft.com/services/cognitive-services/speech-services/) subscription key
 2. Open VS Code Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
@@ -133,7 +133,7 @@ Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/item
 **For Developers:**
 - Copy `test-config.json.example` to `test-config.json` and add your test credentials
 - The `test-config.json` file is automatically ignored by Git for security
-- If you accidentally commit sensitive files, regenerate your Azure keys immediately
+- Our CI pipeline includes automated security checks to prevent accidental key exposure
 
 ### 3. Voice Configuration
 1. Open Command Palette

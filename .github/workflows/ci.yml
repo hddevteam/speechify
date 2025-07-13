@@ -94,13 +94,18 @@ jobs:
       
     - name: Check for sensitive files
       run: |
-        # Check for accidentally committed sensitive files
-        if find . -name "test-config.json" -not -path "./node_modules/*"; then
-          echo "Error: test-config.json found in repository"
+        # Check for accidentally committed sensitive files (only in Git index)
+        if git ls-files | grep -E "(test-config\.json|.*\.key|.*\.secret)$"; then
+          echo "Error: Sensitive files found in Git repository"
+          echo "These files should not be committed:"
+          git ls-files | grep -E "(test-config\.json|.*\.key|.*\.secret)$"
           exit 1
         fi
         
-        if find . -name "*.key" -not -path "./node_modules/*"; then
-          echo "Error: Key files found in repository"
+        # Check for hardcoded secrets in committed files
+        if git grep -E "(subscriptionKey|api[_-]?key).*['\"].*[0-9a-f]{32}" -- "*.ts" "*.js" "*.json"; then
+          echo "Error: Potential hardcoded secrets found in committed files"
           exit 1
         fi
+        
+        echo "✅ No sensitive files or hardcoded secrets found in repository"
