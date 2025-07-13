@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Preparation for future enhancements
 
+## [2.0.1] - 2025-07-13
+
+### 🎨 Visual Improvements
+- **Updated Extension Icon**: Replaced legacy icon with new professional pink-purple gradient design
+- **Visual Consistency**: Aligned extension icon with brand identity from GitHub Pages
+- **CI/CD Fixes**: Resolved extension packaging issues related to icon file paths
+
+### 🔧 Technical Improvements
+- **Icon Asset Management**: Organized icon assets in `/images/` directory with multiple sizes
+- **Package Configuration**: Updated package.json to use new 128x128 icon for optimal display
+- **Repository Cleanup**: Removed deprecated icon files
+
 ## [2.0.0] - 2025-07-13
 
 ### 🎯 Major Features Added
