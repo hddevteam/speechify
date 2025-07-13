@@ -1,0 +1,5 @@
+{
+  "subscriptionKey": "your-azure-speech-subscription-key-here",
+  "endpoint": "https://eastus.tts.speech.microsoft.com",
+  "region": "eastus"
+}
