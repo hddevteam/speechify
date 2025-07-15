@@ -11,7 +11,7 @@
         init() {
             this.detectLanguage();
             this.setupLanguageSwitcher();
-            this.updateContent();
+            this.updateLanguageButtons();
         },
         
         detectLanguage() {
@@ -83,12 +83,8 @@
             } else if (lang === 'en' && isCurrentlyZhPage) {
                 // Switch to English page
                 window.location.href = './index.html';
-            } else {
-                // We're on the correct page, just update content and buttons
-                this.currentLang = lang;
-                this.updateContent();
-                this.updateLanguageButtons();
             }
+            // Remove dynamic content update since we use separate HTML files
         },
 
         updateLanguageButtons() {
@@ -109,198 +105,6 @@
                     btn.style.transform = 'scale(1)';
                 }
             });
-        },
-        
-        updateContent() {
-            const content = this.getContent(this.currentLang);
-            this.applyContent(content);
-        },
-        
-        getContent(lang) {
-            const content = {
-                'en': {
-                    title: 'Speechify - VS Code Text-to-Speech Extension',
-                    tagline: 'Transform your text into high-quality speech with Azure Speech Services',
-                    description: 'Speechify brings powerful text-to-speech capabilities directly to VS Code. Convert selected text or entire documents into natural-sounding audio with 200+ voices in 60+ languages.',
-                    installBtn: 'Install from Marketplace',
-                    learnMoreBtn: 'Learn More',
-                    featuresTitle: 'Powerful Features',
-                    features: {
-                        voices: {
-                            title: 'Azure Speech Services',
-                            description: 'Access 200+ high-quality voices in 60+ languages with advanced neural speech synthesis.'
-                        },
-                        customization: {
-                            title: 'Voice Customization',
-                            description: 'Choose speaking styles, adjust speed, and select roleplay characters for enhanced speech output.'
-                        },
-                        integration: {
-                            title: 'VS Code Integration',
-                            description: 'Seamlessly convert selected text or entire documents with simple keyboard shortcuts.'
-                        },
-                        multilingual: {
-                            title: 'Multi-language Support',
-                            description: 'Full interface localization in English and Chinese with extensible i18n architecture.'
-                        },
-                        realtime: {
-                            title: 'Real-time Processing',
-                            description: 'Live progress feedback and intelligent chunking for large document processing.'
-                        },
-                        management: {
-                            title: 'Smart Audio Management',
-                            description: 'Automatic file naming, format selection, and organized audio output handling.'
-                        }
-                    },
-                    demoTitle: 'See Speechify in Action',
-                    installTitle: 'Quick Installation',
-                    installSteps: {
-                        marketplace: {
-                            title: 'Install from VS Code Marketplace',
-                            description: 'Search for "Speechify" in VS Code Extensions or click the install button above.'
-                        },
-                        configure: {
-                            title: 'Configure Azure Speech Services',
-                            description: 'Set up your Azure Speech Services subscription key and region in VS Code settings.'
-                        },
-                        use: {
-                            title: 'Start Converting Text',
-                            description: 'Select text and use Ctrl+Shift+P → "Speechify: Convert to Speech" to begin.'
-                        }
-                    },
-                    footerLinks: {
-                        github: 'GitHub Repository',
-                        marketplace: 'VS Code Marketplace',
-                        documentation: 'Documentation',
-                        support: 'Support',
-                        license: 'MIT License'
-                    },
-                    copyright: '© 2024 Speechify Extension. All rights reserved.'
-                },
-                'zh-cn': {
-                    title: 'Speechify - VS Code 文本转语音扩展',
-                    tagline: '使用 Azure 语音服务将您的文本转换为高质量语音',
-                    description: 'Speechify 为 VS Code 带来强大的文本转语音功能。将选定文本或整个文档转换为自然流畅的音频，支持60多种语言的200多个语音。',
-                    installBtn: '从市场安装',
-                    learnMoreBtn: '了解更多',
-                    featuresTitle: '强大功能',
-                    features: {
-                        voices: {
-                            title: 'Azure 语音服务',
-                            description: '访问60多种语言的200多个高质量语音，支持先进的神经语音合成技术。'
-                        },
-                        customization: {
-                            title: '语音定制',
-                            description: '选择说话风格、调整语速，并为增强语音输出选择角色扮演字符。'
-                        },
-                        integration: {
-                            title: 'VS Code 集成',
-                            description: '通过简单的键盘快捷键无缝转换选定文本或整个文档。'
-                        },
-                        multilingual: {
-                            title: '多语言支持',
-                            description: '英文和中文界面完全本地化，具有可扩展的国际化架构。'
-                        },
-                        realtime: {
-                            title: '实时处理',
-                            description: '实时进度反馈和大文档处理的智能分块功能。'
-                        },
-                        management: {
-                            title: '智能音频管理',
-                            description: '自动文件命名、格式选择和有序的音频输出处理。'
-                        }
-                    },
-                    demoTitle: '观看 Speechify 演示',
-                    installTitle: '快速安装',
-                    installSteps: {
-                        marketplace: {
-                            title: '从 VS Code 市场安装',
-                            description: '在 VS Code 扩展中搜索 "Speechify" 或点击上方安装按钮。'
-                        },
-                        configure: {
-                            title: '配置 Azure 语音服务',
-                            description: '在 VS Code 设置中设置您的 Azure 语音服务订阅密钥和区域。'
-                        },
-                        use: {
-                            title: '开始转换文本',
-                            description: '选择文本并使用 Ctrl+Shift+P → "Speechify: Convert to Speech" 开始转换。'
-                        }
-                    },
-                    footerLinks: {
-                        github: 'GitHub 仓库',
-                        marketplace: 'VS Code 市场',
-                        documentation: '文档',
-                        support: '支持',
-                        license: 'MIT 许可证'
-                    },
-                    copyright: '© 2024 Speechify 扩展。保留所有权利。'
-                }
-            };
-            
-            return content[lang] || content['en'];
-        },
-        
-        applyContent(content) {
-            // Update page title
-            document.title = content.title;
-            
-            // Update hero section
-            const heroTitle = document.querySelector('.hero h1');
-            const heroTagline = document.querySelector('.hero .tagline');
-            const heroDescription = document.querySelector('.hero .description');
-            const installBtn = document.querySelector('.btn-primary');
-            const learnMoreBtn = document.querySelector('.btn-secondary');
-            
-            if (heroTitle) heroTitle.textContent = content.title.replace('Speechify - ', '');
-            if (heroTagline) heroTagline.textContent = content.tagline;
-            if (heroDescription) heroDescription.textContent = content.description;
-            if (installBtn) installBtn.textContent = content.installBtn;
-            if (learnMoreBtn) learnMoreBtn.textContent = content.learnMoreBtn;
-            
-            // Update features section
-            const featuresTitle = document.querySelector('.features h2');
-            if (featuresTitle) featuresTitle.textContent = content.featuresTitle;
-            
-            // Update feature cards
-            Object.keys(content.features).forEach((key, index) => {
-                const card = document.querySelectorAll('.feature-card')[index];
-                if (card) {
-                    const title = card.querySelector('h3');
-                    const desc = card.querySelector('p');
-                    if (title) title.textContent = content.features[key].title;
-                    if (desc) desc.textContent = content.features[key].description;
-                }
-            });
-            
-            // Update demo section
-            const demoTitle = document.querySelector('.demo h2');
-            if (demoTitle) demoTitle.textContent = content.demoTitle;
-            
-            // Update installation section
-            const installTitle = document.querySelector('.installation h2');
-            if (installTitle) installTitle.textContent = content.installTitle;
-            
-            // Update installation steps
-            Object.keys(content.installSteps).forEach((key, index) => {
-                const step = document.querySelectorAll('.install-step')[index];
-                if (step) {
-                    const title = step.querySelector('h3');
-                    const desc = step.querySelector('p');
-                    if (title) title.textContent = content.installSteps[key].title;
-                    if (desc) desc.textContent = content.installSteps[key].description;
-                }
-            });
-            
-            // Update footer
-            const footerLinks = document.querySelectorAll('.footer-link');
-            const linkKeys = Object.keys(content.footerLinks);
-            footerLinks.forEach((link, index) => {
-                if (linkKeys[index]) {
-                    link.textContent = content.footerLinks[linkKeys[index]];
-                }
-            });
-            
-            const copyright = document.querySelector('.footer-bottom p');
-            if (copyright) copyright.textContent = content.copyright;
         }
     };
 

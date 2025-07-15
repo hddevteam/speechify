@@ -4,6 +4,42 @@
 
 This is a VS Code extension project that converts text to speech using Azure Speech Services. Please use the get_vscode_api with a query as input to fetch the latest VS Code API references when working with VS Code extension development.
 
+## Available Development Tools
+
+### Local Tools & CLI
+- **GitHub CLI (`gh`)**: Used for repository management, issue tracking, and automated workflows
+  - Branch operations and pull requests
+  - Issue and release management
+  - CI/CD workflow interaction
+  - Repository configuration
+
+- **SVG Conversion (`rsvg-convert`)**:
+  - Converting SVG assets to PNG/PDF
+  - Icon and badge generation
+  - Documentation graphics processing
+  - Build-time asset optimization
+
+### Tool Usage Guidelines
+
+#### GitHub CLI Best Practices
+- Use `gh` for automated workflows and CI/CD integration
+- Maintain consistent commit messages and branch naming
+- Follow repository governance through CLI commands
+- Automate release and version management
+
+#### SVG Asset Management
+- Convert icons and badges during build process
+- Maintain vector source files in repository
+- Generate optimized assets for documentation
+- Support high DPI and accessibility requirements
+
+### Integration with VS Code Extension
+- GitHub CLI for extension publishing workflow
+- SVG conversion for extension icons and badges
+- Automated asset pipeline in build process
+- Quality assurance and release automation
+
+
 ## Project Overview
 Speechify is a VS Code extension that provides text-to-speech conversion functionality:
 - Transform selected text or entire documents into high-quality speech
@@ -16,7 +52,6 @@ Speechify is a VS Code extension that provides text-to-speech conversion functio
 ## Project Status
 - **VS Code Marketplace**: Published as "Speechify" (luckyXmobile.speechify)
 - **GitHub Repository**: https://github.com/hddevteam/speechify
-- **Current Version**: 1.3.0 (fully migrated to TypeScript)
 - **License**: MIT
 - **Target Audience**: Content creators, accessibility users, language learners, developers
 
