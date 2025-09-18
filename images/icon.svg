@@ -41,7 +41,15 @@
     <!-- Sound wave rings - Outer ring with pinker color #F3E8FF -->
     <g>
       <circle cx="0" cy="0" r="35" fill="#EC4899" filter="url(#glow)"/>
-      <circle cx="0" cy="0" r="220" stroke="#F3E8FF" stroke-width="48" fill="white"/>
+      <style>
+        /* Make inner ring subtler to emphasize the outer ring */
+        circle[r="140"] {
+          stroke: #E9D5FF; /* soft lavender for reduced competition */
+          opacity: 0.9;
+        }
+      </style>
+      <!-- Outer ring: high-contrast cyan to stand out against pink-purple foreground -->
+      <circle cx="0" cy="0" r="230" stroke="#22D3EE" stroke-width="52" fill="#ffffff" opacity="0.95"/>
       <circle cx="0" cy="0" r="140" stroke="#F8BBD9" stroke-width="45" fill="none"/>
     </g>
     

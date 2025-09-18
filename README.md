@@ -5,11 +5,10 @@
 [![GitHub License](https://img.shields.io/github/license/hddevteam/speechify)](https://github.com/hddevteam/speechify/blob/main/LICENSE)
 [![CI/CD](https://github.com/hddevteam/speechify/actions/workflows/ci.yml/badge.svg)](https://github.com/hddevteam/speechify/actions)
 
-<div align="center">
+<p align="center">
   <img src="./images/icon-128.png" alt="Speechify Icon" width="128" height="128">
-  <h3>🎉 Version 2.0.2 Released!</h3>
-  <p><strong>Voice Packaging Fix</strong> | 14 New Azure 2025 Voices | Enhanced Path Resolution</p>
-</div>
+</p>
+
 
 📖 **[中文文档](README.zh-CN.md)** | **[English Documentation](README.md)** | **[Live Demo](https://hddevteam.github.io/speechify/)**
 
@@ -292,34 +291,6 @@ npm run compile
 npm run test:integration  # Run all tests
 npm run lint             # Check code quality
 ```
-
-## 📝 Changelog
-
-### Version 2.0.1 (Latest) 🎨
-- ✅ **New Professional Icon**: Updated with pink-purple gradient design matching brand identity
-- ✅ **Visual Consistency**: Aligned extension icon with GitHub Pages website design
-- ✅ **Package Optimization**: Improved extension packaging and CI/CD pipeline
-- ✅ **Asset Management**: Organized icon assets with multiple sizes (16px, 32px, 128px, 256px)
-
-### Version 2.0.0 (Major Release) 🚀
-- ✅ **Complete TypeScript Migration**: Full TypeScript rewrite with strict type checking
-- ✅ **Voice Role Selection**: Support for roleplay-enabled voices with character selection
-- ✅ **Enhanced File Naming**: Clean, intelligent audio file naming system
-- ✅ **Comprehensive Testing**: 54 automated tests with real Azure API integration
-- ✅ **Improved i18n**: Enhanced English and Chinese interface support
-- ✅ **Performance Optimization**: Better memory management and error handling
-- ✅ **GitHub Pages Website**: Interactive demo site with multilingual audio samples
-- ✅ **Professional Documentation**: Complete repository optimization and guides
-
-### Previous Versions
-- **1.3.0**: Enhanced TypeScript architecture and voice settings
-- **1.2.0**: Enhanced context menu integration and voice settings management
-- **1.1.1**: Fixed special character handling in text content
-- **1.1.0**: Simplified voice selection and Azure configuration commands
-- **1.0.3**: Added extension icon and branding
-- **1.0.2**: New voice attribute configuration options
-- **1.0.1**: Fixed audio file naming issues
-- **1.0.0**: Initial release with basic text-to-speech functionality
 
 ## 🐛 Known Issues
 

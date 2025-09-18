@@ -5,11 +5,11 @@
 [![GitHub License](https://img.shields.io/github/license/hddevteam/speechify)](https://github.com/hddevteam/speechify/blob/main/LICENSE)
 [![CI/CD](https://github.com/hddevteam/speechify/actions/workflows/ci.yml/badge.svg)](https://github.com/hddevteam/speechify/actions)
 
-<div align="center">
+<p align="center">
   <img src="./images/icon-128.png" alt="Speechify 图标" width="128" height="128">
-  <h3>🎉 版本 2.0.2 发布！</h3>
-  <p><strong>语音打包修复</strong> | 14个新增Azure 2025语音 | 路径解析增强</p>
-</div>
+</p>
+
+
 
 📖 **[中文文档](README.zh-CN.md)** | **[English Documentation](README.md)** | **[在线演示](https://hddevteam.github.io/speechify/zh-cn.html)**
 
@@ -285,33 +285,6 @@ npm run test:integration  # 运行所有测试
 npm run lint             # 检查代码质量
 ```
 
-## 📝 更新日志
-
-### 版本 2.0.1（最新版本）🎨
-- ✅ **全新专业图标**：采用粉紫渐变设计，与品牌标识保持一致
-- ✅ **视觉一致性**：扩展图标与 GitHub Pages 网站设计统一
-- ✅ **包优化**：改进扩展打包和 CI/CD 流水线
-- ✅ **资源管理**：组织多尺寸图标资源（16px、32px、128px、256px）
-
-### 版本 2.0.0（重大版本）🚀
-- ✅ **完整 TypeScript 迁移**：完全 TypeScript 重写，具有严格类型检查
-- ✅ **语音角色选择**：支持角色扮演的声音和角色选择
-- ✅ **增强文件命名**：清晰、智能的音频文件命名系统
-- ✅ **全面测试**：54 个自动化测试，真实 Azure API 集成
-- ✅ **改进国际化**：增强的中英文界面支持
-- ✅ **性能优化**：更好的内存管理和错误处理
-- ✅ **GitHub Pages 网站**：交互式演示网站，支持多语言音频示例
-- ✅ **专业文档**：完整的仓库优化和指南
-
-### 历史版本
-- **1.3.0**：增强 TypeScript 架构和语音设置
-- **1.2.0**：增强的上下文菜单集成和语音设置管理
-- **1.1.1**：修复文本内容中特殊字符处理
-- **1.1.0**：简化语音选择和 Azure 配置命令
-- **1.0.3**：添加扩展图标和品牌
-- **1.0.2**：新的语音属性配置选项
-- **1.0.1**：修复音频文件命名问题
-- **1.0.0**：初始版本，基本文本转语音功能
 
 ## 🐛 已知问题
 

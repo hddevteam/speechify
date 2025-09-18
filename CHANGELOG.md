@@ -10,9 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Preparation for future enhancements
 
-## [2.0.2] - 2025-09-18
+## [2.1] - 2025-09-18
 
-### � Bug Fixes
+### 🐛 Bug Fixes
 - **Voice List Packaging**: Fixed voice-list.json packaging issue that prevented proper loading in installed extensions
 - **File Path Resolution**: Implemented robust multi-path fallback mechanism for voice configuration file access
 - **Webpack Configuration**: Added copy-webpack-plugin to ensure voice-list.json is properly included in extension bundle
@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Yunxiao/Yunfan Multilingual**: Added new multilingual voices with extensive language support
 
 ### 📝 Documentation
-- **Version Synchronization**: Updated all documentation and configuration files to reflect version 2.0.2
+- **Version Synchronization**: Updated all documentation and configuration files to reflect version 2.1
 - **Consistency Improvements**: Ensured version consistency across package.json, README files, and website documentation
 
 ## [2.0.1] - 2025-07-13
