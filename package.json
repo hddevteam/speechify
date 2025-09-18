@@ -3,7 +3,7 @@
   "displayName": "%speechify.displayName%",
   "description": "%speechify.description%",
   "icon": "images/icon-128.png",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "engines": {
     "vscode": "^1.82.0"
   },
@@ -159,6 +159,7 @@
     "@typescript-eslint/parser": "^6.21.0",
     "@vscode/test-electron": "^2.3.4",
     "@vscode/vsce": "^2.19.0",
+    "copy-webpack-plugin": "^13.0.1",
     "eslint": "^8.47.0",
     "glob": "^10.3.3",
     "mocha": "^10.2.0",

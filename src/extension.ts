@@ -9,6 +9,9 @@ import { I18n } from './i18n';
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
     console.log(I18n.t('messages.extensionActivated'));
 
+    // Set extension context for SpeechService
+    SpeechService.setExtensionContext(context);
+
     // Register commands
     const commands = [
         vscode.commands.registerCommand('extension.speechify', convertTextToSpeech),
