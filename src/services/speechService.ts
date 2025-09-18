@@ -119,18 +119,46 @@ export class SpeechService {
   }
 
   /**
+   * Extension context for file access
+   */
+  private static extensionContext: vscode.ExtensionContext | null = null;
+
+  /**
+   * Set extension context
+   */
+  public static setExtensionContext(context: vscode.ExtensionContext): void {
+    this.extensionContext = context;
+  }
+
+  /**
    * Get voice list from configuration
    */
   public static getVoiceList(): VoiceListItem[] {
     try {
       const fs = require('fs');
       const path = require('path');
-      const voiceListPath = path.join(__dirname, '../../voice-list.json');
       
-      if (fs.existsSync(voiceListPath)) {
-        const data = fs.readFileSync(voiceListPath, 'utf-8');
-        return JSON.parse(data) as VoiceListItem[];
+      // Try multiple possible paths for voice-list.json
+      const possiblePaths = [
+        // Extension context path (for installed extension)
+        this.extensionContext ? path.join(this.extensionContext.extensionPath, 'voice-list.json') : null,
+        // Development path (for debugging)
+        path.join(__dirname, '../../voice-list.json'),
+        // Packaged path (alternative)
+        path.join(__dirname, '../voice-list.json'),
+        // Root path
+        path.join(__dirname, 'voice-list.json')
+      ].filter(p => p !== null);
+      
+      for (const voiceListPath of possiblePaths) {
+        if (fs.existsSync(voiceListPath)) {
+          const data = fs.readFileSync(voiceListPath, 'utf-8');
+          console.log(`Voice list loaded from: ${voiceListPath}`);
+          return JSON.parse(data) as VoiceListItem[];
+        }
       }
+      
+      console.error('Voice list file not found in any of the expected locations:', possiblePaths);
     } catch (error) {
       console.error('Failed to load voice list:', error);
     }
