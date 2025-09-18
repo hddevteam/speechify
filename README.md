@@ -7,8 +7,8 @@
 
 <div align="center">
   <img src="./images/icon-128.png" alt="Speechify Icon" width="128" height="128">
-  <h3>🎉 Version 2.0.1 Released!</h3>
-  <p><strong>New Professional Icon Design</strong> | Updated Visual Identity | Enhanced User Experience</p>
+  <h3>🎉 Version 2.0.2 Released!</h3>
+  <p><strong>Documentation Updates</strong> | Version Synchronization | Enhanced Consistency</p>
 </div>
 
 📖 **[中文文档](README.zh-CN.md)** | **[English Documentation](README.md)** | **[Live Demo](https://hddevteam.github.io/speechify/)**
