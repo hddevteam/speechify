@@ -8,7 +8,7 @@
 <div align="center">
   <img src="./images/icon-128.png" alt="Speechify 图标" width="128" height="128">
   <h3>🎉 版本 2.0.2 发布！</h3>
-  <p><strong>文档更新</strong> | 版本同步 | 一致性增强</p>
+  <p><strong>语音打包修复</strong> | 14个新增Azure 2025语音 | 路径解析增强</p>
 </div>
 
 📖 **[中文文档](README.zh-CN.md)** | **[English Documentation](README.md)** | **[在线演示](https://hddevteam.github.io/speechify/zh-cn.html)**
