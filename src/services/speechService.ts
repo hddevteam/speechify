@@ -125,12 +125,28 @@ export class SpeechService {
     try {
       const fs = require('fs');
       const path = require('path');
-      const voiceListPath = path.join(__dirname, '../../voice-list.json');
       
-      if (fs.existsSync(voiceListPath)) {
-        const data = fs.readFileSync(voiceListPath, 'utf-8');
-        return JSON.parse(data) as VoiceListItem[];
+      // Try multiple possible paths for voice-list.json
+      const possiblePaths = [
+        // Development environment (running from src)
+        path.join(__dirname, '../../voice-list.json'),
+        // Production environment (webpack bundled in dist)
+        path.join(__dirname, '../voice-list.json'),
+        // VS Code extension context
+        path.join(__dirname, 'voice-list.json'),
+        // Fallback: try to find it relative to the workspace
+        path.join(process.cwd(), 'voice-list.json')
+      ];
+      
+      for (const voiceListPath of possiblePaths) {
+        if (fs.existsSync(voiceListPath)) {
+          console.log(`Loading voice list from: ${voiceListPath}`);
+          const data = fs.readFileSync(voiceListPath, 'utf-8');
+          return JSON.parse(data) as VoiceListItem[];
+        }
       }
+      
+      console.error('Voice list file not found in any of the expected locations:', possiblePaths);
     } catch (error) {
       console.error('Failed to load voice list:', error);
     }

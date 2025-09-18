@@ -10,6 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Preparation for future enhancements
 
+## [2.0.2] - 2025-09-18
+
+### 🐛 Bug Fixes
+- **Fixed Voice List Loading**: Resolved "unable to load voice-list" error in voice configuration menu
+- **Enhanced Path Resolution**: Improved voice-list.json file loading with multiple fallback paths
+- **Webpack Configuration**: Added copy-webpack-plugin to ensure voice-list.json is included in extension bundle
+- **Cross-Environment Compatibility**: Voice configuration now works correctly in both development and production environments
+
+### 🔧 Technical Improvements
+- **Robust File Loading**: Enhanced SpeechService.getVoiceList() with multiple path resolution strategies
+- **Better Error Handling**: Added detailed logging for voice list loading debugging
+- **Build Process**: Automated voice-list.json copying during webpack compilation
+
 ## [2.0.1] - 2025-07-13
 
 ### 🎨 Visual Improvements
