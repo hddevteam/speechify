@@ -93,16 +93,8 @@
                 const buttonLang = btn.dataset.lang;
                 if (buttonLang === this.currentLang) {
                     btn.classList.add('active');
-                    // Apply active styling
-                    btn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-                    btn.style.color = 'white';
-                    btn.style.transform = 'scale(1.05)';
                 } else {
                     btn.classList.remove('active');
-                    // Reset styling
-                    btn.style.background = 'transparent';
-                    btn.style.color = '#666';
-                    btn.style.transform = 'scale(1)';
                 }
             });
         }
@@ -382,10 +374,10 @@
                 position: fixed;
                 top: 20px;
                 right: 20px;
-                background: rgba(239, 68, 68, 0.9);
+                background: rgba(29, 53, 87, 0.95);
                 color: white;
                 padding: 1rem;
-                border-radius: 8px;
+                border-left: 4px solid var(--accent-gold);
                 z-index: 1000;
                 font-size: 0.9rem;
                 max-width: 300px;

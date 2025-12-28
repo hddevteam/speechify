@@ -114,7 +114,7 @@ Object.entries(EXPECTED_FEATURES).forEach(([file, features]) => {
                            content.includes('border-radius');
                     break;
                 case 'Gradient themes':
-                    found = content.includes('linear-gradient') && content.includes('#BE185D');
+                    found = content.includes('linear-gradient') && content.includes('#2D6A4F');
                     break;
                 default:
                     found = content.toLowerCase().includes(feature.toLowerCase());
@@ -150,7 +150,7 @@ if (fs.existsSync(cssPath)) {
     
     const patterns = [
         { name: 'Backdrop blur navigation', check: css.includes('backdrop-filter') },
-        { name: 'Professional gradients', check: css.includes('linear-gradient') && css.includes('#BE185D') },
+        { name: 'Professional gradients', check: css.includes('linear-gradient') && css.includes('#2D6A4F') },
         { name: 'Responsive grid system', check: css.includes('grid-template-columns') },
         { name: 'Modern CSS features', check: css.includes('clamp(') || css.includes('min(') },
         { name: 'Animation transitions', check: css.includes('transition') && css.includes('transform') },
