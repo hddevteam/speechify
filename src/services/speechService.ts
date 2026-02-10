@@ -7,7 +7,7 @@ import { AzureSpeechService } from '../utils/azure';
 import { AudioUtils } from '../utils/audio';
 import { SubtitleUtils } from '../utils/subtitle';
 import { VideoMuxer } from '../utils/videoMuxer';
-import { VideoAnalyzer, TimingSegment } from '../utils/videoAnalyzer';
+import { VideoAnalyzer, TimingSegment, TimingProject } from '../utils/videoAnalyzer';
 import { AlignmentEditor } from '../webview/alignmentEditor';
 import { I18n } from '../i18n';
 
@@ -16,7 +16,6 @@ import { I18n } from '../i18n';
  */
 export enum PipelineStep {
   ANALYZE = 'analyze',
-  PRECISION = 'precision',
   REFINE = 'refine',
   SSML = 'ssml',
   SYNTHESIZE = 'synthesize',
@@ -157,8 +156,6 @@ export class SpeechService {
       }
 
       const timingPath = path.join(projectDir, 'timing.json');
-      const precisionTimingPath = path.join(projectDir, 'precision_timing.json');
-      const refinedTimingPath = path.join(projectDir, 'refined_timing.json');
       const ssmlDir = path.join(projectDir, 'ssml');
       const audioDir = path.join(projectDir, 'audio');
       const boundariesDir = path.join(projectDir, 'boundaries');
@@ -168,6 +165,16 @@ export class SpeechService {
       });
 
       let segments: TimingSegment[] = [];
+
+      const saveProject = (segs: TimingSegment[]) => {
+          const project: TimingProject = {
+              version: '2.0',
+              videoName: path.basename(videoFilePath),
+              lastModified: new Date().toISOString(),
+              segments: segs
+          };
+          fs.writeFileSync(timingPath, JSON.stringify(project, null, 2));
+      };
 
       // --- STEP 1: ANALYZE ---
       if (!options.startStep || options.startStep === PipelineStep.ANALYZE) {
@@ -183,46 +190,22 @@ export class SpeechService {
             visionConfig.deployment
           );
           segments = timingResult.segments;
-          fs.writeFileSync(timingPath, JSON.stringify(segments, null, 2));
+          saveProject(segments);
       } else {
           console.log('[Pipeline] Skipping Step 1, loading timing.json');
           if (fs.existsSync(timingPath)) {
-            segments = JSON.parse(fs.readFileSync(timingPath, 'utf-8'));
-          }
-      }
-
-      // --- STEP 1.5: PRECISION ---
-      if (!options.startStep || 
-          [PipelineStep.ANALYZE, PipelineStep.PRECISION].includes(options.startStep)) {
-          console.log('[Pipeline] Step 1.5: Refining Precision...');
-          if (segments && segments.length > 0) {
-            const totalDuration = await analyzer.getVideoDuration(videoFilePath);
-            segments = await analyzer.refineTiming(
-              videoFilePath,
-              segments,
-              totalDuration,
-              visionConfig.apiKey,
-              visionConfig.endpoint,
-              visionConfig.deployment
-            );
-            fs.writeFileSync(precisionTimingPath, JSON.stringify(segments, null, 2));
-          }
-      } else {
-          console.log('[Pipeline] Skipping Step 1.5, loading precision_timing.json');
-          if (fs.existsSync(precisionTimingPath)) {
-            segments = JSON.parse(fs.readFileSync(precisionTimingPath, 'utf-8'));
-          } else if (fs.existsSync(timingPath)) {
-            segments = JSON.parse(fs.readFileSync(timingPath, 'utf-8'));
+            const data = JSON.parse(fs.readFileSync(timingPath, 'utf-8'));
+            segments = Array.isArray(data) ? data : data.segments;
           }
       }
 
       const shouldOpenEditor = options.openAlignmentEditor !== false &&
-        (!options.startStep || [PipelineStep.ANALYZE, PipelineStep.PRECISION].includes(options.startStep));
+        (!options.startStep || options.startStep === PipelineStep.ANALYZE);
 
       if (shouldOpenEditor) {
         const editedSegments = await this.openAlignmentEditor(
           videoFilePath,
-          precisionTimingPath,
+          timingPath,
           segments
         );
 
@@ -250,10 +233,11 @@ export class SpeechService {
           azureConfig,
           voiceSettings
           );
-          fs.writeFileSync(refinedTimingPath, JSON.stringify(segments, null, 2));
+          saveProject(segments);
       } else {
-          console.log('[Pipeline] Skipping Step 2, loading refined_timing.json');
-          segments = JSON.parse(fs.readFileSync(refinedTimingPath, 'utf-8'));
+          console.log('[Pipeline] Skipping Step 2, loading timing.json');
+          const data = JSON.parse(fs.readFileSync(timingPath, 'utf-8'));
+          segments = Array.isArray(data) ? data : data.segments;
       }
 
       // --- STEP 3: GENERATE SSML ---
@@ -468,20 +452,62 @@ export class SpeechService {
     }
 
     const projectDir = this.getVisionProjectDir(videoFilePath);
-    const precisionTimingPath = path.join(projectDir, 'precision_timing.json');
     const timingPath = path.join(projectDir, 'timing.json');
 
-    if (!fs.existsSync(precisionTimingPath) && !fs.existsSync(timingPath)) {
+    if (!fs.existsSync(timingPath)) {
       vscode.window.showErrorMessage(I18n.t('errors.alignmentTimingNotFound'));
       return;
     }
 
-    const sourcePath = fs.existsSync(precisionTimingPath) ? precisionTimingPath : timingPath;
-    const segments: TimingSegment[] = JSON.parse(fs.readFileSync(sourcePath, 'utf-8'));
+    const content = fs.readFileSync(timingPath, 'utf-8');
+    let data = JSON.parse(content);
+    let segments: TimingSegment[];
+    let targetVideoPath = videoFilePath;
+
+    // Upgrade to TimingProject structure if it's a legacy array
+    if (Array.isArray(data)) {
+        console.log(`[Project] Upgrading legacy timing.json to TimingProject format in ${timingPath}`);
+        const upgradedProject: TimingProject = {
+            version: '2.0',
+            videoName: path.basename(videoFilePath),
+            lastModified: new Date().toISOString(),
+            segments: data
+        };
+        fs.writeFileSync(timingPath, JSON.stringify(upgradedProject, null, 2));
+        data = upgradedProject;
+    }
+
+    // Handle TimingProject structure
+    if (data && typeof data === 'object' && 'segments' in data) {
+        const project = data as TimingProject;
+        segments = project.segments;
+        // Verify video connection
+        const candidatePath = path.join(path.dirname(projectDir), project.videoName);
+        if (fs.existsSync(candidatePath)) {
+            targetVideoPath = candidatePath;
+        } else if (!fs.existsSync(videoFilePath)) {
+            // Need user to pick
+            const selected = await vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: false,
+                canSelectMany: false,
+                filters: { 'Video': ['mp4', 'mov', 'avi', 'mkv'] },
+                title: `Pick video for project: ${project.videoName}`
+            });
+            if (!selected || selected.length === 0) return;
+            targetVideoPath = selected[0]!.fsPath;
+            // Update mapping inside project
+            project.videoName = path.basename(targetVideoPath);
+            fs.writeFileSync(timingPath, JSON.stringify(project, null, 2));
+        }
+    } else {
+        // Fallback for unexpected data format
+        segments = Array.isArray(data) ? data : [];
+    }
 
     const updatedSegments = await this.openAlignmentEditor(
-      videoFilePath,
-      precisionTimingPath,
+      targetVideoPath,
+      timingPath,
       segments
     );
 
@@ -498,43 +524,75 @@ export class SpeechService {
     }
     const azureConfig = ConfigManager.getAzureConfigForTesting();
     const voiceSettings = ConfigManager.getVoiceSettings();
+    const segmentsToRefine = updatedSegments as TimingSegment[];
+    let firstContent = '';
+    if (segmentsToRefine.length > 0) {
+      const firstSeg = segmentsToRefine[0];
+      if (firstSeg) {
+        firstContent = firstSeg.content || '';
+      }
+    }
+
     const refinedSegments = await this.refineSegmentsWithCalibration(
       analyzer,
-      updatedSegments,
-      videoFilePath,
-      updatedSegments[0]?.content || '',
+      segmentsToRefine,
+      targetVideoPath,
+      firstContent,
       visionConfig,
       azureConfig,
       voiceSettings
     );
 
-    const refinedTimingPath = path.join(projectDir, 'refined_timing.json');
-    fs.writeFileSync(refinedTimingPath, JSON.stringify(refinedSegments, null, 2));
+    // Always save in Project format (already upgraded at start)
+    const finalContent = fs.readFileSync(timingPath, 'utf-8');
+    const finalProject = JSON.parse(finalContent);
+    if (finalProject && !Array.isArray(finalProject) && 'segments' in finalProject) {
+        finalProject.segments = refinedSegments;
+        finalProject.lastModified = new Date().toISOString();
+        fs.writeFileSync(timingPath, JSON.stringify(finalProject, null, 2));
+    } else {
+        // Fallback for safety
+        fs.writeFileSync(timingPath, JSON.stringify(refinedSegments, null, 2));
+    }
     vscode.window.showInformationMessage(I18n.t('notifications.success.alignmentSaved'));
   }
 
   private static async openAlignmentEditor(
     videoFilePath: string,
-    precisionTimingPath: string,
+    timingPath: string,
     segments: TimingSegment[]
   ): Promise<TimingSegment[] | null> {
-    if (!this.extensionContext) {
+    const context = this.extensionContext;
+    if (!context) {
       vscode.window.showErrorMessage(I18n.t('errors.alignmentEditorUnavailable'));
       return null;
     }
 
     const updatedSegments = await AlignmentEditor.open(
-      this.extensionContext,
+      context,
       videoFilePath,
       segments,
-      { autoSavePath: precisionTimingPath }
+      { 
+        autoSavePath: timingPath 
+      }
     );
 
     if (!updatedSegments) {
       return null;
     }
 
-    fs.writeFileSync(precisionTimingPath, JSON.stringify(updatedSegments, null, 2));
+    // Wrap the result back into the project structure if it exists
+    const content = fs.readFileSync(timingPath, 'utf-8');
+    const currentData = JSON.parse(content);
+    if (currentData && !Array.isArray(currentData) && 'segments' in currentData) {
+        const project = currentData as any;
+        project.segments = updatedSegments;
+        project.lastModified = new Date().toISOString();
+        fs.writeFileSync(timingPath, JSON.stringify(project, null, 2));
+    } else {
+        fs.writeFileSync(timingPath, JSON.stringify(updatedSegments, null, 2));
+    }
+
     return updatedSegments;
   }
 

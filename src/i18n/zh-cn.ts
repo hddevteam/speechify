@@ -60,7 +60,7 @@ const chineseMessages: Messages = {
   'errors.alignmentEditorFailed': '打开对齐编辑器失败: {0}',
   'errors.alignmentEditorCanceled': '对齐编辑器在保存前被关闭。',
   'errors.alignmentEditorUnavailable': '当前会话无法打开对齐编辑器。',
-  'errors.alignmentTimingNotFound': '未找到 precision_timing.json 或 timing.json。',
+  'errors.alignmentTimingNotFound': '未找到 timing.json。',
   'errors.visionConfigurationIncomplete': '视觉分析配置不完整，请设置 visionApiKey 和 visionEndpoint。',
   
   // Configuration

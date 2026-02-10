@@ -16,6 +16,14 @@ export interface TimingSegment {
     audioPath?: string;
 }
 
+export interface TimingProject {
+    version: string;
+    videoName: string;
+    videoPath?: string;
+    lastModified: string;
+    segments: TimingSegment[];
+}
+
 export interface VisionTimingResult {
     segments: TimingSegment[];
 }

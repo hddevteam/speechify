@@ -60,7 +60,7 @@ const englishMessages: Messages = {
   'errors.alignmentEditorFailed': 'Failed to open alignment editor: {0}',
   'errors.alignmentEditorCanceled': 'Alignment editor was closed before saving.',
   'errors.alignmentEditorUnavailable': 'Alignment editor is unavailable in the current session.',
-  'errors.alignmentTimingNotFound': 'No precision_timing.json or timing.json found for this video.',
+  'errors.alignmentTimingNotFound': 'No timing.json found for this video.',
   'errors.visionConfigurationIncomplete': 'Vision API configuration is incomplete. Please set visionApiKey and visionEndpoint.',
   
   // Configuration

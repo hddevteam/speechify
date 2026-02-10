@@ -80,7 +80,15 @@ export class AlignmentEditor {
         if (message?.type === 'auto-save' && Array.isArray(message.segments) && options?.autoSavePath) {
           try {
             const fs = require('fs');
-            fs.writeFileSync(options.autoSavePath, JSON.stringify(message.segments, null, 2));
+            const content = fs.readFileSync(options.autoSavePath, 'utf-8');
+            const currentData = JSON.parse(content);
+            if (currentData && !Array.isArray(currentData) && 'segments' in currentData) {
+                currentData.segments = message.segments;
+                currentData.lastModified = new Date().toISOString();
+                fs.writeFileSync(options.autoSavePath, JSON.stringify(currentData, null, 2));
+            } else {
+                fs.writeFileSync(options.autoSavePath, JSON.stringify(message.segments, null, 2));
+            }
             console.log(`[AutoSave] Saved segments to ${options.autoSavePath}`);
           } catch (err) {
             console.error('[AutoSave] Failed to save:', err);
