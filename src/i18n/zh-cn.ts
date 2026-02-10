@@ -97,6 +97,7 @@ const chineseMessages: Messages = {
   'actions.retry': '重试',
   'actions.visionAlignment': 'AI 视觉对齐',
   'actions.standardConversion': '标准模式',
+  'actions.refine': '精炼',
   'actions.saveAndRefine': '保存并精炼',
   'actions.resetToAi': '恢复 AI 建议',
   

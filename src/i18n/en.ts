@@ -97,6 +97,7 @@ const englishMessages: Messages = {
   'actions.retry': 'Retry',
   'actions.visionAlignment': 'AI Visual Alignment',
   'actions.standardConversion': 'Standard',
+  'actions.refine': 'Refine',
   'actions.saveAndRefine': 'Save & Refine',
   'actions.resetToAi': 'Reset to AI Suggestion',
   

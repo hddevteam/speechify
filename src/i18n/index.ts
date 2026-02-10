@@ -98,6 +98,7 @@ export interface Messages {
   'actions.retry': string;
   'actions.visionAlignment': string;
   'actions.standardConversion': string;
+  'actions.refine': string;
   'actions.saveAndRefine': string;
   'actions.resetToAi': string;
   

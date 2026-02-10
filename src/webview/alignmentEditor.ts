@@ -10,8 +10,7 @@ interface AlignmentEditorLabels {
   startTime: string;
   currentTime: string;
   setToCurrent: string;
-  resetToAi: string;
-  saveAndRefine: string;
+  refine: string;
   cancel: string;
 }
 
@@ -50,8 +49,7 @@ export class AlignmentEditor {
         startTime: I18n.t('alignment.startTime'),
         currentTime: I18n.t('alignment.currentTime'),
         setToCurrent: I18n.t('alignment.setToCurrent'),
-        resetToAi: I18n.t('actions.resetToAi'),
-        saveAndRefine: I18n.t('actions.saveAndRefine'),
+        refine: I18n.t('actions.refine'),
         cancel: I18n.t('actions.cancel')
       }
     };
@@ -162,12 +160,57 @@ export class AlignmentEditor {
       margin-bottom: 8px;
       font-size: 13px;
     }
+    .ruler {
+      position: relative;
+      height: 24px;
+      margin: 0 10px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(to right, transparent 0%, transparent 49.5%, rgba(120,120,120,0.2) 49.5%, rgba(120,120,120,0.2) 50.5%, transparent 50.5%, transparent 100%);
+      background-size: 20px 10px;
+      background-repeat: repeat-x;
+      background-position: bottom;
+    }
+    .marker {
+      position: absolute;
+      bottom: -1px;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 8px solid var(--vscode-editor-foreground);
+      z-index: 4;
+      opacity: 0.6;
+      transition: border-top-color 0.2s, opacity 0.2s;
+    }
+    .marker.selected {
+      border-top-color: var(--accent);
+      opacity: 1;
+      z-index: 5;
+    }
+    .marker-label {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      background: var(--accent);
+      color: white;
+      padding: 1px 4px;
+      border-radius: 3px;
+      white-space: nowrap;
+      display: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .marker.selected .marker-label {
+      display: block;
+    }
     .timeline {
       position: relative;
       height: 80px;
       background: rgba(120, 120, 120, 0.1);
       border-radius: 6px;
-      overflow: hidden;
+      margin: 0 10px; /* Space for edge segments */
     }
     .playhead {
       position: absolute;
@@ -267,6 +310,7 @@ export class AlignmentEditor {
         <strong>${initState.labels.timeline}</strong>
         <span class="muted">${initState.labels.currentTime}: <span id="currentTimeLabel">0.0</span>s</span>
       </div>
+      <div id="ruler" class="ruler"></div>
       <div id="timeline" class="timeline">
         <div id="playhead" class="playhead"></div>
       </div>
@@ -276,10 +320,9 @@ export class AlignmentEditor {
     </div>
     <div class="footer">
       <div>
-        <button id="resetBtn">${initState.labels.resetToAi}</button>
         <button id="cancelBtn">${initState.labels.cancel}</button>
       </div>
-      <button id="saveBtn" class="primary">${initState.labels.saveAndRefine}</button>
+      <button id="saveBtn" class="primary">${initState.labels.refine}</button>
     </div>
   </div>
 
@@ -288,22 +331,28 @@ export class AlignmentEditor {
     const initialState = ${serializedState};
 
     const video = document.getElementById('video');
+    const ruler = document.getElementById('ruler');
     const timeline = document.getElementById('timeline');
     const playhead = document.getElementById('playhead');
     const currentTimeLabel = document.getElementById('currentTimeLabel');
     const segmentsInfo = document.getElementById('segmentsInfo');
     const saveBtn = document.getElementById('saveBtn');
-    const resetBtn = document.getElementById('resetBtn');
     const cancelBtn = document.getElementById('cancelBtn');
 
     const originalSegments = initialState.segments.map(seg => ({ ...seg }));
     let segments = initialState.segments.map(seg => ({ ...seg }));
     let duration = 0;
     let activeIndex = -1; // Index of segment being dragged
-    let selectedIndex = -1; // Index of segment clicked/selected
+    let selectedIndex = segments.length > 0 ? 0 : -1; // Default select first segment
+
+    const formatMMSS = (seconds) => {
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return m + ':' + s.toString().padStart(2, '0');
+    };
 
     const normalizeSegments = (segs, dur) => {
-      const minGap = 0.2;
+      const minGap = 0.05;
       for (let i = 0; i < segs.length - 1; i++) {
         if (segs[i+1].startTime < segs[i].startTime + minGap) {
           segs[i+1].startTime = Number((segs[i].startTime + minGap).toFixed(1));
@@ -312,9 +361,8 @@ export class AlignmentEditor {
       // Ensure doesn't exceed duration
       if (segs.length > 0) {
         const lastIndex = segs.length - 1;
-        if (segs[lastIndex].startTime > dur - minGap) {
-          // If pushed too far, pull back and chain pull-back
-          segs[lastIndex].startTime = Math.max(0, Number((dur - minGap).toFixed(1)));
+        if (segs[lastIndex].startTime > dur - 0.01) {
+          segs[lastIndex].startTime = Math.max(0, Number((dur - 0.05).toFixed(1)));
           for (let i = lastIndex - 1; i >= 0; i--) {
             if (segs[i].startTime > segs[i+1].startTime - minGap) {
               segs[i].startTime = Math.max(0, Number((segs[i+1].startTime - minGap).toFixed(1)));
@@ -339,14 +387,34 @@ export class AlignmentEditor {
       currentTimeLabel.textContent = formatTime(video.currentTime);
     };
 
+    const rebuildRuler = () => {
+      ruler.innerHTML = '';
+      const scale = computeScale();
+      segments.forEach((seg, index) => {
+        const marker = document.createElement('div');
+        marker.className = 'marker';
+        if (index === selectedIndex) marker.classList.add('selected');
+        marker.style.left = (seg.startTime * scale) + 'px';
+        
+        const label = document.createElement('div');
+        label.className = 'marker-label';
+        label.textContent = formatMMSS(seg.startTime);
+        marker.appendChild(label);
+        
+        ruler.appendChild(marker);
+      });
+    };
+
     const rebuildSegments = () => {
       timeline.querySelectorAll('.segment').forEach(el => el.remove());
       const scale = computeScale();
+      rebuildRuler();
 
       segments.forEach((seg, index) => {
         const nextSeg = segments[index + 1];
         const start = seg.startTime;
         const end = nextSeg ? nextSeg.startTime : duration;
+        const segDuration = end - start;
         const width = Math.max(6, (end - start) * scale);
         const left = start * scale;
 
@@ -365,7 +433,7 @@ export class AlignmentEditor {
 
         const timeSpan = document.createElement('span');
         timeSpan.className = 'time-label';
-        timeSpan.textContent = formatTime(start) + 's';
+        timeSpan.textContent = formatTime(segDuration) + 's';
 
         segmentEl.appendChild(titleSpan);
         segmentEl.appendChild(timeSpan);
@@ -392,14 +460,19 @@ export class AlignmentEditor {
             const deltaSeconds = deltaX / scale;
             const prevSeg = segments[index - 1];
             const nextSegLocal = segments[index + 1];
+            const minGap = 0.1;
             const minStart = prevSeg ? prevSeg.startTime + minGap : 0;
-            const maxStart = nextSegLocal ? nextSegLocal.startTime - minGap : duration - 0.1;
+            const maxStart = nextSegLocal ? nextSegLocal.startTime - minGap : duration - 0.05;
             const nextStart = clamp(originalStart + deltaSeconds, minStart, maxStart);
-            seg.startTime = Number(nextStart.toFixed(1));
-            video.currentTime = seg.startTime;
-            updatePlayhead();
-            rebuildSegments();
-            updateInfo();
+            const roundedStart = Number(nextStart.toFixed(1));
+            
+            if (roundedStart !== seg.startTime) {
+              seg.startTime = roundedStart;
+              video.currentTime = seg.startTime;
+              updatePlayhead();
+              rebuildSegments();
+              updateInfo();
+            }
           };
 
           const onUp = () => {
@@ -445,6 +518,9 @@ export class AlignmentEditor {
     video.addEventListener('loadedmetadata', () => {
       duration = video.duration || 0;
       normalizeSegments(segments, duration);
+      if (selectedIndex === 0 && segments.length > 0) {
+        video.currentTime = segments[0].startTime;
+      }
       updateLayout();
       updateInfo();
     });
@@ -460,12 +536,6 @@ export class AlignmentEditor {
       const x = event.clientX - rect.left;
       video.currentTime = clamp(x / scale, 0, duration);
       updatePlayhead();
-    });
-
-    resetBtn.addEventListener('click', () => {
-      segments = originalSegments.map(seg => ({ ...seg }));
-      rebuildSegments();
-      updateInfo();
     });
 
     cancelBtn.addEventListener('click', () => {
