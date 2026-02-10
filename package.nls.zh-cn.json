@@ -9,6 +9,7 @@
   "speechify.command.selectRole": "Speechify: 选择语音角色",
   "speechify.command.convertToVideo": "Speechify: 转换文字为视频",
   "speechify.command.alignmentEditor": "Speechify: 打开对齐编辑器",
+  "speechify.command.synthesizeVideoFromProject": "Speechify: 提交对齐生成视频",
   "speechify.configuration.title": "Speechify",
   "speechify.configuration.azureSpeechServicesKey": "Azure 语音服务订阅密钥",
   "speechify.configuration.speechServicesRegion": "Azure 语音服务区域",

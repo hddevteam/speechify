@@ -42,7 +42,8 @@
     "onCommand:extension.selectSpeechifyVoiceStyle",
     "onCommand:extension.selectSpeechifyVoiceRole",
     "onCommand:extension.convertToVideo",
-    "onCommand:extension.openAlignmentEditor"
+    "onCommand:extension.openAlignmentEditor",
+    "onCommand:extension.synthesizeVideoFromProject"
   ],
   "repository": {
     "type": "git",
@@ -92,6 +93,10 @@
       {
         "command": "extension.openAlignmentEditor",
         "title": "%speechify.command.alignmentEditor%"
+      },
+      {
+        "command": "extension.synthesizeVideoFromProject",
+        "title": "%speechify.command.synthesizeVideoFromProject%"
       }
     ],
     "menus": {
@@ -123,6 +128,22 @@
         {
           "command": "extension.openAlignmentEditor",
           "group": "navigation"
+        },
+        {
+          "command": "extension.synthesizeVideoFromProject",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "extension.openAlignmentEditor",
+          "group": "navigation",
+          "when": "resourceExtname == .mp4 || resourceExtname == .mov || resourceFilename == timing.json"
+        },
+        {
+          "command": "extension.synthesizeVideoFromProject",
+          "group": "navigation",
+          "when": "resourceExtname == .mp4 || resourceExtname == .mov || resourceFilename == timing.json"
         }
       ]
     },

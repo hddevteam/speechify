@@ -557,6 +557,83 @@ export class SpeechService {
     vscode.window.showInformationMessage(I18n.t('notifications.success.alignmentSaved'));
   }
 
+  /**
+   * Synthesize video using an existing vision project (timing.json)
+   * This skips analysis and refinement, directly generating audio and muxing.
+   */
+  public static async synthesizeVideoFromProject(filePath: string): Promise<void> {
+    let timingPath: string;
+    let videoFilePath: string;
+
+    if (filePath.toLowerCase().endsWith('.json')) {
+        timingPath = filePath;
+        const data = JSON.parse(fs.readFileSync(timingPath, 'utf-8'));
+        if (!data || Array.isArray(data) || !data.videoName) {
+            throw new Error('Invalid project file or missing video reference.');
+        }
+        
+        // Find video relative to project dir (usually parent of project dir)
+        const projectDir = path.dirname(timingPath);
+        const parentDir = path.dirname(projectDir);
+        const candidateVideo = path.join(parentDir, data.videoName);
+        
+        if (fs.existsSync(candidateVideo)) {
+            videoFilePath = candidateVideo;
+        } else {
+            // Ask user to pick video
+            const selected = await vscode.window.showOpenDialog({
+              canSelectFiles: true,
+              canSelectFolders: false,
+              canSelectMany: false,
+              filters: { 'Video': ['mp4', 'mov', 'avi', 'mkv'] },
+              title: `Pick video for project: ${data.videoName}`
+            });
+            if (!selected || selected.length === 0) return;
+            videoFilePath = selected[0]!.fsPath;
+            
+            // Update reference
+            data.videoName = path.basename(videoFilePath);
+            fs.writeFileSync(timingPath, JSON.stringify(data, null, 2));
+        }
+    } else {
+        videoFilePath = filePath;
+        const projectDir = this.getVisionProjectDir(videoFilePath);
+        timingPath = path.join(projectDir, 'timing.json');
+        if (!fs.existsSync(timingPath)) {
+            throw new Error(I18n.t('errors.alignmentTimingNotFound'));
+        }
+    }
+
+    try {
+        const result = await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: I18n.t('progress.convertingToVideo'),
+            cancellable: false
+        }, async (_progress) => {
+            return await this.convertToVideoWithVision("", "", videoFilePath, {
+                startStep: PipelineStep.SSML,
+                forceRefine: false,
+                openAlignmentEditor: false
+            });
+        });
+
+        if (result.success && result.videoOutputPath) {
+            const action = await vscode.window.showInformationMessage(
+                I18n.t('notifications.success.videoGenerated', result.videoOutputPath),
+                I18n.t('actions.showInExplorer'),
+                I18n.t('actions.openFile')
+            );
+            if (action === I18n.t('actions.showInExplorer')) {
+                await AudioUtils.showInExplorer(result.videoOutputPath);
+            } else if (action === I18n.t('actions.openFile')) {
+                await AudioUtils.openAudioFile(result.videoOutputPath);
+            }
+        }
+    } catch (error) {
+        throw error;
+    }
+  }
+
   private static async openAlignmentEditor(
     videoFilePath: string,
     timingPath: string,

@@ -21,7 +21,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('extension.selectSpeechifyVoiceStyle', selectVoiceStyle),
         vscode.commands.registerCommand('extension.selectSpeechifyVoiceRole', selectVoiceRole),
         vscode.commands.registerCommand('extension.convertToVideo', convertTextToVideo),
-        vscode.commands.registerCommand('extension.openAlignmentEditor', openAlignmentEditor)
+        vscode.commands.registerCommand('extension.openAlignmentEditor', openAlignmentEditor),
+        vscode.commands.registerCommand('extension.synthesizeVideoFromProject', synthesizeVideoFromProject)
     ];
 
     // Add commands to subscriptions
@@ -321,6 +322,42 @@ async function openAlignmentEditor(): Promise<void> {
         console.error('Failed to open alignment editor:', error);
         vscode.window.showErrorMessage(
             I18n.t('errors.alignmentEditorFailed', error instanceof Error ? error.message : 'Unknown error')
+        );
+    }
+}
+
+/**
+ * Synthesize video using an existing vision project (timing.json)
+ */
+async function synthesizeVideoFromProject(uri?: vscode.Uri): Promise<void> {
+    try {
+        let filePath: string | undefined;
+
+        if (uri) {
+            filePath = uri.fsPath;
+        } else {
+            const files = await vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: false,
+                canSelectMany: false,
+                openLabel: I18n.t('actions.ok'),
+                filters: {
+                    'Project files': ['mp4', 'mov', 'avi', 'mkv', 'json']
+                }
+            });
+
+            if (files && files.length > 0 && files[0]) {
+                filePath = files[0].fsPath;
+            }
+        }
+
+        if (!filePath) return;
+
+        await SpeechService.synthesizeVideoFromProject(filePath);
+    } catch (error) {
+        console.error('Failed to synthesize video from project:', error);
+        vscode.window.showErrorMessage(
+            I18n.t('errors.videoConversionFailed', error instanceof Error ? error.message : 'Unknown error')
         );
     }
 }

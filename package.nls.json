@@ -9,6 +9,7 @@
   "speechify.command.selectRole": "Speechify: Select Voice Role",
   "speechify.command.convertToVideo": "Speechify: Convert Text to Video",
   "speechify.command.alignmentEditor": "Speechify: Open Alignment Editor",
+  "speechify.command.synthesizeVideoFromProject": "Speechify: Synthesize Video from Timing",
   "speechify.configuration.title": "Speechify",
   "speechify.configuration.azureSpeechServicesKey": "Azure Speech Services subscription key",
   "speechify.configuration.speechServicesRegion": "Azure Speech Services region",
