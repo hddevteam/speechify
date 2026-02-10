@@ -118,68 +118,96 @@ export class AlignmentEditor {
   <style>
     :root {
       color-scheme: light dark;
-      --bg: var(--vscode-editor-background);
-      --fg: var(--vscode-editor-foreground);
-      --border: var(--vscode-editorWidget-border);
+      --bg: var(--vscode-sideBar-background, #1e1e1e);
+      --fg: var(--vscode-sideBar-foreground, #cccccc);
+      --border: var(--vscode-editorWidget-border, #444);
       --accent: #ff6a00;
+      --accent-hover: #ff8533;
       --accent-weak: rgba(255, 106, 0, 0.2);
-      --segment-bg: rgba(59, 130, 246, 0.2);
-      --segment-border: rgba(59, 130, 246, 0.8);
-      --segment-selected: rgba(255, 106, 0, 0.4);
-      --segment-selected-border: #ff6a00;
-      --segment-active: rgba(16, 185, 129, 0.25);
+      --segment-bg: rgba(59, 130, 246, 0.8);
+      --segment-border: rgba(59, 130, 246, 1);
+      --segment-selected: rgba(255, 106, 0, 0.85);
+      --segment-selected-border: #fff;
+      --segment-active: rgba(16, 185, 129, 0.8);
+      --segment-text: #ffffff;
+      --panel-bg: var(--vscode-editor-background);
+      --card-bg: var(--vscode-editor-background);
     }
     body {
       margin: 0;
       background: var(--bg);
       color: var(--fg);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+    }
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      gap: 16px;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--accent-weak);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
     .container {
       display: grid;
-      grid-template-rows: 2fr auto 1fr auto;
+      grid-template-rows: 58vh 1fr auto;
       height: 100vh;
-      gap: 12px;
-      padding: 12px;
+      gap: 0;
+      padding: 0;
       box-sizing: border-box;
+      overflow: hidden;
     }
     .video-area {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px;
-      background: rgba(0, 0, 0, 0.1);
+      background: #000;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      position: relative;
+      border-bottom: 2px solid var(--border);
     }
     video {
       width: 100%;
       height: 100%;
       object-fit: contain;
-      border-radius: 6px;
-      background: #000;
+      max-height: 100%;
+    }
+    .main-controls {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 0;
+      background: var(--bg);
+      overflow: hidden;
     }
     .timeline-area {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px;
-      background: rgba(0, 0, 0, 0.05);
-    }
-    .timeline-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 13px;
+      padding: 16px 20px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
     }
     .ruler {
       position: relative;
-      height: 24px;
+      height: 28px;
       margin: 0 10px;
       border-bottom: 1px solid var(--border);
-      background: linear-gradient(to right, transparent 0%, transparent 49.5%, rgba(120,120,120,0.2) 49.5%, rgba(120,120,120,0.2) 50.5%, transparent 50.5%, transparent 100%);
-      background-size: 20px 10px;
+      background-image: linear-gradient(to right, var(--border) 1px, transparent 1px);
+      background-size: 20px 8px;
       background-repeat: repeat-x;
       background-position: bottom;
     }
@@ -191,39 +219,43 @@ export class AlignmentEditor {
       height: 0;
       border-left: 6px solid transparent;
       border-right: 6px solid transparent;
-      border-top: 8px solid var(--vscode-editor-foreground);
+      border-top: 8px solid var(--fg);
       z-index: 4;
-      opacity: 0.6;
-      transition: border-top-color 0.2s, opacity 0.2s;
+      opacity: 0.4;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .marker.selected {
       border-top-color: var(--accent);
       opacity: 1;
       z-index: 5;
+      transform: translateX(-50%) scale(1.2);
     }
     .marker-label {
       position: absolute;
-      top: -20px;
+      top: -22px;
       left: 50%;
       transform: translateX(-50%);
       font-size: 10px;
       background: var(--accent);
       color: white;
-      padding: 1px 4px;
-      border-radius: 3px;
+      padding: 2px 6px;
+      border-radius: 4px;
       white-space: nowrap;
       display: none;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      font-weight: bold;
     }
     .marker.selected .marker-label {
       display: block;
     }
     .timeline {
       position: relative;
-      height: 80px;
-      background: rgba(120, 120, 120, 0.1);
-      border-radius: 6px;
-      margin: 0 10px; /* Space for edge segments */
+      height: 84px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      margin: 0 10px;
+      border: 1px solid var(--border);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
     }
     .playhead {
       position: absolute;
@@ -231,16 +263,28 @@ export class AlignmentEditor {
       bottom: 0;
       width: 2px;
       background: var(--accent);
-      z-index: 3;
+      z-index: 10;
+      pointer-events: none;
+      box-shadow: 0 0 8px var(--accent);
+    }
+    .playhead::after {
+      content: '';
+      position: absolute;
+      top: -4px;
+      left: -4px;
+      width: 10px;
+      height: 10px;
+      background: var(--accent);
+      border-radius: 50%;
     }
     .segment {
       position: absolute;
-      top: 10px;
-      height: 60px;
+      top: 8px;
+      height: 68px;
       border-radius: 6px;
       background: var(--segment-bg);
       border: 1px solid var(--segment-border);
-      padding: 4px 6px;
+      padding: 8px 10px;
       box-sizing: border-box;
       cursor: grab;
       user-select: none;
@@ -248,94 +292,160 @@ export class AlignmentEditor {
       font-size: 11px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      transition: background 0.2s, border-color 0.2s;
+      gap: 4px;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(4px);
+      color: var(--segment-text);
+    }
+    .segment:hover {
+      filter: brightness(1.2);
+      border-color: rgba(255,255,255,0.4);
     }
     .segment strong {
-      display: block;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--segment-text);
     }
     .segment .time-label {
       font-size: 10px;
-      opacity: 0.8;
+      opacity: 0.9;
+      font-family: 'SF Mono', Monaco, Consolas, monospace;
       margin-top: auto;
-      text-align: center;
-      border-top: 1px solid rgba(0,0,0,0.1);
-      padding-top: 2px;
+      color: var(--segment-text);
     }
     .segment.selected {
       background: var(--segment-selected);
       border-color: var(--segment-selected-border);
       border-width: 2px;
       z-index: 2;
+      box-shadow: 0 0 12px rgba(255, 106, 0, 0.4);
     }
     .segment.active {
       background: var(--segment-active);
+      cursor: grabbing;
     }
     .info-area {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
-      background: rgba(0, 0, 0, 0.03);
+      padding: 16px 24px;
+      background: var(--panel-bg);
       overflow-y: auto;
     }
     .segments-info {
-      font-size: 13px;
-      color: var(--fg);
-      line-height: 1.5;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .segment-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .segment-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .segment-time-badge {
+      font-size: 11px;
+      background: var(--accent-weak);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 100px;
+      font-family: 'SF Mono', monospace;
+    }
+    .segment-content {
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--vscode-editor-foreground, #333);
+      white-space: pre-wrap;
+      font-weight: 500;
     }
     .footer {
+      padding: 12px 24px;
       display: flex;
       justify-content: space-between;
-      gap: 8px;
+      align-items: center;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+    }
+    .footer-actions {
+      display: flex;
+      gap: 12px;
     }
     button {
       border: 1px solid var(--border);
-      background: rgba(0,0,0,0.1);
+      background: transparent;
       color: var(--fg);
-      padding: 6px 12px;
+      padding: 8px 20px;
       border-radius: 6px;
       cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    button:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.3);
     }
     button.primary {
       background: var(--accent);
       color: #fff;
       border: none;
+      padding: 8px 28px;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(255, 106, 0, 0.3);
+    }
+    button.primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(255, 106, 0, 0.4);
+    }
+    button.primary:active:not(:disabled) {
+      transform: translateY(0);
     }
     button:disabled {
-      opacity: 0.6;
+      opacity: 0.4;
       cursor: not-allowed;
     }
     .muted {
-      opacity: 0.7;
+      opacity: 0.6;
     }
   </style>
 </head>
 <body>
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner"></div>
+    <div id="loadingText">Loading video into memory for instant seeking...</div>
+  </div>
   <div class="container">
     <div class="video-area">
-      <video id="video" controls></video>
+      <video id="video" controls preload="auto"></video>
     </div>
-    <div class="timeline-area">
-      <div class="timeline-header">
-        <strong>${initState.labels.timeline}</strong>
-        <span class="muted">${initState.labels.currentTime}: <span id="currentTimeLabel">0.0</span>s</span>
+    <div class="main-controls">
+      <div class="timeline-area">
+        <div id="ruler" class="ruler"></div>
+        <div id="timeline" class="timeline">
+          <div id="playhead" class="playhead"></div>
+        </div>
       </div>
-      <div id="ruler" class="ruler"></div>
-      <div id="timeline" class="timeline">
-        <div id="playhead" class="playhead"></div>
+      <div class="info-area">
+        <div class="segments-info" id="segmentsInfo"></div>
       </div>
-    </div>
-    <div class="info-area">
-      <div class="segments-info" id="segmentsInfo"></div>
     </div>
     <div class="footer">
       <div>
         <button id="cancelBtn">${initState.labels.cancel}</button>
       </div>
-      <button id="saveBtn" class="primary">${initState.labels.refine}</button>
+      <div class="footer-actions">
+        <button id="saveBtn" class="primary">${initState.labels.refine}</button>
+      </div>
     </div>
   </div>
 
@@ -344,10 +454,11 @@ export class AlignmentEditor {
     const initialState = ${serializedState};
 
     const video = document.getElementById('video');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingText = document.getElementById('loadingText');
     const ruler = document.getElementById('ruler');
     const timeline = document.getElementById('timeline');
     const playhead = document.getElementById('playhead');
-    const currentTimeLabel = document.getElementById('currentTimeLabel');
     const segmentsInfo = document.getElementById('segmentsInfo');
     const saveBtn = document.getElementById('saveBtn');
     const cancelBtn = document.getElementById('cancelBtn');
@@ -357,6 +468,8 @@ export class AlignmentEditor {
     let duration = 0;
     let activeIndex = -1; // Index of segment being dragged
     let selectedIndex = segments.length > 0 ? 0 : -1; // Default select first segment
+    let lastSeekTime = 0;
+    let seekPending = false;
 
     const formatMMSS = (seconds) => {
       const m = Math.floor(seconds / 60);
@@ -397,13 +510,16 @@ export class AlignmentEditor {
     const updatePlayhead = () => {
       const scale = computeScale();
       playhead.style.left = (video.currentTime * scale) + 'px';
-      currentTimeLabel.textContent = formatTime(video.currentTime);
     };
 
     const rebuildRuler = () => {
       ruler.innerHTML = '';
       const scale = computeScale();
       segments.forEach((seg, index) => {
+        const nextSeg = segments[index + 1];
+        const end = nextSeg ? nextSeg.startTime : duration;
+        const segDuration = end - seg.startTime;
+
         const marker = document.createElement('div');
         marker.className = 'marker';
         if (index === selectedIndex) marker.classList.add('selected');
@@ -411,7 +527,7 @@ export class AlignmentEditor {
         
         const label = document.createElement('div');
         label.className = 'marker-label';
-        label.textContent = formatMMSS(seg.startTime);
+        label.textContent = formatTime(segDuration) + 's';
         marker.appendChild(label);
         
         ruler.appendChild(marker);
@@ -439,10 +555,9 @@ export class AlignmentEditor {
         segmentEl.style.left = left + 'px';
         segmentEl.style.width = width + 'px';
         segmentEl.dataset.index = String(index);
-        segmentEl.title = (seg.title || '') + '\\n' + (seg.content || ''); // Hover full info
 
         const titleSpan = document.createElement('strong');
-        titleSpan.textContent = seg.title || initialState.labels.segments;
+        titleSpan.textContent = seg.title || seg.content || initialState.labels.segments;
 
         const timeSpan = document.createElement('span');
         timeSpan.className = 'time-label';
@@ -481,9 +596,34 @@ export class AlignmentEditor {
             
             if (roundedStart !== seg.startTime) {
               seg.startTime = roundedStart;
-              video.currentTime = seg.startTime;
+              
+              // 1. Optimized UI update: update only affected elements' styles
+              const left = (seg.startTime * scale);
+              segmentEl.style.left = left + 'px';
+              
+              // Update marker position directly if found
+              const markers = ruler.querySelectorAll('.marker');
+              if (markers[index]) {
+                markers[index].style.left = left + 'px';
+              }
+
+              // 2. Throttled Video Seek (max ~15fps during drag to avoid lag)
+              const now = Date.now();
+              if (now - lastSeekTime > 66) { // ~15fps
+                video.currentTime = seg.startTime;
+                lastSeekTime = now;
+              } else if (!seekPending) {
+                seekPending = true;
+                setTimeout(() => {
+                  if (activeIndex === index) { // Still dragging the same one
+                    video.currentTime = seg.startTime;
+                  }
+                  lastSeekTime = Date.now();
+                  seekPending = false;
+                }, 70);
+              }
+
               updatePlayhead();
-              rebuildSegments();
               updateInfo();
             }
           };
@@ -516,10 +656,20 @@ export class AlignmentEditor {
     const updateInfo = () => {
       if (selectedIndex >= 0 && selectedIndex < segments.length) {
         const seg = segments[selectedIndex];
-        segmentsInfo.innerHTML = '<div style="margin-bottom: 4px; font-weight: bold; color: var(--accent);">' + (seg.title || '') + ' (' + formatTime(seg.startTime) + 's)</div>' +
-          '<div style="line-height: 1.4; color: var(--fg);">' + (seg.content || '') + '</div>';
+        const nextSeg = segments[selectedIndex + 1];
+        const end = nextSeg ? nextSeg.startTime : duration;
+        const segDuration = end - seg.startTime;
+
+        segmentsInfo.innerHTML = 
+          '<div class="segment-card">' +
+            '<div class="segment-title">' +
+              (seg.title || "") + 
+              '<span class="segment-time-badge">' + formatTime(segDuration) + 's</span>' +
+            '</div>' +
+            '<div class="segment-content">' + (seg.content || "") + '</div>' +
+          '</div>';
       } else {
-        segmentsInfo.innerHTML = '<div style="opacity: 0.5; text-align: center; padding-top: 8px;">' + initialState.labels.segments + '</div>';
+        segmentsInfo.innerHTML = '<div style="opacity: 0.5; text-align: center; padding: 40px;">' + initialState.labels.segments + '</div>';
       }
     };
 
@@ -560,7 +710,38 @@ export class AlignmentEditor {
       vscode.postMessage({ type: 'save', segments });
     });
 
-    video.src = initialState.videoSrc;
+    // Instant Seeking Optimization: Load video as Blob to force into memory
+    (async function preloadVideo() {
+      try {
+        const response = await fetch(initialState.videoSrc);
+        const reader = response.body.getReader();
+        const contentLength = +response.headers.get('Content-Length');
+        
+        let receivedLength = 0;
+        let chunks = [];
+        while(true) {
+          const {done, value} = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          receivedLength += value.length;
+          if (contentLength) {
+            const percent = Math.round((receivedLength / contentLength) * 100);
+            loadingText.textContent = 'Loading video: ' + percent + '%';
+          }
+        }
+
+        const blob = new Blob(chunks, { type: 'video/mp4' });
+        const blobUrl = URL.createObjectURL(blob);
+        video.src = blobUrl;
+        
+        loadingOverlay.style.opacity = '0';
+        setTimeout(() => loadingOverlay.remove(), 300);
+      } catch (err) {
+        console.error('Preload failed, falling back to direct stream:', err);
+        video.src = initialState.videoSrc;
+        loadingOverlay.remove();
+      }
+    })();
   </script>
 </body>
 </html>`;
