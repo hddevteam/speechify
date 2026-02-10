@@ -15,7 +15,7 @@ export class SubtitleUtils {
 
     let i = 0;
     while (i < boundaries.length) {
-      let chunk: WordBoundary[] = [];
+      const chunk: WordBoundary[] = [];
       
       // Start a new chunk
       for (let j = 0; j < wordsPerSubtitle && (i + j) < boundaries.length; j++) {

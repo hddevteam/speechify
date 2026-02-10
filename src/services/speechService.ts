@@ -655,33 +655,23 @@ export class SpeechService {
         }
     }
 
-    try {
-        const result = await vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: I18n.t('progress.convertingToVideo'),
-            cancellable: false
-        }, async (_progress) => {
-            return await this.convertToVideoWithVision("", "", videoFilePath, {
-                startStep: PipelineStep.SSML,
-                forceRefine: false,
-                openAlignmentEditor: false
-            });
-        });
+    const result = await this.convertToVideoWithVision("", "", videoFilePath, {
+        startStep: PipelineStep.SSML,
+        forceRefine: false,
+        openAlignmentEditor: false
+    });
 
-        if (result.success && result.videoOutputPath) {
-            const action = await vscode.window.showInformationMessage(
-                I18n.t('notifications.success.videoGenerated', result.videoOutputPath),
-                I18n.t('actions.showInExplorer'),
-                I18n.t('actions.openFile')
-            );
-            if (action === I18n.t('actions.showInExplorer')) {
-                await AudioUtils.showInExplorer(result.videoOutputPath);
-            } else if (action === I18n.t('actions.openFile')) {
-                await AudioUtils.openAudioFile(result.videoOutputPath);
-            }
+    if (result.success && result.videoOutputPath) {
+        const action = await vscode.window.showInformationMessage(
+            I18n.t('notifications.success.videoGenerated', result.videoOutputPath),
+            I18n.t('actions.showInExplorer'),
+            I18n.t('actions.openFile')
+        );
+        if (action === I18n.t('actions.showInExplorer')) {
+            await AudioUtils.showInExplorer(result.videoOutputPath);
+        } else if (action === I18n.t('actions.openFile')) {
+            await AudioUtils.openAudioFile(result.videoOutputPath);
         }
-    } catch (error) {
-        throw error;
     }
   }
 

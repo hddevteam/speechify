@@ -16,9 +16,14 @@ export class AzureSpeechService {
   public static createSSML(text: string, voice: VoiceSettings): string {
     const locale = voice.locale || this.getLocaleFromVoiceName(voice.name);
     
+    // Fix common pronunciation issues
+    // 1. Fix "AI" read as "爱" (ài) in Chinese locales by adding a space between letters
+    // We use word boundaries (\b) to ensure we only catch standalone "AI" and not "MAIN", "AID", etc.
+    const processedText = text.replace(/\bAI\b/g, 'A I');
+
     return `<speak version='1.0' xml:lang='${locale}'>
                 <voice xml:lang='${locale}' xml:gender='${voice.gender}' name='${voice.name}' style='${voice.style}'>
-                    ${this.escapeXml(text)}
+                    ${this.escapeXml(processedText)}
                 </voice>
             </speak>`;
   }

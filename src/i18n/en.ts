@@ -85,6 +85,8 @@ const englishMessages: Messages = {
   'progress.analyzingVideo': 'Analyzing video content...',
   'progress.synthesizingAudio': 'Synthesizing audio segments...',
   'progress.processingChunk': 'Processing chunk {0} of {1}',
+  'progress.loadingVoiceList': 'Loading voice list...',
+  'progress.configuringSettings': 'Configuring settings...',
   'progress.muxingVideo': 'Merging audio and subtitles into video...',
   
   // Actions
