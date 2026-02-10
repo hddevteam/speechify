@@ -42,13 +42,14 @@ suite('VideoAnalyzer Test Suite', () => {
         
         const analyzer = new VideoAnalyzer();
         const script = fs.readFileSync('/Users/ming/projects/short-video-generate/2026-02-10-ai-worker-oriented-scripts/audio-script.txt', 'utf8');
+        const totalDuration = await analyzer.getVideoDuration(testVideoPath);
         
         // Extract real frames first
         const allFrames = await analyzer.extractFrames(testVideoPath, 30); // 30s interval to keep image count low for the test
         console.log(`Analyzing ${allFrames.length} frames for timing...`);
         
         try {
-            const timing = await analyzer.analyzeTiming(allFrames, script, apiKey, endpoint, deployment);
+            const timing = await analyzer.analyzeTiming(allFrames, script, totalDuration, apiKey, endpoint, deployment);
             console.log('AI Timing Result:', JSON.stringify(timing, null, 2));
             assert.ok(timing);
             assert.ok(Array.isArray(timing.segments));

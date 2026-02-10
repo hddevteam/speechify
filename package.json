@@ -34,7 +34,16 @@
     "english"
   ],
   "publisher": "luckyXmobile",
-  "activationEvents": [],
+  "activationEvents": [
+    "onCommand:extension.speechify",
+    "onCommand:extension.showSpeechifyVoiceSettings",
+    "onCommand:extension.configureSpeechifyVoiceSettings",
+    "onCommand:extension.configureSpeechifyAzureSettings",
+    "onCommand:extension.selectSpeechifyVoiceStyle",
+    "onCommand:extension.selectSpeechifyVoiceRole",
+    "onCommand:extension.convertToVideo",
+    "onCommand:extension.openAlignmentEditor"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hddevteam/speechify"
@@ -79,6 +88,10 @@
       {
         "command": "extension.convertToVideo",
         "title": "%speechify.command.convertToVideo%"
+      },
+      {
+        "command": "extension.openAlignmentEditor",
+        "title": "%speechify.command.alignmentEditor%"
       }
     ],
     "menus": {
@@ -105,6 +118,10 @@
         },
         {
           "command": "extension.convertToVideo",
+          "group": "navigation"
+        },
+        {
+          "command": "extension.openAlignmentEditor",
           "group": "navigation"
         }
       ]

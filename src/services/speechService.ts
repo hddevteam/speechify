@@ -1,13 +1,14 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { ProcessingResult, VoiceListItem, VideoProcessingResult } from '../types';
+import { AzureConfig, ProcessingResult, VoiceListItem, VideoProcessingResult, VoiceSettings } from '../types';
 import { ConfigManager } from '../utils/config';
 import { AzureSpeechService } from '../utils/azure';
 import { AudioUtils } from '../utils/audio';
 import { SubtitleUtils } from '../utils/subtitle';
 import { VideoMuxer } from '../utils/videoMuxer';
 import { VideoAnalyzer, TimingSegment } from '../utils/videoAnalyzer';
+import { AlignmentEditor } from '../webview/alignmentEditor';
 import { I18n } from '../i18n';
 
 /**
@@ -15,6 +16,7 @@ import { I18n } from '../i18n';
  */
 export enum PipelineStep {
   ANALYZE = 'analyze',
+  PRECISION = 'precision',
   REFINE = 'refine',
   SSML = 'ssml',
   SYNTHESIZE = 'synthesize',
@@ -127,6 +129,7 @@ export class SpeechService {
     options: {
       startStep?: PipelineStep;
       forceRefine?: boolean;
+      openAlignmentEditor?: boolean;
     } = {}
   ): Promise<VideoProcessingResult> {
     try {
@@ -154,6 +157,7 @@ export class SpeechService {
       }
 
       const timingPath = path.join(projectDir, 'timing.json');
+      const precisionTimingPath = path.join(projectDir, 'precision_timing.json');
       const refinedTimingPath = path.join(projectDir, 'refined_timing.json');
       const ssmlDir = path.join(projectDir, 'ssml');
       const audioDir = path.join(projectDir, 'audio');
@@ -168,10 +172,12 @@ export class SpeechService {
       // --- STEP 1: ANALYZE ---
       if (!options.startStep || options.startStep === PipelineStep.ANALYZE) {
           console.log('[Pipeline] Step 1: Analyzing Timing...');
+          const totalDuration = await analyzer.getVideoDuration(videoFilePath);
           const frames = await analyzer.extractFrames(videoFilePath, 10);
           const timingResult = await analyzer.analyzeTiming(
             frames, 
             cleanText, 
+            totalDuration,
             visionConfig.apiKey, 
             visionConfig.endpoint, 
             visionConfig.deployment
@@ -180,7 +186,51 @@ export class SpeechService {
           fs.writeFileSync(timingPath, JSON.stringify(segments, null, 2));
       } else {
           console.log('[Pipeline] Skipping Step 1, loading timing.json');
-          segments = JSON.parse(fs.readFileSync(timingPath, 'utf-8'));
+          if (fs.existsSync(timingPath)) {
+            segments = JSON.parse(fs.readFileSync(timingPath, 'utf-8'));
+          }
+      }
+
+      // --- STEP 1.5: PRECISION ---
+      if (!options.startStep || 
+          [PipelineStep.ANALYZE, PipelineStep.PRECISION].includes(options.startStep)) {
+          console.log('[Pipeline] Step 1.5: Refining Precision...');
+          if (segments && segments.length > 0) {
+            const totalDuration = await analyzer.getVideoDuration(videoFilePath);
+            segments = await analyzer.refineTiming(
+              videoFilePath,
+              segments,
+              totalDuration,
+              visionConfig.apiKey,
+              visionConfig.endpoint,
+              visionConfig.deployment
+            );
+            fs.writeFileSync(precisionTimingPath, JSON.stringify(segments, null, 2));
+          }
+      } else {
+          console.log('[Pipeline] Skipping Step 1.5, loading precision_timing.json');
+          if (fs.existsSync(precisionTimingPath)) {
+            segments = JSON.parse(fs.readFileSync(precisionTimingPath, 'utf-8'));
+          } else if (fs.existsSync(timingPath)) {
+            segments = JSON.parse(fs.readFileSync(timingPath, 'utf-8'));
+          }
+      }
+
+      const shouldOpenEditor = options.openAlignmentEditor !== false &&
+        (!options.startStep || [PipelineStep.ANALYZE, PipelineStep.PRECISION].includes(options.startStep));
+
+      if (shouldOpenEditor) {
+        const editedSegments = await this.openAlignmentEditor(
+          videoFilePath,
+          precisionTimingPath,
+          segments
+        );
+
+        if (!editedSegments) {
+          throw new Error(I18n.t('errors.alignmentEditorCanceled'));
+        }
+
+        segments = editedSegments;
       }
 
       // --- STEP 2: REFINE ---
@@ -191,39 +241,14 @@ export class SpeechService {
 
       if (shouldRefine) {
           console.log('[Pipeline] Step 2: Refining Script...');
-          const duration = await analyzer.getVideoDuration(videoFilePath);
-
-          // Calibration: Synthesize a sample to get actual WPS
-          let wordsPerSecond = 2.5; // Default
-          try {
-              console.log('[Pipeline] Calibrating Words Per Second...');
-              const calibrationText = segments[0]?.content.substring(0, 100) || cleanText.substring(0, 100);
-              const { boundaries } = await AzureSpeechService.synthesizeWithBoundaries(
-                  calibrationText,
-                  voiceSettings,
-                  azureConfig
-              );
-              
-              const lastBoundary = boundaries[boundaries.length - 1];
-              if (lastBoundary) {
-                  const actualDuration = (lastBoundary.audioOffset + lastBoundary.duration) / 1000;
-                  const wordCount = analyzer.countWords(calibrationText);
-                  if (actualDuration > 0) {
-                      wordsPerSecond = wordCount / actualDuration;
-                      console.log(`[Pipeline] Calibrated WPS: ${wordsPerSecond.toFixed(2)} (Words: ${wordCount}, Time: ${actualDuration.toFixed(2)}s)`);
-                  }
-              }
-          } catch (calibError) {
-              console.warn('[Pipeline] Calibration failed, using default WPS 2.5', calibError);
-          }
-
-          segments = await analyzer.refineScript(
-              segments,
-              duration,
-              visionConfig.apiKey,
-              visionConfig.endpoint,
-              visionConfig.refinementDeployment || visionConfig.deployment,
-              wordsPerSecond
+          segments = await this.refineSegmentsWithCalibration(
+          analyzer,
+          segments,
+          videoFilePath,
+          cleanText,
+          visionConfig,
+          azureConfig,
+          voiceSettings
           );
           fs.writeFileSync(refinedTimingPath, JSON.stringify(segments, null, 2));
       } else {
@@ -431,6 +456,137 @@ export class SpeechService {
    */
   public static setExtensionContext(context: vscode.ExtensionContext): void {
     this.extensionContext = context;
+  }
+
+  /**
+   * Open the alignment editor and return updated segments
+   */
+  public static async openAlignmentEditorForVideo(videoFilePath: string): Promise<void> {
+    if (!ConfigManager.isConfigurationComplete()) {
+      await SpeechService.showConfigurationWizard();
+      return;
+    }
+
+    const projectDir = this.getVisionProjectDir(videoFilePath);
+    const precisionTimingPath = path.join(projectDir, 'precision_timing.json');
+    const timingPath = path.join(projectDir, 'timing.json');
+
+    if (!fs.existsSync(precisionTimingPath) && !fs.existsSync(timingPath)) {
+      vscode.window.showErrorMessage(I18n.t('errors.alignmentTimingNotFound'));
+      return;
+    }
+
+    const sourcePath = fs.existsSync(precisionTimingPath) ? precisionTimingPath : timingPath;
+    const segments: TimingSegment[] = JSON.parse(fs.readFileSync(sourcePath, 'utf-8'));
+
+    const updatedSegments = await this.openAlignmentEditor(
+      videoFilePath,
+      precisionTimingPath,
+      segments
+    );
+
+    if (!updatedSegments) {
+      vscode.window.showInformationMessage(I18n.t('messages.alignmentEditorCanceled'));
+      return;
+    }
+
+    const analyzer = new VideoAnalyzer();
+    const visionConfig = ConfigManager.getVisionConfig();
+    if (!visionConfig.apiKey || !visionConfig.endpoint) {
+      vscode.window.showErrorMessage(I18n.t('errors.visionConfigurationIncomplete'));
+      return;
+    }
+    const azureConfig = ConfigManager.getAzureConfigForTesting();
+    const voiceSettings = ConfigManager.getVoiceSettings();
+    const refinedSegments = await this.refineSegmentsWithCalibration(
+      analyzer,
+      updatedSegments,
+      videoFilePath,
+      updatedSegments[0]?.content || '',
+      visionConfig,
+      azureConfig,
+      voiceSettings
+    );
+
+    const refinedTimingPath = path.join(projectDir, 'refined_timing.json');
+    fs.writeFileSync(refinedTimingPath, JSON.stringify(refinedSegments, null, 2));
+    vscode.window.showInformationMessage(I18n.t('notifications.success.alignmentSaved'));
+  }
+
+  private static async openAlignmentEditor(
+    videoFilePath: string,
+    precisionTimingPath: string,
+    segments: TimingSegment[]
+  ): Promise<TimingSegment[] | null> {
+    if (!this.extensionContext) {
+      vscode.window.showErrorMessage(I18n.t('errors.alignmentEditorUnavailable'));
+      return null;
+    }
+
+    const updatedSegments = await AlignmentEditor.open(
+      this.extensionContext,
+      videoFilePath,
+      segments,
+      { autoSavePath: precisionTimingPath }
+    );
+
+    if (!updatedSegments) {
+      return null;
+    }
+
+    fs.writeFileSync(precisionTimingPath, JSON.stringify(updatedSegments, null, 2));
+    return updatedSegments;
+  }
+
+  private static getVisionProjectDir(videoFilePath: string): string {
+    const outputDir = path.dirname(videoFilePath);
+    const projectName = path.basename(videoFilePath, path.extname(videoFilePath));
+    return path.join(outputDir, `${projectName}_vision_project`);
+  }
+
+  private static async refineSegmentsWithCalibration(
+    analyzer: VideoAnalyzer,
+    segments: TimingSegment[],
+    videoFilePath: string,
+    fallbackText: string,
+    visionConfig: { apiKey?: string; endpoint?: string; deployment: string; refinementDeployment?: string },
+    azureConfig: AzureConfig,
+    voiceSettings: VoiceSettings
+  ): Promise<TimingSegment[]> {
+    const duration = await analyzer.getVideoDuration(videoFilePath);
+
+    // Calibration: Synthesize a sample to get actual WPS
+    let wordsPerSecond = 2.5; // Default
+    try {
+      console.log('[Pipeline] Calibrating Words Per Second...');
+      const calibrationText = segments[0]?.content.substring(0, 100) || fallbackText.substring(0, 100);
+      const { boundaries } = await AzureSpeechService.synthesizeWithBoundaries(
+        calibrationText,
+        voiceSettings,
+        azureConfig
+      );
+
+      const lastBoundary = boundaries[boundaries.length - 1];
+      if (lastBoundary) {
+        const actualDuration = (lastBoundary.audioOffset + lastBoundary.duration) / 1000;
+        const wordCount = analyzer.countWords(calibrationText);
+        if (actualDuration > 0) {
+          wordsPerSecond = wordCount / actualDuration;
+          console.log(`[Pipeline] Calibrated WPS: ${wordsPerSecond.toFixed(2)} (Words: ${wordCount}, Time: ${actualDuration.toFixed(2)}s)`);
+        }
+      }
+    } catch (calibError) {
+      console.warn('[Pipeline] Calibration failed, using default WPS 2.5', calibError);
+    }
+
+    return analyzer.refineScript(
+      segments,
+      duration,
+      visionConfig.apiKey || '',
+      visionConfig.endpoint || '',
+      visionConfig.refinementDeployment || visionConfig.deployment,
+      wordsPerSecond
+    );
   }
 
   /**

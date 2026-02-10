@@ -105,9 +105,136 @@ export class VideoAnalyzer {
     }
 
     /**
+     * Extract frames in a specific time range
+     */
+    public async extractFramesInRange(videoPath: string, start: number, duration: number, fps: number = 1): Promise<string[]> {
+        const tempDir = path.join(os.tmpdir(), `speechify-refine-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
+        if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir, { recursive: true });
+        }
+
+        const outputPattern = path.join(tempDir, 'refine-%03d.jpg');
+        
+        try {
+            // Sanity check for duration
+            if (duration <= 0) return [];
+
+            // -ss is fast seek before -i
+            // -t is duration
+            const command = `ffmpeg -ss ${start} -t ${duration} -i "${videoPath}" -vf "fps=${fps}" -q:v 2 "${outputPattern}"`;
+            await execAsync(command);
+
+            const files = fs.readdirSync(tempDir)
+                .filter(file => file.endsWith('.jpg'))
+                .sort()
+                .map(file => path.join(tempDir, file));
+
+            return files;
+        } catch (error) {
+            console.error(`Failed to extract frames in range ${start}-${start+duration}:`, error);
+            return [];
+        }
+    }
+
+    /**
+     * Refine segment start times using a second pass with higher resolution
+     */
+    public async refineTiming(
+        videoPath: string,
+        segments: TimingSegment[],
+        videoDuration: number,
+        apiKey: string,
+        endpoint: string,
+        deployment: string
+    ): Promise<TimingSegment[]> {
+        if (segments.length <= 1) return segments;
+
+        console.log(`[Precision] Starting precision refinement for ${segments.length - 1} transition points... (Context: Video length ${videoDuration.toFixed(1)}s)`);
+        
+        // Final segments will have updated startTimes
+        const firstSegment = segments[0] as TimingSegment;
+        const finalized: TimingSegment[] = [firstSegment]; 
+
+        for (let i = 1; i < segments.length; i++) {
+            const current = segments[i] as TimingSegment;
+            
+            // Search window: 5s before and 5s after the coarse timestamp
+            const searchStart = Math.min(videoDuration - 1, Math.max(0, current.startTime - 5));
+            // Clamp duration so we don't exceed video length
+            const searchDuration = Math.min(10, videoDuration - searchStart);
+            
+            if (searchDuration <= 0) {
+                console.log(`[Precision] Skipping "${current.title}" - already at or past video end.`);
+                finalized.push(current);
+                continue;
+            }
+
+            console.log(`[Precision] Refining "${current.title}" near ${current.startTime}s (Window: ${searchStart.toFixed(1)}-${(searchStart + searchDuration).toFixed(1)}s)`);
+            
+            const frames = await this.extractFramesInRange(videoPath, searchStart, searchDuration, 1);
+            if (frames.length === 0) {
+                finalized.push(current);
+                continue;
+            }
+
+            const userContent: any[] = [
+                {
+                    type: 'text',
+                    text: `Attached are 10-11 frames from a video, captured every 1 second starting from ${searchStart} seconds. 
+                    I'm looking for the EXACT second when the screen transitions to a new segment titled: "${current.title}".
+                    
+                    Please identify which image index (1-based, where 1 is ${searchStart}s) shows the FIRST frame of the new content.
+                    Return JSON: {"exactSecondIndex": number, "confidence": number}`
+                }
+            ];
+
+            for (const frame of frames) {
+                const base64 = fs.readFileSync(frame).toString('base64');
+                userContent.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64}` } });
+            }
+
+            const url = `${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=2024-08-01-preview`;
+            
+            try {
+                const response = await axios.post(url, {
+                    messages: [
+                        { role: 'system', content: 'You are a video alignment expert. You help find the precise second of a transition.' },
+                        { role: 'user', content: userContent }
+                    ],
+                    response_format: { type: "json_object" }
+                }, {
+                    headers: { 'api-key': apiKey, 'Content-Type': 'application/json' }
+                });
+
+                const rawJson = response.data.choices[0].message.content;
+                const result = JSON.parse(rawJson);
+                // Index is 1-based
+                let preciseTime = Math.min(videoDuration, searchStart + (result.exactSecondIndex - 1));
+                
+                // Ensure monotonicity: segment i cannot start before segment i-1
+                const previousFinalized = finalized[i-1];
+                if (previousFinalized && preciseTime < previousFinalized.startTime) {
+                    console.log(`[Precision] Clamping "${current.title}" to ${previousFinalized.startTime}s (AI suggested ${preciseTime}s, but prev seg starts then)`);
+                    preciseTime = previousFinalized.startTime;
+                }
+
+                console.log(`[Precision] Updated "${current.title}" start time: ${current.startTime}s -> ${preciseTime}s (Confidence: ${result.confidence})`);
+                current.startTime = preciseTime;
+            } catch (err) {
+                console.warn(`[Precision] Failed to refine "${current.title}", keeping coarse time.`);
+            }
+            
+            finalized.push(current);
+        }
+
+        return finalized;
+    }
+
+    /**
      * Analyze frame timings using AI
      * @param frames Array of image paths
      * @param script The original script content
+     * @param videoDuration Total video duration in seconds
      * @param apiKey Azure OpenAI API Key
      * @param endpoint Azure OpenAI Endpoint
      * @param deployment GPT-5.2 deployment name
@@ -116,6 +243,7 @@ export class VideoAnalyzer {
     public async analyzeTiming(
         frames: string[], 
         script: string, 
+        videoDuration: number,
         apiKey: string, 
         endpoint: string,
         deployment: string
@@ -123,7 +251,19 @@ export class VideoAnalyzer {
         const userContent: any[] = [
             {
                 type: 'text',
-                text: `Here is the script: \n\n${script}\n\nPlease analyze these frames (captured every 10s) and tell me which parts of the script correspond to which timestamps in the video. Return a JSON object with a "segments" array. Each segment should have "startTime" (seconds), "title" (app name), and "content" (the relevant script text).`
+                text: `Video Total Duration: ${videoDuration.toFixed(1)} seconds. 
+I have provided frames captured every 10 seconds (Frame 0=0s, Frame 1=10s, Frame 2=20s, etc.).
+
+Please analyze these frames and map the provided script segments to the correct Frame Indices.
+Script:
+${script}
+
+Task:
+1. Identify major transitions between apps/topics.
+2. For each segment, provide the "startFrameIndex" (0, 1, 2...).
+3. "startTime" should be (startFrameIndex * 10).
+
+Return a JSON object with a "segments" array. Each segment should have "startTime", "title", "content", and "startFrameIndex".`
             }
         ];
 
@@ -141,7 +281,7 @@ export class VideoAnalyzer {
         const messages = [
             {
                 role: 'system',
-                content: 'You are an expert video editor and AI assistant. Your task is to align a narration script with a screen recording. You will be given frames extracted every 10 seconds from the video. Identify the timestamps where the visual content changes to a new topic (specifically new App prototypes in this case) and map the script segments accordingly.'
+                content: 'You are a video editor. Identify timestamps for script segments based on visual changes. Return ONLY JSON. Be concise.'
             },
             {
                 role: 'user',
@@ -155,7 +295,7 @@ export class VideoAnalyzer {
             const response = await axios.post(url, {
                 messages,
                 response_format: { type: "json_object" },
-                max_completion_tokens: 4096
+                max_completion_tokens: 8000
             }, {
                 headers: {
                     'api-key': apiKey,
@@ -166,6 +306,9 @@ export class VideoAnalyzer {
             // The content might be a string that needs parsing if not using response_format correctly
             // or if the SDK returns it as a string. Azure OpenAI often returns a string.
             let content = response.data.choices[0].message.content;
+            if (!content) {
+                console.error('AI Response choice:', JSON.stringify(response.data.choices[0]));
+            }
             if (typeof content === 'string') {
                 // Remove markdown code blocks if present
                 content = content.replace(/```json\n?|```/g, '').trim();
@@ -180,9 +323,66 @@ export class VideoAnalyzer {
                 }
             }
             return content;
-        } catch (error: any) {
-            console.error('AI analysis failed:', error.response?.data || error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.error('AI analysis failed:', message);
             throw error;
+        }
+    }
+
+    /**
+     * Second Pass: Refine specific transition point
+     */
+    public async refinePreciseTiming(
+        frames: string[],
+        segTitle: string,
+        coarseTime: number,
+        apiKey: string,
+        endpoint: string,
+        deployment: string
+    ): Promise<number> {
+        if (frames.length === 0) return coarseTime;
+
+        const userContent: any[] = [
+            {
+                type: 'text',
+                text: `These are 10 consecutive frames captured at 1-second intervals starting from ${Math.max(0, coarseTime - 5)}s.
+We are looking for the EXACT second where the UI for "${segTitle}" first appears.
+Look for visual cues like title change, new UI layout, or button clicks.
+Respond with JSON only.`
+            }
+        ];
+
+        frames.forEach((framePath) => {
+            const base64Image = fs.readFileSync(framePath).toString('base64');
+            userContent.push({
+                type: 'image_url',
+                image_url: { url: `data:image/jpeg;base64,${base64Image}` }
+            });
+        });
+
+        const messages = [
+            { role: 'system', content: 'You are a video alignment specialist. Pinpoint the exact second [0-9] in the sequence where the transition happens.' },
+            { role: 'user', content: userContent }
+        ];
+
+        try {
+            const url = `${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=2024-08-01-preview`;
+            const response = await axios.post(url, {
+                messages,
+                response_format: { type: "json_object" },
+                max_completion_tokens: 500
+            }, {
+                headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
+                timeout: 30000
+            });
+
+            const content = JSON.parse(response.data.choices[0].message.content);
+            const relativeSecond = parseInt(content.transitionSecond || content.second || 0);
+            const baseTime = Math.max(0, coarseTime - 5);
+            return baseTime + relativeSecond;
+        } catch (error) {
+            return coarseTime; // Fallback
         }
     }
 
@@ -258,22 +458,22 @@ JSON FORMAT:
                 const url = `${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=2024-08-01-preview`;
                 
                 try {
-                    const response = await axios.post(url, {
-                        messages,
-                        response_format: { type: "json_object" },
-                        max_completion_tokens: 2000
-                    }, {
-                        headers: {
-                            'api-key': apiKey,
-                            'Content-Type': 'application/json'
-                        },
-                        timeout: 30000 // 30s timeout per call
-                    });
+                        const response = await axios.post(url, {
+                            messages,
+                            response_format: { type: "json_object" },
+                            max_completion_tokens: 2000
+                        }, {
+                            headers: {
+                                'api-key': apiKey,
+                                'Content-Type': 'application/json'
+                            },
+                            timeout: 30000 // 30s timeout per call
+                        });
 
-                    let rawContent = response.data.choices[0].message.content;
-                    if (!rawContent) {
-                        throw new Error('AI returned empty content');
-                    }
+                        const rawContent = response.data.choices[0].message.content;
+                        if (!rawContent) {
+                            throw new Error('AI returned empty content');
+                        }
 
                     let content;
                     try {
@@ -295,8 +495,9 @@ JSON FORMAT:
                         console.warn(`Attempt ${retry} failed: Result too long (${refinedWords} words > ${maxWords}). Retrying...`);
                         currentContent = refinedResult; 
                     }
-                } catch (error: any) {
-                    console.error(`Refinement API error on attempt ${retry}:`, error.message);
+                } catch (error: unknown) {
+                    const message = error instanceof Error ? error.message : String(error);
+                    console.error(`Refinement API error on attempt ${retry}:`, message);
                 }
             }
 

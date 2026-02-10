@@ -8,6 +8,7 @@
   "speechify.command.selectStyle": "Speechify: 选择语音风格",
   "speechify.command.selectRole": "Speechify: 选择语音角色",
   "speechify.command.convertToVideo": "Speechify: 转换文字为视频",
+  "speechify.command.alignmentEditor": "Speechify: 打开对齐编辑器",
   "speechify.configuration.title": "Speechify",
   "speechify.configuration.azureSpeechServicesKey": "Azure 语音服务订阅密钥",
   "speechify.configuration.speechServicesRegion": "Azure 语音服务区域",

@@ -20,7 +20,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('extension.configureSpeechifyAzureSettings', configureSpeechifyAzureSettings),
         vscode.commands.registerCommand('extension.selectSpeechifyVoiceStyle', selectVoiceStyle),
         vscode.commands.registerCommand('extension.selectSpeechifyVoiceRole', selectVoiceRole),
-        vscode.commands.registerCommand('extension.convertToVideo', convertTextToVideo)
+        vscode.commands.registerCommand('extension.convertToVideo', convertTextToVideo),
+        vscode.commands.registerCommand('extension.openAlignmentEditor', openAlignmentEditor)
     ];
 
     // Add commands to subscriptions
@@ -292,6 +293,34 @@ async function convertTextToVideo(args?: { text?: string, videoPath?: string }):
         console.error('Text to video conversion failed:', error);
         vscode.window.showErrorMessage(
             I18n.t('errors.videoConversionFailed', error instanceof Error ? error.message : 'Unknown error')
+        );
+    }
+}
+
+/**
+ * Open visual alignment editor for an existing vision project
+ */
+async function openAlignmentEditor(): Promise<void> {
+    try {
+        const videoFiles = await vscode.window.showOpenDialog({
+            canSelectFiles: true,
+            canSelectFolders: false,
+            canSelectMany: false,
+            openLabel: I18n.t('config.prompts.selectVideoFile'),
+            filters: {
+                'Videos': ['mp4', 'mov', 'avi', 'mkv']
+            }
+        });
+
+        if (!videoFiles || videoFiles.length === 0 || !videoFiles[0]) {
+            return;
+        }
+
+        await SpeechService.openAlignmentEditorForVideo(videoFiles[0].fsPath);
+    } catch (error) {
+        console.error('Failed to open alignment editor:', error);
+        vscode.window.showErrorMessage(
+            I18n.t('errors.alignmentEditorFailed', error instanceof Error ? error.message : 'Unknown error')
         );
     }
 }

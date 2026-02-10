@@ -14,6 +14,8 @@ const englishMessages: Messages = {
   'commands.configureAzure.description': 'Configure Azure Speech Services credentials and region',
   'commands.convertToVideo.title': 'Speechify: Convert Text to Video',
   'commands.convertToVideo.description': 'Convert text to speech and merge with a video file with subtitles',
+  'commands.alignmentEditor.title': 'Speechify: Open Alignment Editor',
+  'commands.alignmentEditor.description': 'Fine-tune precision timing with a visual timeline editor',
   
   // Notifications
   'notifications.success.speechGenerated': 'Speech generated successfully! Audio saved to: {0}',
@@ -25,6 +27,7 @@ const englishMessages: Messages = {
   'notifications.success.voiceRoleChanged': 'Voice role updated to: {0}',
   'notifications.success.azureSettingsUpdated': 'Azure Speech Services configuration updated.',
   'notifications.success.videoGenerated': 'Video generated successfully! Saved to: {0}',
+  'notifications.success.alignmentSaved': 'Alignment saved and refinement completed.',
   'notifications.info.noStylesAvailable': 'Voice "{0}" does not support different styles.',
   'notifications.info.noRolesAvailable': 'Voice "{0}" does not support different roles.',
   
@@ -54,6 +57,11 @@ const englishMessages: Messages = {
   'errors.openError': 'Failed to open audio file.',
   'errors.ffmpegNotAvailable': 'FFmpeg is not installed or not in your PATH.',
   'errors.videoConversionFailed': 'Failed to generate video: {0}',
+  'errors.alignmentEditorFailed': 'Failed to open alignment editor: {0}',
+  'errors.alignmentEditorCanceled': 'Alignment editor was closed before saving.',
+  'errors.alignmentEditorUnavailable': 'Alignment editor is unavailable in the current session.',
+  'errors.alignmentTimingNotFound': 'No precision_timing.json or timing.json found for this video.',
+  'errors.visionConfigurationIncomplete': 'Vision API configuration is incomplete. Please set visionApiKey and visionEndpoint.',
   
   // Configuration
   'config.prompts.subscriptionKey': 'Enter your Azure Speech Services subscription key',
@@ -89,6 +97,8 @@ const englishMessages: Messages = {
   'actions.retry': 'Retry',
   'actions.visionAlignment': 'AI Visual Alignment',
   'actions.standardConversion': 'Standard',
+  'actions.saveAndRefine': 'Save & Refine',
+  'actions.resetToAi': 'Reset to AI Suggestion',
   
   // Settings
   'settings.voiceName': 'Voice Name',
@@ -125,7 +135,16 @@ const englishMessages: Messages = {
   'messages.processingComplete': 'Text to speech conversion completed.',
   'messages.audioFilesSaved': 'Audio files have been saved successfully.',
   'messages.extensionActivated': 'Speechify extension is now active!',
-  'messages.extensionDeactivated': 'Speechify extension is now deactivated!'
+  'messages.extensionDeactivated': 'Speechify extension is now deactivated!',
+  'messages.alignmentEditorCanceled': 'Alignment editor was closed without saving.',
+
+  // Alignment Editor
+  'alignment.editorTitle': 'Speechify Alignment Editor',
+  'alignment.timeline': 'Timeline',
+  'alignment.segments': 'Segment',
+  'alignment.startTime': 'Start Time',
+  'alignment.currentTime': 'Current Time',
+  'alignment.setToCurrent': 'Set to Current'
 };
 
 export default englishMessages;

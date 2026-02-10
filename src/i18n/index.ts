@@ -15,6 +15,8 @@ export interface Messages {
   'commands.configureAzure.description': string;
   'commands.convertToVideo.title': string;
   'commands.convertToVideo.description': string;
+  'commands.alignmentEditor.title': string;
+  'commands.alignmentEditor.description': string;
   
   // Notifications
   'notifications.success.speechGenerated': string;
@@ -26,6 +28,7 @@ export interface Messages {
   'notifications.success.voiceStyleChanged': string;
   'notifications.success.voiceRoleChanged': string;
   'notifications.success.videoGenerated': string;
+  'notifications.success.alignmentSaved': string;
   'notifications.info.noStylesAvailable': string;
   'notifications.info.noRolesAvailable': string;
   
@@ -55,6 +58,11 @@ export interface Messages {
   'errors.openError': string;
   'errors.ffmpegNotAvailable': string;
   'errors.videoConversionFailed': string;
+  'errors.alignmentEditorFailed': string;
+  'errors.alignmentEditorCanceled': string;
+  'errors.alignmentEditorUnavailable': string;
+  'errors.alignmentTimingNotFound': string;
+  'errors.visionConfigurationIncomplete': string;
   
   // Configuration
   'config.prompts.subscriptionKey': string;
@@ -90,6 +98,8 @@ export interface Messages {
   'actions.retry': string;
   'actions.visionAlignment': string;
   'actions.standardConversion': string;
+  'actions.saveAndRefine': string;
+  'actions.resetToAi': string;
   
   // Settings
   'settings.voiceName': string;
@@ -127,6 +137,15 @@ export interface Messages {
   'messages.audioFilesSaved': string;
   'messages.extensionActivated': string;
   'messages.extensionDeactivated': string;
+  'messages.alignmentEditorCanceled': string;
+  
+  // Alignment Editor
+  'alignment.editorTitle': string;
+  'alignment.timeline': string;
+  'alignment.segments': string;
+  'alignment.startTime': string;
+  'alignment.currentTime': string;
+  'alignment.setToCurrent': string;
 }
 
 /**

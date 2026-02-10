@@ -3,8 +3,8 @@ import * as fs from 'fs';
 import { SpeechService } from '../../services/speechService';
 
 suite('Full Vision Alignment Integration Test', () => {
-    const videoPath = '/Users/ming/projects/short-video-generate/2026-02-05-extra-0014-script/RPReplay_Final1770268194.MP4';
-    const scriptPath = '/Users/ming/projects/short-video-generate/2026-02-05-extra-0014-script/audio-script.txt';
+    const videoPath = '/Users/ming/projects/short-video-generate/2026-02-10-ai-worker-oriented-scripts/录屏2026-02-10 09.50.06.mov';
+    const scriptPath = '/Users/ming/projects/short-video-generate/2026-02-10-ai-worker-oriented-scripts/audio-script.txt';
 
     test('Should perform full conversion with vision alignment', async function() {
         this.timeout(600000); // 10 minutes for full conversion

@@ -14,6 +14,8 @@ const chineseMessages: Messages = {
   'commands.configureAzure.description': '配置 Azure 语音服务凭据和区域',
   'commands.convertToVideo.title': 'Speechify: 转换文字为视频',
   'commands.convertToVideo.description': '将文字转换为语音，并与视频文件合并生成带字幕的视频',
+  'commands.alignmentEditor.title': 'Speechify: 打开对齐编辑器',
+  'commands.alignmentEditor.description': '通过可视化时间轴微调精准对齐',
   
   // Notifications
   'notifications.success.speechGenerated': '语音生成成功！音频已保存到：{0}',
@@ -25,6 +27,7 @@ const chineseMessages: Messages = {
   'notifications.success.voiceRoleChanged': '语音角色已更新为：{0}',
   'notifications.success.azureSettingsUpdated': 'Azure 语音服务配置已更新。',
   'notifications.success.videoGenerated': '视频生成成功！保存至: {0}',
+  'notifications.success.alignmentSaved': '对齐已保存并完成脚本精炼。',
   'notifications.info.noStylesAvailable': '语音 "{0}" 不支持不同的风格。',
   'notifications.info.noRolesAvailable': '语音 "{0}" 不支持不同的角色。',
   
@@ -54,6 +57,11 @@ const chineseMessages: Messages = {
   'errors.openError': '打开音频文件失败。',
   'errors.ffmpegNotAvailable': '未安装 FFmpeg 或未将其加入 PATH 环境变量。',
   'errors.videoConversionFailed': '生成视频失败: {0}',
+  'errors.alignmentEditorFailed': '打开对齐编辑器失败: {0}',
+  'errors.alignmentEditorCanceled': '对齐编辑器在保存前被关闭。',
+  'errors.alignmentEditorUnavailable': '当前会话无法打开对齐编辑器。',
+  'errors.alignmentTimingNotFound': '未找到 precision_timing.json 或 timing.json。',
+  'errors.visionConfigurationIncomplete': '视觉分析配置不完整，请设置 visionApiKey 和 visionEndpoint。',
   
   // Configuration
   'config.prompts.subscriptionKey': '请输入您的 Azure 语音服务订阅密钥',
@@ -89,6 +97,8 @@ const chineseMessages: Messages = {
   'actions.retry': '重试',
   'actions.visionAlignment': 'AI 视觉对齐',
   'actions.standardConversion': '标准模式',
+  'actions.saveAndRefine': '保存并精炼',
+  'actions.resetToAi': '恢复 AI 建议',
   
   // Settings
   'settings.voiceName': '语音名称',
@@ -125,7 +135,16 @@ const chineseMessages: Messages = {
   'messages.processingComplete': '文字转语音转换完成。',
   'messages.audioFilesSaved': '音频文件已成功保存。',
   'messages.extensionActivated': 'Speechify 扩展现已激活！',
-  'messages.extensionDeactivated': 'Speechify 扩展现已停用！'
+  'messages.extensionDeactivated': 'Speechify 扩展现已停用！',
+  'messages.alignmentEditorCanceled': '对齐编辑器已关闭，未保存改动。',
+
+  // Alignment Editor
+  'alignment.editorTitle': 'Speechify 对齐编辑器',
+  'alignment.timeline': '时间轴',
+  'alignment.segments': '分段',
+  'alignment.startTime': '开始时间',
+  'alignment.currentTime': '当前时间',
+  'alignment.setToCurrent': '设为当前时间'
 };
 
 export default chineseMessages;
