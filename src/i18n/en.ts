@@ -80,10 +80,11 @@ const englishMessages: Messages = {
   
   // Progress
   'progress.convertingToSpeech': 'Converting text to speech...',
-  'progress.processingChunk': 'Processing chunk {0} of {1}',
-  'progress.loadingVoiceList': 'Loading voice list...',
-  'progress.configuringSettings': 'Configuring settings...',
   'progress.convertingToVideo': 'Generating video with speech and subtitles...',
+  'progress.refiningScript': 'Refining script with AI...',
+  'progress.analyzingVideo': 'Analyzing video content...',
+  'progress.synthesizingAudio': 'Synthesizing audio segments...',
+  'progress.processingChunk': 'Processing chunk {0} of {1}',
   'progress.muxingVideo': 'Merging audio and subtitles into video...',
   
   // Actions

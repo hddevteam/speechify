@@ -180,19 +180,27 @@ export class SpeechService {
       // --- STEP 1: ANALYZE ---
       if (!options.startStep || options.startStep === PipelineStep.ANALYZE) {
           console.log('[Pipeline] Step 1: Analyzing Timing...');
-          const totalDuration = await analyzer.getVideoDuration(videoFilePath);
-          const interval = options.frameInterval || 10;
-          const frames = await analyzer.extractFrames(videoFilePath, interval);
-          const timingResult = await analyzer.analyzeTiming(
-            frames, 
-            cleanText, 
-            totalDuration,
-            visionConfig.apiKey, 
-            visionConfig.endpoint, 
-            visionConfig.deployment,
-            interval
-          );
-          segments = timingResult.segments;
+          
+          segments = await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: I18n.t('progress.analyzingVideo'),
+            cancellable: false
+          }, async () => {
+            const totalDuration = await analyzer.getVideoDuration(videoFilePath);
+            const interval = options.frameInterval || 10;
+            const frames = await analyzer.extractFrames(videoFilePath, interval);
+            const timingResult = await analyzer.analyzeTiming(
+              frames, 
+              cleanText, 
+              totalDuration,
+              visionConfig.apiKey, 
+              visionConfig.endpoint, 
+              visionConfig.deployment,
+              interval
+            );
+            return timingResult.segments;
+          });
+          
           saveProject(segments);
       } else {
           console.log('[Pipeline] Skipping Step 1, loading timing.json');
@@ -227,15 +235,21 @@ export class SpeechService {
 
       if (shouldRefine) {
           console.log('[Pipeline] Step 2: Refining Script...');
-          segments = await this.refineSegmentsWithCalibration(
-          analyzer,
-          segments,
-          videoFilePath,
-          cleanText,
-          visionConfig,
-          azureConfig,
-          voiceSettings
-          );
+          segments = await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: I18n.t('progress.refiningScript'),
+            cancellable: false
+          }, async () => {
+            return await this.refineSegmentsWithCalibration(
+              analyzer,
+              segments,
+              videoFilePath,
+              cleanText,
+              visionConfig,
+              azureConfig,
+              voiceSettings
+            );
+          });
           saveProject(segments);
       } else {
           console.log('[Pipeline] Skipping Step 2, loading timing.json');
@@ -262,34 +276,43 @@ export class SpeechService {
           [PipelineStep.ANALYZE, PipelineStep.REFINE, PipelineStep.SSML, PipelineStep.SYNTHESIZE].includes(options.startStep)) {
           console.log(`[Pipeline] Step 4: Synthesizing ${segments.length} segments...`);
           
-          for (let i = 0; i < segments.length; i++) {
-            const seg = segments[i];
-            if (!seg) continue;
-            // We use the adjusted content but recreate SSML if needed, or just use the saved file
-            const startTimeMs = seg.startTime * 1000;
-            
-            console.log(`Synthesizing segment ${i+1}/${segments.length}: ${seg.title}`);
-            
-            const { audioBuffer, boundaries } = await AzureSpeechService.synthesizeWithBoundaries(
-              seg.adjustedContent || seg.content,
-              voiceSettings,
-              azureConfig
-            );
-            
-            const segAudioPath = path.join(audioDir, `seg_${i}.mp3`);
-            const segBoundariesPath = path.join(boundariesDir, `seg_${i}.json`);
-            
-            await AudioUtils.saveAudioFile(audioBuffer, segAudioPath);
-            fs.writeFileSync(segBoundariesPath, JSON.stringify(boundaries, null, 2));
-            
-            seg.audioPath = segAudioPath;
-            
-            const shiftedBoundaries = boundaries.map(b => ({
-              ...b,
-              audioOffset: b.audioOffset + startTimeMs
-            }));
-            allBoundaries.push(...shiftedBoundaries);
-          }
+          await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: I18n.t('progress.synthesizingAudio'),
+            cancellable: false
+          }, async (progress) => {
+            for (let i = 0; i < segments.length; i++) {
+              const seg = segments[i];
+              if (!seg) continue;
+              
+              progress.report({ message: I18n.t('progress.processingChunk', (i + 1).toString(), segments.length.toString()) });
+              
+              // We use the adjusted content but recreate SSML if needed, or just use the saved file
+              const startTimeMs = seg.startTime * 1000;
+              
+              console.log(`Synthesizing segment ${i+1}/${segments.length}: ${seg.title}`);
+              
+              const { audioBuffer, boundaries } = await AzureSpeechService.synthesizeWithBoundaries(
+                seg.adjustedContent || seg.content,
+                voiceSettings,
+                azureConfig
+              );
+              
+              const segAudioPath = path.join(audioDir, `seg_${i}.mp3`);
+              const segBoundariesPath = path.join(boundariesDir, `seg_${i}.json`);
+              
+              await AudioUtils.saveAudioFile(audioBuffer, segAudioPath);
+              fs.writeFileSync(segBoundariesPath, JSON.stringify(boundaries, null, 2));
+              
+              seg.audioPath = segAudioPath;
+              
+              const shiftedBoundaries = boundaries.map(b => ({
+                ...b,
+                audioOffset: b.audioOffset + startTimeMs
+              }));
+              allBoundaries.push(...shiftedBoundaries);
+            }
+          });
       } else {
           console.log('[Pipeline] Skipping Step 4, loading audio and boundaries');
           for (let i = 0; i < segments.length; i++) {
@@ -307,31 +330,37 @@ export class SpeechService {
       }
 
       // --- STEP 5: MUX ---
-      console.log('[Pipeline] Step 5: Final Muxing...');
-      const mergedAudioPath = path.join(projectDir, `merged_final.mp3`);
-      await this.mergeAudioWithOffsets(segments, mergedAudioPath);
+      return await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: I18n.t('progress.convertingToVideo'),
+        cancellable: false
+      }, async () => {
+        console.log('[Pipeline] Step 5: Final Muxing...');
+        const mergedAudioPath = path.join(projectDir, `merged_final.mp3`);
+        await this.mergeAudioWithOffsets(segments, mergedAudioPath);
 
-      const srtOutputPath = path.join(projectDir, `final.srt`);
-      const srtContent = SubtitleUtils.generateSRT(allBoundaries);
-      await SubtitleUtils.saveSRTFile(srtContent, srtOutputPath);
+        const srtOutputPath = path.join(projectDir, `final.srt`);
+        const srtContent = SubtitleUtils.generateSRT(allBoundaries);
+        await SubtitleUtils.saveSRTFile(srtContent, srtOutputPath);
 
-      const videoOutputPath = path.join(outputDir, `${projectName}_refined_vision.mp4`);
-      const finalVideoPath = await VideoMuxer.muxVideo(
-        videoFilePath,
-        mergedAudioPath,
-        srtOutputPath,
-        videoOutputPath
-      );
+        const videoOutputPath = path.join(outputDir, `${projectName}_refined_vision.mp4`);
+        const finalVideoPath = await VideoMuxer.muxVideo(
+          videoFilePath,
+          mergedAudioPath,
+          srtOutputPath,
+          videoOutputPath
+        );
 
-      return {
-        success: true,
-        processedChunks: segments.length,
-        totalChunks: segments.length,
-        outputPaths: [mergedAudioPath, srtOutputPath],
-        videoOutputPath: finalVideoPath,
-        wordBoundaries: allBoundaries,
-        errors: []
-      };
+        return {
+          success: true,
+          processedChunks: segments.length,
+          totalChunks: segments.length,
+          outputPaths: [mergedAudioPath, srtOutputPath],
+          videoOutputPath: finalVideoPath,
+          wordBoundaries: allBoundaries,
+          errors: []
+        };
+      });
     } catch (error) {
       console.error('Video conversion with vision failed:', error);
       throw error;
@@ -549,15 +578,21 @@ export class SpeechService {
       }
     }
 
-    const refinedSegments = await this.refineSegmentsWithCalibration(
-      analyzer,
-      segmentsToRefine,
-      videoFilePath,
-      firstContent,
-      visionConfig,
-      azureConfig,
-      voiceSettings
-    );
+    const refinedSegments = await vscode.window.withProgress({
+      location: vscode.ProgressLocation.Notification,
+      title: I18n.t('progress.refiningScript'),
+      cancellable: false
+    }, async () => {
+      return await this.refineSegmentsWithCalibration(
+        analyzer,
+        segmentsToRefine,
+        videoFilePath,
+        firstContent,
+        visionConfig,
+        azureConfig,
+        voiceSettings
+      );
+    });
 
     // Always save in Project format (already upgraded at start)
     const finalContent = fs.readFileSync(timingPath, 'utf-8');

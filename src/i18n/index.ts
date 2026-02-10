@@ -82,6 +82,9 @@ export interface Messages {
   // Progress
   'progress.convertingToSpeech': string;
   'progress.convertingToVideo': string;
+  'progress.refiningScript': string;
+  'progress.analyzingVideo': string;
+  'progress.synthesizingAudio': string;
   'progress.processingChunk': string;
   'progress.loadingVoiceList': string;
   'progress.configuringSettings': string;

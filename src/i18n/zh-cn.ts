@@ -78,10 +78,13 @@ const chineseMessages: Messages = {
   'config.prompts.selectConversionMode': '选择视频生成模式',  'config.prompts.selectAnalysisDepth': '选择 AI 分析精度 (扫描间隔)',  
   // Progress
   'progress.convertingToSpeech': '正在转换文字为语音...',
+  'progress.convertingToVideo': '正在生成带语音和字幕的视频...',
+  'progress.refiningScript': '正在使用 AI 精炼脚本...',
+  'progress.analyzingVideo': '正在分析视频内容...',
+  'progress.synthesizingAudio': '正在合成音频分段...',
   'progress.processingChunk': '正在处理第 {0} 段，共 {1} 段',
   'progress.loadingVoiceList': '正在加载语音列表...',
   'progress.configuringSettings': '正在配置设置...',
-  'progress.convertingToVideo': '正在生成带语音和字幕的视频...',
   'progress.muxingVideo': '正在将音频和字幕合并进视频...',
   
   // Actions
