@@ -12,6 +12,8 @@ const chineseMessages: Messages = {
   'commands.selectRole.description': '为神经语音选择角色扮演角色',
   'commands.configureAzure.title': 'Speechify: 配置 Azure 设置',
   'commands.configureAzure.description': '配置 Azure 语音服务凭据和区域',
+  'commands.convertToVideo.title': 'Speechify: 转换文字为视频',
+  'commands.convertToVideo.description': '将文字转换为语音，并与视频文件合并生成带字幕的视频',
   
   // Notifications
   'notifications.success.speechGenerated': '语音生成成功！音频已保存到：{0}',
@@ -22,6 +24,7 @@ const chineseMessages: Messages = {
   'notifications.success.voiceStyleChanged': '语音风格已更新为：{0}',
   'notifications.success.voiceRoleChanged': '语音角色已更新为：{0}',
   'notifications.success.azureSettingsUpdated': 'Azure 语音服务配置已更新。',
+  'notifications.success.videoGenerated': '视频生成成功！保存至: {0}',
   'notifications.info.noStylesAvailable': '语音 "{0}" 不支持不同的风格。',
   'notifications.info.noRolesAvailable': '语音 "{0}" 不支持不同的角色。',
   
@@ -49,6 +52,8 @@ const chineseMessages: Messages = {
   'errors.fileDeleteError': '删除音频文件失败。',
   'errors.revealError': '在文件资源管理器中显示文件失败。',
   'errors.openError': '打开音频文件失败。',
+  'errors.ffmpegNotAvailable': '未安装 FFmpeg 或未将其加入 PATH 环境变量。',
+  'errors.videoConversionFailed': '生成视频失败: {0}',
   
   // Configuration
   'config.prompts.subscriptionKey': '请输入您的 Azure 语音服务订阅密钥',
@@ -61,12 +66,15 @@ const chineseMessages: Messages = {
   'config.prompts.selectGender': '选择语音性别',
   'config.prompts.selectStyle': '选择语音风格',
   'config.prompts.selectRole': '选择语音角色',
+  'config.prompts.selectVideoFile': '选择背景视频文件',
   
   // Progress
   'progress.convertingToSpeech': '正在转换文字为语音...',
   'progress.processingChunk': '正在处理第 {0} 段，共 {1} 段',
   'progress.loadingVoiceList': '正在加载语音列表...',
   'progress.configuringSettings': '正在配置设置...',
+  'progress.convertingToVideo': '正在生成带语音和字幕的视频...',
+  'progress.muxingVideo': '正在将音频和字幕合并进视频...',
   
   // Actions
   'actions.configureNow': '立即配置',

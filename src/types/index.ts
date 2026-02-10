@@ -84,6 +84,17 @@ export interface ProcessingResult {
   totalChunks: number;
   outputPaths: string[];
   errors: string[];
+  wordBoundaries?: WordBoundary[]; // Word timing information
+}
+
+export interface WordBoundary {
+  text: string;
+  audioOffset: number; // In milliseconds
+  duration: number; // In milliseconds
+}
+
+export interface VideoProcessingResult extends ProcessingResult {
+  videoOutputPath?: string;
 }
 
 /**

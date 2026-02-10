@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { AzureConfig, VoiceSettings, SpeechifyError } from '../types';
+import * as sdk from 'microsoft-cognitiveservices-speech-sdk';
+import { AzureConfig, VoiceSettings, SpeechifyError, WordBoundary } from '../types';
 
 /**
  * Azure Speech Services utilities
@@ -138,6 +139,53 @@ export class AzureSpeechService {
       
       throw this.createError('NETWORK_ERROR', 'Network error during synthesis', error);
     }
+  }
+
+  /**
+   * Synthesize speech and return word boundaries using SDK
+   */
+  public static async synthesizeWithBoundaries(
+    text: string,
+    voice: VoiceSettings,
+    config: AzureConfig
+  ): Promise<{ audioBuffer: Buffer; boundaries: WordBoundary[] }> {
+    const speechConfig = sdk.SpeechConfig.fromSubscription(config.subscriptionKey, config.region || 'eastus');
+    speechConfig.speechSynthesisVoiceName = voice.name;
+    speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio16Khz128KBitRateMonoMp3;
+
+    const synthesizer = new sdk.SpeechSynthesizer(speechConfig, undefined);
+    const boundaries: WordBoundary[] = [];
+
+    synthesizer.wordBoundary = (_s, e) => {
+      boundaries.push({
+        text: e.text,
+        audioOffset: e.audioOffset / 10000, // Convert ticks to milliseconds
+        duration: e.duration / 10000
+      });
+    };
+
+    const ssml = this.createSSML(text, voice);
+
+    return new Promise((resolve, reject) => {
+      synthesizer.speakSsmlAsync(
+        ssml,
+        result => {
+          if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
+            resolve({
+              audioBuffer: Buffer.from(result.audioData),
+              boundaries: boundaries
+            });
+          } else {
+            reject(new Error(`Synthesis failed: ${result.errorDetails}`));
+          }
+          synthesizer.close();
+        },
+        err => {
+          reject(err);
+          synthesizer.close();
+        }
+      );
+    });
   }
 
   /**

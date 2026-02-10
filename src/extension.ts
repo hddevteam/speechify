@@ -19,7 +19,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('extension.configureSpeechifyVoiceSettings', configureSpeechifyVoiceSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyAzureSettings', configureSpeechifyAzureSettings),
         vscode.commands.registerCommand('extension.selectSpeechifyVoiceStyle', selectVoiceStyle),
-        vscode.commands.registerCommand('extension.selectSpeechifyVoiceRole', selectVoiceRole)
+        vscode.commands.registerCommand('extension.selectSpeechifyVoiceRole', selectVoiceRole),
+        vscode.commands.registerCommand('extension.convertToVideo', convertTextToVideo)
     ];
 
     // Add commands to subscriptions
@@ -191,5 +192,92 @@ async function selectVoiceRole(): Promise<void> {
     } catch (error) {
         console.error('Failed to select voice role:', error);
         vscode.window.showErrorMessage(I18n.t('errors.failedToSelectRole'));
+    }
+}
+
+/**
+ * Convert selected text to speech and merge with a video file
+ */
+async function convertTextToVideo(args?: { text?: string, videoPath?: string }): Promise<void> {
+    try {
+        let selectedText = args?.text;
+        let videoPath = args?.videoPath;
+
+        const editor = vscode.window.activeTextEditor;
+
+        // If no text provided, get from selection
+        if (!selectedText) {
+            if (!editor) {
+                vscode.window.showErrorMessage(I18n.t('errors.noActiveEditor'));
+                return;
+            }
+            const selection = editor.selection;
+            selectedText = editor.document.getText(selection);
+        }
+
+        if (!selectedText || !selectedText.trim()) {
+            vscode.window.showErrorMessage(I18n.t('errors.noTextSelected'));
+            return;
+        }
+
+        // Check configuration
+        if (!ConfigManager.isConfigurationComplete()) {
+            await SpeechService.showConfigurationWizard();
+            return;
+        }
+
+        // If no video path provided, show dialog
+        if (!videoPath) {
+            const videoFiles = await vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: false,
+                canSelectMany: false,
+                openLabel: I18n.t('config.prompts.selectVideoFile'),
+                filters: {
+                    'Videos': ['mp4', 'mov', 'avi', 'mkv']
+                }
+            });
+
+            if (videoFiles && videoFiles.length > 0 && videoFiles[0]) {
+                videoPath = videoFiles[0].fsPath;
+            }
+        }
+
+        if (!videoPath) {
+            return;
+        }
+
+        const sourceFilePath = editor?.document.uri.fsPath || 'headless_conv.txt';
+
+        // Convert text to video
+        const result = await SpeechService.convertToVideo(selectedText, sourceFilePath, videoPath);
+
+        if (result.success && result.outputPaths && result.outputPaths.length > 0) {
+            const outPath = result.outputPaths[0];
+            if (outPath) {
+                const action = await vscode.window.showInformationMessage(
+                    I18n.t('notifications.success.videoGenerated', outPath),
+                    I18n.t('actions.showInExplorer'),
+                    I18n.t('actions.openFile')
+                );
+
+                if (action === I18n.t('actions.showInExplorer')) {
+                    await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outPath));
+                } else if (action === I18n.t('actions.openFile')) {
+                    await vscode.env.openExternal(vscode.Uri.file(outPath));
+                }
+            }
+        } else {
+            const errorMessage = result.errors.length > 0
+                ? I18n.t('errors.videoConversionFailed', result.errors.join(', '))
+                : I18n.t('errors.videoConversionFailed', 'Unknown error');
+            
+            vscode.window.showErrorMessage(errorMessage);
+        }
+    } catch (error) {
+        console.error('Text to video conversion failed:', error);
+        vscode.window.showErrorMessage(
+            I18n.t('errors.videoConversionFailed', error instanceof Error ? error.message : 'Unknown error')
+        );
     }
 }

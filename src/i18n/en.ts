@@ -12,6 +12,8 @@ const englishMessages: Messages = {
   'commands.selectRole.description': 'Select voice roleplay character for neural voices',
   'commands.configureAzure.title': 'Speechify: Configure Azure Settings',
   'commands.configureAzure.description': 'Configure Azure Speech Services credentials and region',
+  'commands.convertToVideo.title': 'Speechify: Convert Text to Video',
+  'commands.convertToVideo.description': 'Convert text to speech and merge with a video file with subtitles',
   
   // Notifications
   'notifications.success.speechGenerated': 'Speech generated successfully! Audio saved to: {0}',
@@ -22,6 +24,7 @@ const englishMessages: Messages = {
   'notifications.success.voiceStyleChanged': 'Voice style updated to: {0}',
   'notifications.success.voiceRoleChanged': 'Voice role updated to: {0}',
   'notifications.success.azureSettingsUpdated': 'Azure Speech Services configuration updated.',
+  'notifications.success.videoGenerated': 'Video generated successfully! Saved to: {0}',
   'notifications.info.noStylesAvailable': 'Voice "{0}" does not support different styles.',
   'notifications.info.noRolesAvailable': 'Voice "{0}" does not support different roles.',
   
@@ -49,6 +52,8 @@ const englishMessages: Messages = {
   'errors.fileDeleteError': 'Failed to delete audio file.',
   'errors.revealError': 'Failed to reveal file in explorer.',
   'errors.openError': 'Failed to open audio file.',
+  'errors.ffmpegNotAvailable': 'FFmpeg is not installed or not in your PATH.',
+  'errors.videoConversionFailed': 'Failed to generate video: {0}',
   
   // Configuration
   'config.prompts.subscriptionKey': 'Enter your Azure Speech Services subscription key',
@@ -61,12 +66,15 @@ const englishMessages: Messages = {
   'config.prompts.selectGender': 'Select voice gender',
   'config.prompts.selectStyle': 'Select voice style',
   'config.prompts.selectRole': 'Select voice role',
+  'config.prompts.selectVideoFile': 'Select the background video file',
   
   // Progress
   'progress.convertingToSpeech': 'Converting text to speech...',
   'progress.processingChunk': 'Processing chunk {0} of {1}',
   'progress.loadingVoiceList': 'Loading voice list...',
   'progress.configuringSettings': 'Configuring settings...',
+  'progress.convertingToVideo': 'Generating video with speech and subtitles...',
+  'progress.muxingVideo': 'Merging audio and subtitles into video...',
   
   // Actions
   'actions.configureNow': 'Configure Now',

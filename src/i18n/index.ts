@@ -13,6 +13,8 @@ export interface Messages {
   'commands.selectRole.description': string;
   'commands.configureAzure.title': string;
   'commands.configureAzure.description': string;
+  'commands.convertToVideo.title': string;
+  'commands.convertToVideo.description': string;
   
   // Notifications
   'notifications.success.speechGenerated': string;
@@ -23,6 +25,7 @@ export interface Messages {
   'notifications.success.voiceStyleUpdated': string;
   'notifications.success.voiceStyleChanged': string;
   'notifications.success.voiceRoleChanged': string;
+  'notifications.success.videoGenerated': string;
   'notifications.info.noStylesAvailable': string;
   'notifications.info.noRolesAvailable': string;
   
@@ -50,6 +53,8 @@ export interface Messages {
   'errors.fileDeleteError': string;
   'errors.revealError': string;
   'errors.openError': string;
+  'errors.ffmpegNotAvailable': string;
+  'errors.videoConversionFailed': string;
   
   // Configuration
   'config.prompts.subscriptionKey': string;
@@ -62,12 +67,15 @@ export interface Messages {
   'config.prompts.selectGender': string;
   'config.prompts.selectStyle': string;
   'config.prompts.selectRole': string;
+  'config.prompts.selectVideoFile': string;
   
   // Progress
   'progress.convertingToSpeech': string;
+  'progress.convertingToVideo': string;
   'progress.processingChunk': string;
   'progress.loadingVoiceList': string;
   'progress.configuringSettings': string;
+  'progress.muxingVideo': string;
   
   // Actions
   'actions.later': string;

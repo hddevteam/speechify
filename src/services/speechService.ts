@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
-import { ProcessingResult, VoiceListItem } from '../types';
+import { ProcessingResult, VoiceListItem, VideoProcessingResult } from '../types';
 import { ConfigManager } from '../utils/config';
 import { AzureSpeechService } from '../utils/azure';
 import { AudioUtils } from '../utils/audio';
+import { SubtitleUtils } from '../utils/subtitle';
+import { VideoMuxer } from '../utils/videoMuxer';
 import { I18n } from '../i18n';
 
 /**
@@ -42,6 +44,60 @@ export class SpeechService {
       return result;
     } catch (error) {
       console.error('Speech conversion failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Convert text to speech and mux into a video
+   */
+  public static async convertToVideo(text: string, sourceFilePath: string, videoFilePath: string): Promise<VideoProcessingResult> {
+    try {
+      if (!ConfigManager.isConfigurationComplete()) {
+        throw new Error(I18n.t('errors.configurationIncomplete'));
+      }
+
+      const azureConfig = ConfigManager.getAzureConfigForTesting();
+      const voiceSettings = ConfigManager.getVoiceSettings();
+      const cleanText = AzureSpeechService.extractTextFromMarkdown(text);
+      
+      const audioOutputPath = AudioUtils.generateOutputPath(sourceFilePath, undefined, 1);
+      const srtOutputPath = audioOutputPath.replace(/\.mp3$/, '.srt');
+      const videoOutputPath = audioOutputPath.replace(/\.mp3$/, '_speechify.mp4');
+
+      // 1. Synthesize with boundaries
+      const { audioBuffer, boundaries } = await AzureSpeechService.synthesizeWithBoundaries(
+        cleanText,
+        voiceSettings,
+        azureConfig
+      );
+
+      // 2. Save Audio
+      await AudioUtils.saveAudioFile(audioBuffer, audioOutputPath);
+
+      // 3. Save Subtitles
+      const srtContent = SubtitleUtils.generateSRT(boundaries);
+      await SubtitleUtils.saveSRTFile(srtContent, srtOutputPath);
+
+      // 4. Mux Video
+      const finalVideoPath = await VideoMuxer.muxVideo(
+        videoFilePath,
+        audioOutputPath,
+        srtOutputPath,
+        videoOutputPath
+      );
+
+      return {
+        success: true,
+        processedChunks: 1,
+        totalChunks: 1,
+        outputPaths: [audioOutputPath, srtOutputPath],
+        videoOutputPath: finalVideoPath,
+        wordBoundaries: boundaries,
+        errors: []
+      };
+    } catch (error) {
+      console.error('Video conversion failed:', error);
       throw error;
     }
   }
