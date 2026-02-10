@@ -129,6 +129,7 @@ export class SpeechService {
       startStep?: PipelineStep;
       forceRefine?: boolean;
       openAlignmentEditor?: boolean;
+      frameInterval?: number;
     } = {}
   ): Promise<VideoProcessingResult> {
     try {
@@ -180,14 +181,16 @@ export class SpeechService {
       if (!options.startStep || options.startStep === PipelineStep.ANALYZE) {
           console.log('[Pipeline] Step 1: Analyzing Timing...');
           const totalDuration = await analyzer.getVideoDuration(videoFilePath);
-          const frames = await analyzer.extractFrames(videoFilePath, 10);
+          const interval = options.frameInterval || 10;
+          const frames = await analyzer.extractFrames(videoFilePath, interval);
           const timingResult = await analyzer.analyzeTiming(
             frames, 
             cleanText, 
             totalDuration,
             visionConfig.apiKey, 
             visionConfig.endpoint, 
-            visionConfig.deployment
+            visionConfig.deployment,
+            interval
           );
           segments = timingResult.segments;
           saveProject(segments);
@@ -445,14 +448,24 @@ export class SpeechService {
   /**
    * Open the alignment editor and return updated segments
    */
-  public static async openAlignmentEditorForVideo(videoFilePath: string): Promise<void> {
+  public static async openAlignmentEditorForVideo(inputPath: string): Promise<void> {
     if (!ConfigManager.isConfigurationComplete()) {
       await SpeechService.showConfigurationWizard();
       return;
     }
 
-    const projectDir = this.getVisionProjectDir(videoFilePath);
-    const timingPath = path.join(projectDir, 'timing.json');
+    let timingPath: string;
+    let videoFilePath: string;
+
+    if (inputPath.toLowerCase().endsWith('.json')) {
+        timingPath = inputPath;
+        // We'll determine videoFilePath below
+        videoFilePath = ''; 
+    } else {
+        videoFilePath = inputPath;
+        const projectDir = this.getVisionProjectDir(videoFilePath);
+        timingPath = path.join(projectDir, 'timing.json');
+    }
 
     if (!fs.existsSync(timingPath)) {
       vscode.window.showErrorMessage(I18n.t('errors.alignmentTimingNotFound'));
@@ -462,14 +475,13 @@ export class SpeechService {
     const content = fs.readFileSync(timingPath, 'utf-8');
     let data = JSON.parse(content);
     let segments: TimingSegment[];
-    let targetVideoPath = videoFilePath;
 
     // Upgrade to TimingProject structure if it's a legacy array
     if (Array.isArray(data)) {
         console.log(`[Project] Upgrading legacy timing.json to TimingProject format in ${timingPath}`);
         const upgradedProject: TimingProject = {
             version: '2.0',
-            videoName: path.basename(videoFilePath),
+            videoName: videoFilePath ? path.basename(videoFilePath) : 'unknown_video.mp4',
             lastModified: new Date().toISOString(),
             segments: data
         };
@@ -481,10 +493,14 @@ export class SpeechService {
     if (data && typeof data === 'object' && 'segments' in data) {
         const project = data as TimingProject;
         segments = project.segments;
-        // Verify video connection
-        const candidatePath = path.join(path.dirname(projectDir), project.videoName);
+        
+        // Find video relative to project dir (usually parent of project dir)
+        const projectDir = path.dirname(timingPath);
+        const parentDir = path.dirname(projectDir);
+        const candidatePath = path.join(parentDir, project.videoName);
+        
         if (fs.existsSync(candidatePath)) {
-            targetVideoPath = candidatePath;
+            videoFilePath = candidatePath;
         } else if (!fs.existsSync(videoFilePath)) {
             // Need user to pick
             const selected = await vscode.window.showOpenDialog({
@@ -495,9 +511,9 @@ export class SpeechService {
                 title: `Pick video for project: ${project.videoName}`
             });
             if (!selected || selected.length === 0) return;
-            targetVideoPath = selected[0]!.fsPath;
+            videoFilePath = selected[0]!.fsPath;
             // Update mapping inside project
-            project.videoName = path.basename(targetVideoPath);
+            project.videoName = path.basename(videoFilePath);
             fs.writeFileSync(timingPath, JSON.stringify(project, null, 2));
         }
     } else {
@@ -506,7 +522,7 @@ export class SpeechService {
     }
 
     const updatedSegments = await this.openAlignmentEditor(
-      targetVideoPath,
+      videoFilePath,
       timingPath,
       segments
     );
@@ -524,7 +540,7 @@ export class SpeechService {
     }
     const azureConfig = ConfigManager.getAzureConfigForTesting();
     const voiceSettings = ConfigManager.getVoiceSettings();
-    const segmentsToRefine = updatedSegments as TimingSegment[];
+    const segmentsToRefine = updatedSegments;
     let firstContent = '';
     if (segmentsToRefine.length > 0) {
       const firstSeg = segmentsToRefine[0];
@@ -536,7 +552,7 @@ export class SpeechService {
     const refinedSegments = await this.refineSegmentsWithCalibration(
       analyzer,
       segmentsToRefine,
-      targetVideoPath,
+      videoFilePath,
       firstContent,
       visionConfig,
       azureConfig,

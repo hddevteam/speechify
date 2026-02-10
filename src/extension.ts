@@ -251,22 +251,20 @@ async function convertTextToVideo(args?: { text?: string, videoPath?: string }):
 
         const sourceFilePath = editor?.document.uri.fsPath || 'headless_conv.txt';
 
-        // Choose conversion mode
-        const mode = await vscode.window.showQuickPick([
-            { label: I18n.t('actions.standardConversion'), description: 'Direct script-to-video conversion', value: 'standard' },
-            { label: I18n.t('actions.visionAlignment'), description: 'Analyze video frames to sync script automatically', value: 'vision' }
+        // 100% Vision mode now. Let user choose extraction interval.
+        const interval = await vscode.window.showQuickPick([
+            { label: 'High (Every 5s)', description: 'More precise but slower/higher cost', value: 5 },
+            { label: 'Medium (Every 10s)', description: 'Balanced (Default)', value: 10 },
+            { label: 'Low (Every 20s)', description: 'Fast/Lower cost but may skip events', value: 20 }
         ], {
-            placeHolder: I18n.t('config.prompts.selectConversionMode')
+            placeHolder: I18n.t('config.prompts.selectAnalysisDepth', 'Select AI analysis depth (frame interval)')
         });
 
-        if (!mode) return;
+        if (!interval) return;
 
-        let result;
-        if (mode.value === 'vision') {
-            result = await SpeechService.convertToVideoWithVision(selectedText, sourceFilePath, videoPath);
-        } else {
-            result = await SpeechService.convertToVideo(selectedText, sourceFilePath, videoPath);
-        }
+        const result = await SpeechService.convertToVideoWithVision(selectedText, sourceFilePath, videoPath, {
+            frameInterval: interval.value
+        });
 
         if (result.success && result.outputPaths && result.outputPaths.length > 0) {
             const outPath = result.outputPaths[0];
@@ -301,23 +299,31 @@ async function convertTextToVideo(args?: { text?: string, videoPath?: string }):
 /**
  * Open visual alignment editor for an existing vision project
  */
-async function openAlignmentEditor(): Promise<void> {
+async function openAlignmentEditor(uri?: vscode.Uri): Promise<void> {
     try {
-        const videoFiles = await vscode.window.showOpenDialog({
-            canSelectFiles: true,
-            canSelectFolders: false,
-            canSelectMany: false,
-            openLabel: I18n.t('config.prompts.selectVideoFile'),
-            filters: {
-                'Videos': ['mp4', 'mov', 'avi', 'mkv']
-            }
-        });
+        let filePath: string | undefined;
 
-        if (!videoFiles || videoFiles.length === 0 || !videoFiles[0]) {
-            return;
+        if (uri) {
+            filePath = uri.fsPath;
+        } else {
+            const videoFiles = await vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: false,
+                canSelectMany: false,
+                openLabel: I18n.t('config.prompts.selectVideoFile'),
+                filters: {
+                    'Videos': ['mp4', 'mov', 'avi', 'mkv'],
+                    'Timing': ['json']
+                }
+            });
+
+            if (!videoFiles || videoFiles.length === 0 || !videoFiles[0]) {
+                return;
+            }
+            filePath = videoFiles[0].fsPath;
         }
 
-        await SpeechService.openAlignmentEditorForVideo(videoFiles[0].fsPath);
+        await SpeechService.openAlignmentEditorForVideo(filePath);
     } catch (error) {
         console.error('Failed to open alignment editor:', error);
         vscode.window.showErrorMessage(

@@ -26,7 +26,6 @@ export class VideoMuxer {
       const vBase = path.basename(videoSourcePath);
       const aRel = path.relative(vDir, audioSourcePath);
       const sRel = path.relative(vDir, srtPath);
-      const oBase = path.basename(outputPath);
 
       // In FFmpeg's subtitles filter, the filename must be properly escaped.
       // Since we are using relative paths now, it's much safer.

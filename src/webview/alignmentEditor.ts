@@ -137,7 +137,7 @@ export class AlignmentEditor {
     }
     .container {
       display: grid;
-      grid-template-rows: auto auto 1fr auto;
+      grid-template-rows: 2fr auto 1fr auto;
       height: 100vh;
       gap: 12px;
       padding: 12px;
@@ -148,10 +148,15 @@ export class AlignmentEditor {
       border-radius: 8px;
       padding: 8px;
       background: rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
     }
     video {
       width: 100%;
-      max-height: 40vh;
+      height: 100%;
+      object-fit: contain;
       border-radius: 6px;
       background: #000;
     }

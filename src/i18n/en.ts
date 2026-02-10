@@ -76,6 +76,7 @@ const englishMessages: Messages = {
   'config.prompts.selectRole': 'Select voice role',
   'config.prompts.selectVideoFile': 'Select the background video file',
   'config.prompts.selectConversionMode': 'Select video conversion mode',
+  'config.prompts.selectAnalysisDepth': 'Select AI analysis depth (frame interval)',
   
   // Progress
   'progress.convertingToSpeech': 'Converting text to speech...',

@@ -254,13 +254,14 @@ export class VideoAnalyzer {
         videoDuration: number,
         apiKey: string, 
         endpoint: string,
-        deployment: string
+        deployment: string,
+        interval: number = 10
     ): Promise<any> {
         const userContent: any[] = [
             {
                 type: 'text',
                 text: `Video Total Duration: ${videoDuration.toFixed(1)} seconds. 
-I have provided frames captured every 10 seconds (Frame 0=0s, Frame 1=10s, Frame 2=20s, etc.).
+I have provided frames captured every ${interval} seconds (Frame 0=0s, Frame 1=${interval}s, Frame 2=${interval * 2}s, etc.).
 
 Please analyze these frames and map the provided script segments to the correct Frame Indices.
 Script:
@@ -269,7 +270,7 @@ ${script}
 Task:
 1. Identify major transitions between apps/topics.
 2. For each segment, provide the "startFrameIndex" (0, 1, 2...).
-3. "startTime" should be (startFrameIndex * 10).
+3. "startTime" should be (startFrameIndex * ${interval}).
 
 Return a JSON object with a "segments" array. Each segment should have "startTime", "title", "content", and "startFrameIndex".`
             }

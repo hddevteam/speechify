@@ -75,8 +75,7 @@ const chineseMessages: Messages = {
   'config.prompts.selectStyle': '选择语音风格',
   'config.prompts.selectRole': '选择语音角色',
   'config.prompts.selectVideoFile': '选择背景视频文件',
-  'config.prompts.selectConversionMode': '选择视频生成模式',
-  
+  'config.prompts.selectConversionMode': '选择视频生成模式',  'config.prompts.selectAnalysisDepth': '选择 AI 分析精度 (扫描间隔)',  
   // Progress
   'progress.convertingToSpeech': '正在转换文字为语音...',
   'progress.processingChunk': '正在处理第 {0} 段，共 {1} 段',

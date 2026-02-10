@@ -77,6 +77,7 @@ export interface Messages {
   'config.prompts.selectRole': string;
   'config.prompts.selectVideoFile': string;
   'config.prompts.selectConversionMode': string;
+  'config.prompts.selectAnalysisDepth': string;
   
   // Progress
   'progress.convertingToSpeech': string;

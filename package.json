@@ -99,51 +99,55 @@
         "title": "%speechify.command.synthesizeVideoFromProject%"
       }
     ],
+    "submenus": [
+      {
+        "id": "speechify.submenu",
+        "label": "Speechify"
+      }
+    ],
     "menus": {
       "editor/context": [
         {
-          "command": "extension.speechify",
-          "group": "navigation"
-        },
-        {
-          "command": "extension.showSpeechifyVoiceSettings",
-          "group": "navigation"
-        },
-        {
-          "command": "extension.configureSpeechifyVoiceSettings",
-          "group": "navigation"
-        },
-        {
-          "command": "extension.selectSpeechifyVoiceStyle",
-          "group": "navigation"
-        },
-        {
-          "command": "extension.selectSpeechifyVoiceRole",
-          "group": "navigation"
-        },
-        {
-          "command": "extension.convertToVideo",
-          "group": "navigation"
-        },
-        {
-          "command": "extension.openAlignmentEditor",
-          "group": "navigation"
-        },
-        {
-          "command": "extension.synthesizeVideoFromProject",
+          "submenu": "speechify.submenu",
           "group": "navigation"
         }
       ],
       "explorer/context": [
         {
-          "command": "extension.openAlignmentEditor",
+          "submenu": "speechify.submenu",
           "group": "navigation",
           "when": "resourceExtname == .mp4 || resourceExtname == .mov || resourceFilename == timing.json"
+        }
+      ],
+      "speechify.submenu": [
+        {
+          "command": "extension.speechify",
+          "group": "1_core@1"
+        },
+        {
+          "command": "extension.convertToVideo",
+          "group": "1_core@2"
+        },
+        {
+          "command": "extension.openAlignmentEditor",
+          "group": "2_vision@1",
+          "when": "resourceFilename == timing.json"
         },
         {
           "command": "extension.synthesizeVideoFromProject",
-          "group": "navigation",
-          "when": "resourceExtname == .mp4 || resourceExtname == .mov || resourceFilename == timing.json"
+          "group": "2_vision@2"
+        },
+        {
+          "command": "extension.selectSpeechifyVoiceStyle",
+          "group": "3_settings@1"
+        },
+        {
+          "command": "extension.selectSpeechifyVoiceRole",
+          "group": "3_settings@2"
+        },
+        {
+          "command": "extension.showSpeechifyVoiceSettings",
+          "group": "3_settings@3"
         }
       ]
     },
