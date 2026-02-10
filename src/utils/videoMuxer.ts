@@ -22,44 +22,53 @@ export class VideoMuxer {
         fs.mkdirSync(outputDir, { recursive: true });
       }
 
-      // FFmpeg command:
-      // -i: input video
-      // -i: input audio
-      // -vf: video filter (subtitles) - note: ffmpeg needs absolute path for subtitles filter sometimes
-      // -c:v: video codec (libx264)
-      // -c:a: audio codec (aac)
-      // -shortest: end when the shortest input (usually audio/video) ends
-      // -y: overwrite output
-      
-      // Escape paths for shell and FFmpeg filters
-      const vPath = `"${videoSourcePath}"`;
-      const aPath = `"${audioSourcePath}"`;
-      
-      // FFmpeg subtitles filter path escaping is extremely specific:
-      // 1. Double backslashes
-      // 2. Escape colons
-      // 3. Escape single quotes for the filter string
-      const escapedSrtPath = srtPath
-        .replace(/\\/g, '/') // Use forward slashes
-        .replace(/'/g, "'\\\\''") // Escape single quotes
-        .replace(/:/g, '\\:') // Escape colons
-        .replace(/,/g, '\\,'); // Escape commas
-        
-      const outPath = `"${outputPath}"`;
+      const vDir = path.dirname(videoSourcePath);
+      const vBase = path.basename(videoSourcePath);
+      const aRel = path.relative(vDir, audioSourcePath);
+      const sRel = path.relative(vDir, srtPath);
+      const oBase = path.basename(outputPath);
+
+      // In FFmpeg's subtitles filter, the filename must be properly escaped.
+      // Since we are using relative paths now, it's much safer.
+      // We still need to escape characters that are special to the filter parser: ' : , [ ]
+      const escapedSrtPath = sRel
+        .replace(/\\/g, '/')       // Use forward slashes
+        .replace(/'/g, "'\\\\''")  // Escape single quotes for filter (very tricky)
+        .replace(/:/g, '\\:')      // Escape colons
+        .replace(/,/g, '\\,')      // Escape commas
+        .replace(/\[/g, '\\[')    // Escape brackets
+        .replace(/\]/g, '\\]');
+
+      // Use a more robust way to quote experimental paths with spaces
+      const vIn = `"${vBase}"`;
+      const aIn = `"${aRel}"`;
+      const oOut = `"${path.relative(vDir, outputPath)}"`;
 
       // Use tpad filter to clone the last frame and remove -shortest (or use it with a very long tpad)
       // This ensures that if audio is longer than video, the last frame of video is repeated.
       // We also use -shortest so it doesn't run forever if tpad is too long.
-      const command = `ffmpeg -y -i ${vPath} -i ${aPath} -vf "subtitles='${escapedSrtPath}':force_style='FontSize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=0,Alignment=2',tpad=stop_mode=clone:stop_duration=3600" -c:v libx264 -c:a aac -map 0:v:0 -map 1:a:0 -shortest ${outPath}`;
+      const command = `ffmpeg -y -i ${vIn} -i ${aIn} -vf "subtitles='${escapedSrtPath}':force_style='FontSize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=0,Alignment=2',tpad=stop_mode=clone:stop_duration=3600" -c:v libx264 -c:a aac -map 0:v:0 -map 1:a:0 -shortest ${oOut}`;
 
-      console.log('Running FFmpeg:', command);
+      console.log('Running FFmpeg in CWD:', vDir);
+      console.log('Command:', command);
       
-      const { stderr } = await execAsync(command);
-      console.log('FFmpeg completed:', stderr);
+      const { stderr } = await execAsync(command, { cwd: vDir });
+      console.log('FFmpeg completed. Stderr length:', stderr.length);
+
+      // Verify file existence
+      if (!fs.existsSync(outputPath)) {
+        throw new Error(`FFmpeg completed but output file was not created at: ${outputPath}`);
+      }
+      
+      const stats = fs.statSync(outputPath);
+      console.log(`Output file created: ${outputPath} (${stats.size} bytes)`);
 
       return outputPath;
     } catch (error: any) {
-      console.error('FFmpeg error:', error);
+      console.error('FFmpeg error details:', error);
+      if (error.stderr) {
+        console.error('FFmpeg stderr output:', error.stderr);
+      }
       throw new Error(`Failed to mux video: ${error.message}`);
     }
   }
