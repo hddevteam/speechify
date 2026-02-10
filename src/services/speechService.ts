@@ -1,11 +1,25 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
 import { ProcessingResult, VoiceListItem, VideoProcessingResult } from '../types';
 import { ConfigManager } from '../utils/config';
 import { AzureSpeechService } from '../utils/azure';
 import { AudioUtils } from '../utils/audio';
 import { SubtitleUtils } from '../utils/subtitle';
 import { VideoMuxer } from '../utils/videoMuxer';
+import { VideoAnalyzer, TimingSegment } from '../utils/videoAnalyzer';
 import { I18n } from '../i18n';
+
+/**
+ * Steps for Vision Alignment Pipeline
+ */
+export enum PipelineStep {
+  ANALYZE = 'analyze',
+  REFINE = 'refine',
+  SSML = 'ssml',
+  SYNTHESIZE = 'synthesize',
+  MUX = 'mux'
+}
 
 /**
  * Main speech synthesis service
@@ -100,6 +114,239 @@ export class SpeechService {
       console.error('Video conversion failed:', error);
       throw error;
     }
+  }
+
+  /**
+   * Convert text to speech and sync with video using AI Vision analysis
+   * Supports multi-step processing and refinement to avoid audio overlap
+   */
+  public static async convertToVideoWithVision(
+    text: string, 
+    _sourceFilePath: string, 
+    videoFilePath: string,
+    options: {
+      startStep?: PipelineStep;
+      forceRefine?: boolean;
+    } = {}
+  ): Promise<VideoProcessingResult> {
+    try {
+      if (!ConfigManager.isConfigurationComplete()) {
+        throw new Error(I18n.t('errors.configurationIncomplete'));
+      }
+
+      const visionConfig = ConfigManager.getVisionConfig();
+      if (!visionConfig.apiKey || !visionConfig.endpoint) {
+        throw new Error('Vision API configuration incomplete. Please set visionApiKey and visionEndpoint in settings.');
+      }
+
+      const azureConfig = ConfigManager.getAzureConfigForTesting();
+      const voiceSettings = ConfigManager.getVoiceSettings();
+      const cleanText = AzureSpeechService.extractTextFromMarkdown(text);
+      
+      const analyzer = new VideoAnalyzer();
+      
+      // Setup Project Directory for intermediate products
+      const outputDir = path.dirname(videoFilePath);
+      const projectName = path.basename(videoFilePath, path.extname(videoFilePath));
+      const projectDir = path.join(outputDir, `${projectName}_vision_project`);
+      if (!fs.existsSync(projectDir)) {
+          fs.mkdirSync(projectDir, { recursive: true });
+      }
+
+      const timingPath = path.join(projectDir, 'timing.json');
+      const refinedTimingPath = path.join(projectDir, 'refined_timing.json');
+      const ssmlDir = path.join(projectDir, 'ssml');
+      const audioDir = path.join(projectDir, 'audio');
+      const boundariesDir = path.join(projectDir, 'boundaries');
+
+      [ssmlDir, audioDir, boundariesDir].forEach(dir => {
+          if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      });
+
+      let segments: TimingSegment[] = [];
+
+      // --- STEP 1: ANALYZE ---
+      if (!options.startStep || options.startStep === PipelineStep.ANALYZE) {
+          console.log('[Pipeline] Step 1: Analyzing Timing...');
+          const frames = await analyzer.extractFrames(videoFilePath, 10);
+          const timingResult = await analyzer.analyzeTiming(
+            frames, 
+            cleanText, 
+            visionConfig.apiKey, 
+            visionConfig.endpoint, 
+            visionConfig.deployment
+          );
+          segments = timingResult.segments;
+          fs.writeFileSync(timingPath, JSON.stringify(segments, null, 2));
+      } else {
+          console.log('[Pipeline] Skipping Step 1, loading timing.json');
+          segments = JSON.parse(fs.readFileSync(timingPath, 'utf-8'));
+      }
+
+      // --- STEP 2: REFINE ---
+      const shouldRefine = options.forceRefine || 
+                        (!options.startStep) || 
+                        (options.startStep === PipelineStep.ANALYZE) ||
+                        (options.startStep === PipelineStep.REFINE);
+
+      if (shouldRefine) {
+          console.log('[Pipeline] Step 2: Refining Script...');
+          const duration = await analyzer.getVideoDuration(videoFilePath);
+
+          // Calibration: Synthesize a sample to get actual WPS
+          let wordsPerSecond = 2.5; // Default
+          try {
+              console.log('[Pipeline] Calibrating Words Per Second...');
+              const calibrationText = segments[0]?.content.substring(0, 100) || cleanText.substring(0, 100);
+              const { boundaries } = await AzureSpeechService.synthesizeWithBoundaries(
+                  calibrationText,
+                  voiceSettings,
+                  azureConfig
+              );
+              
+              const lastBoundary = boundaries[boundaries.length - 1];
+              if (lastBoundary) {
+                  const actualDuration = (lastBoundary.audioOffset + lastBoundary.duration) / 1000;
+                  const wordCount = analyzer.countWords(calibrationText);
+                  if (actualDuration > 0) {
+                      wordsPerSecond = wordCount / actualDuration;
+                      console.log(`[Pipeline] Calibrated WPS: ${wordsPerSecond.toFixed(2)} (Words: ${wordCount}, Time: ${actualDuration.toFixed(2)}s)`);
+                  }
+              }
+          } catch (calibError) {
+              console.warn('[Pipeline] Calibration failed, using default WPS 2.5', calibError);
+          }
+
+          segments = await analyzer.refineScript(
+              segments,
+              duration,
+              visionConfig.apiKey,
+              visionConfig.endpoint,
+              visionConfig.refinementDeployment || visionConfig.deployment,
+              wordsPerSecond
+          );
+          fs.writeFileSync(refinedTimingPath, JSON.stringify(segments, null, 2));
+      } else {
+          console.log('[Pipeline] Skipping Step 2, loading refined_timing.json');
+          segments = JSON.parse(fs.readFileSync(refinedTimingPath, 'utf-8'));
+      }
+
+      // --- STEP 3: GENERATE SSML ---
+      if (!options.startStep || 
+          [PipelineStep.ANALYZE, PipelineStep.REFINE, PipelineStep.SSML].includes(options.startStep)) {
+          console.log('[Pipeline] Step 3: Generating SSML...');
+          for (let i = 0; i < segments.length; i++) {
+              const seg = segments[i];
+              if (!seg) continue;
+              const content = seg.adjustedContent || seg.content;
+              const ssml = AzureSpeechService.createSSML(content, voiceSettings);
+              fs.writeFileSync(path.join(ssmlDir, `seg_${i}.ssml`), ssml);
+          }
+      }
+
+      // --- STEP 4: SYNTHESIZE ---
+      const allBoundaries: any[] = [];
+      if (!options.startStep || 
+          [PipelineStep.ANALYZE, PipelineStep.REFINE, PipelineStep.SSML, PipelineStep.SYNTHESIZE].includes(options.startStep)) {
+          console.log(`[Pipeline] Step 4: Synthesizing ${segments.length} segments...`);
+          
+          for (let i = 0; i < segments.length; i++) {
+            const seg = segments[i];
+            if (!seg) continue;
+            // We use the adjusted content but recreate SSML if needed, or just use the saved file
+            const startTimeMs = seg.startTime * 1000;
+            
+            console.log(`Synthesizing segment ${i+1}/${segments.length}: ${seg.title}`);
+            
+            const { audioBuffer, boundaries } = await AzureSpeechService.synthesizeWithBoundaries(
+              seg.adjustedContent || seg.content,
+              voiceSettings,
+              azureConfig
+            );
+            
+            const segAudioPath = path.join(audioDir, `seg_${i}.mp3`);
+            const segBoundariesPath = path.join(boundariesDir, `seg_${i}.json`);
+            
+            await AudioUtils.saveAudioFile(audioBuffer, segAudioPath);
+            fs.writeFileSync(segBoundariesPath, JSON.stringify(boundaries, null, 2));
+            
+            seg.audioPath = segAudioPath;
+            
+            const shiftedBoundaries = boundaries.map(b => ({
+              ...b,
+              audioOffset: b.audioOffset + startTimeMs
+            }));
+            allBoundaries.push(...shiftedBoundaries);
+          }
+      } else {
+          console.log('[Pipeline] Skipping Step 4, loading audio and boundaries');
+          for (let i = 0; i < segments.length; i++) {
+              const seg = segments[i];
+              if (!seg) continue;
+              seg.audioPath = path.join(audioDir, `seg_${i}.mp3`);
+              const boundaries = JSON.parse(fs.readFileSync(path.join(boundariesDir, `seg_${i}.json`), 'utf-8'));
+              const startTimeMs = seg.startTime * 1000;
+              const shiftedBoundaries = boundaries.map((b: any) => ({
+                ...b,
+                audioOffset: b.audioOffset + startTimeMs
+              }));
+              allBoundaries.push(...shiftedBoundaries);
+          }
+      }
+
+      // --- STEP 5: MUX ---
+      console.log('[Pipeline] Step 5: Final Muxing...');
+      const mergedAudioPath = path.join(projectDir, `merged_final.mp3`);
+      await this.mergeAudioWithOffsets(segments, mergedAudioPath);
+
+      const srtOutputPath = path.join(projectDir, `final.srt`);
+      const srtContent = SubtitleUtils.generateSRT(allBoundaries);
+      await SubtitleUtils.saveSRTFile(srtContent, srtOutputPath);
+
+      const videoOutputPath = path.join(outputDir, `${projectName}_refined_vision.mp4`);
+      const finalVideoPath = await VideoMuxer.muxVideo(
+        videoFilePath,
+        mergedAudioPath,
+        srtOutputPath,
+        videoOutputPath
+      );
+
+      return {
+        success: true,
+        processedChunks: segments.length,
+        totalChunks: segments.length,
+        outputPaths: [mergedAudioPath, srtOutputPath],
+        videoOutputPath: finalVideoPath,
+        wordBoundaries: allBoundaries,
+        errors: []
+      };
+    } catch (error) {
+      console.error('Video conversion with vision failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Merge multiple audio files at specific start times using FFmpeg
+   */
+  private static async mergeAudioWithOffsets(segments: any[], outputPath: string): Promise<void> {
+    // Escape single quotes for labels and filter syntax
+    const inputs = segments.map((s) => `-i "${s.audioPath}"`).join(' ');
+    
+    // Build amix filter with adelay
+    // [0:a]adelay=1000|1000[a0]; [1:a]adelay=5000|5000[a1]; [a0][a1]amix=inputs=2
+    const delays = segments.map((s, i) => `[${i}:a]adelay=${s.startTime * 1000}|${s.startTime * 1000}[a${i}]`).join('; ');
+    const mixInput = segments.map((_, i) => `[a${i}]`).join('');
+    const mix = `${delays}; ${mixInput}amix=inputs=${segments.length}:dropout_transition=0:normalize=0`;
+    
+    const command = `ffmpeg -y ${inputs} -filter_complex "${mix}" "${outputPath}"`;
+    
+    console.log('Merging audio with command:', command);
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    
+    await execAsync(command);
   }
 
   /**

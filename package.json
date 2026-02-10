@@ -141,6 +141,26 @@
           "type": "string",
           "default": "",
           "description": "%speechify.configuration.voiceRole%"
+        },
+        "speechify.visionApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Azure OpenAI API Key for Vision analysis"
+        },
+        "speechify.visionEndpoint": {
+          "type": "string",
+          "default": "",
+          "description": "Azure OpenAI Endpoint for Vision analysis"
+        },
+        "speechify.visionDeployment": {
+          "type": "string",
+          "default": "gpt-5.2",
+          "description": "Azure OpenAI Deployment name for Vision analysis"
+        },
+        "speechify.refinementDeployment": {
+          "type": "string",
+          "default": "gpt-5.2",
+          "description": "Azure OpenAI Deployment name for text refinement and paraphrase"
         }
       }
     }

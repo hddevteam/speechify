@@ -67,6 +67,7 @@ const englishMessages: Messages = {
   'config.prompts.selectStyle': 'Select voice style',
   'config.prompts.selectRole': 'Select voice role',
   'config.prompts.selectVideoFile': 'Select the background video file',
+  'config.prompts.selectConversionMode': 'Select video conversion mode',
   
   // Progress
   'progress.convertingToSpeech': 'Converting text to speech...',
@@ -86,6 +87,8 @@ const englishMessages: Messages = {
   'actions.cancel': 'Cancel',
   'actions.ok': 'OK',
   'actions.retry': 'Retry',
+  'actions.visionAlignment': 'AI Visual Alignment',
+  'actions.standardConversion': 'Standard',
   
   // Settings
   'settings.voiceName': 'Voice Name',

@@ -47,7 +47,10 @@ export class VideoMuxer {
         
       const outPath = `"${outputPath}"`;
 
-      const command = `ffmpeg -y -i ${vPath} -i ${aPath} -vf "subtitles='${escapedSrtPath}':force_style='FontSize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=0,Alignment=2'" -c:v libx264 -c:a aac -map 0:v:0 -map 1:a:0 -shortest ${outPath}`;
+      // Use tpad filter to clone the last frame and remove -shortest (or use it with a very long tpad)
+      // This ensures that if audio is longer than video, the last frame of video is repeated.
+      // We also use -shortest so it doesn't run forever if tpad is too long.
+      const command = `ffmpeg -y -i ${vPath} -i ${aPath} -vf "subtitles='${escapedSrtPath}':force_style='FontSize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=0,Alignment=2',tpad=stop_mode=clone:stop_duration=3600" -c:v libx264 -c:a aac -map 0:v:0 -map 1:a:0 -shortest ${outPath}`;
 
       console.log('Running FFmpeg:', command);
       

@@ -85,7 +85,8 @@ suite('Extension Integration Tests', () => {
         }
     });
 
-    test('Voice settings command should be callable', async () => {
+    test('Voice settings command should be callable', async function() {
+        this.timeout(10000);
         try {
             // Execute the voice settings command
             await vscode.commands.executeCommand('extension.showSpeechifyVoiceSettings');
@@ -98,7 +99,8 @@ suite('Extension Integration Tests', () => {
         }
     });
 
-    test('Configure voice settings command should be callable', async () => {
+    test('Configure voice settings command should be callable', async function() {
+        this.timeout(10000);
         try {
             // Execute the configure voice settings command
             await vscode.commands.executeCommand('extension.configureSpeechifyVoiceSettings');
@@ -111,7 +113,8 @@ suite('Extension Integration Tests', () => {
         }
     });
 
-    test('Configure Azure settings command should be callable', async () => {
+    test('Configure Azure settings command should be callable', async function() {
+        this.timeout(10000);
         try {
             // Execute the configure Azure settings command
             await vscode.commands.executeCommand('extension.configureSpeechifyAzureSettings');

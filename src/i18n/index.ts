@@ -68,6 +68,7 @@ export interface Messages {
   'config.prompts.selectStyle': string;
   'config.prompts.selectRole': string;
   'config.prompts.selectVideoFile': string;
+  'config.prompts.selectConversionMode': string;
   
   // Progress
   'progress.convertingToSpeech': string;
@@ -87,6 +88,8 @@ export interface Messages {
   'actions.cancel': string;
   'actions.ok': string;
   'actions.retry': string;
+  'actions.visionAlignment': string;
+  'actions.standardConversion': string;
   
   // Settings
   'settings.voiceName': string;

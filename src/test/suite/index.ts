@@ -3,10 +3,18 @@ import Mocha from 'mocha';
 import { glob } from 'glob';
 
 export function run(): Promise<void> {
+    // Prefer env var because VS Code may swallow arbitrary CLI args.
+    const grepFromEnv = process.env.MOCHA_GREP;
+    const grepIndex = process.argv.indexOf('--grep');
+    const grepFromArgv = grepIndex > -1 ? process.argv[grepIndex + 1] : undefined;
+    const grep = grepFromEnv || grepFromArgv;
+
     // Create the mocha test
     const mocha = new Mocha({
         ui: 'tdd',
-        color: true
+        color: true,
+        grep: grep ? new RegExp(grep) : undefined,
+        timeout: 120000 // Increase timeout to 120s for AI API calls
     });
 
     const testsRoot = path.resolve(__dirname, '..');

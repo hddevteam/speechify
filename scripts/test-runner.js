@@ -20,10 +20,20 @@ if (isCI) {
     process.env.SPEECH_SERVICE_MOCK = 'true';  // Use mocked speech service
 }
 
+// Allow filtering mocha tests via environment variable.
+// In VS Code extension tests, arbitrary CLI args may be swallowed by VS Code,
+// so we also forward --grep into MOCHA_GREP.
+const rawArgs = process.argv.slice(2);
+const grepIndex = rawArgs.indexOf('--grep');
+if (grepIndex !== -1 && rawArgs[grepIndex + 1]) {
+    process.env.MOCHA_GREP = rawArgs[grepIndex + 1];
+}
+
 // Build the test command
 const testScript = path.join(__dirname, '..', 'out', 'test', 'runTest.js');
 const testCommand = 'node';
-const testArgs = [testScript];
+// Pass all CLI arguments to the test script
+const testArgs = [testScript, ...process.argv.slice(2)];
 
 console.log(`Running: ${testCommand} ${testArgs.join(' ')}`);
 

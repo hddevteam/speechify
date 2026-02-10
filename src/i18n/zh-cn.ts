@@ -67,6 +67,7 @@ const chineseMessages: Messages = {
   'config.prompts.selectStyle': '选择语音风格',
   'config.prompts.selectRole': '选择语音角色',
   'config.prompts.selectVideoFile': '选择背景视频文件',
+  'config.prompts.selectConversionMode': '选择视频生成模式',
   
   // Progress
   'progress.convertingToSpeech': '正在转换文字为语音...',
@@ -86,6 +87,8 @@ const chineseMessages: Messages = {
   'actions.cancel': '取消',
   'actions.ok': '确定',
   'actions.retry': '重试',
+  'actions.visionAlignment': 'AI 视觉对齐',
+  'actions.standardConversion': '标准模式',
   
   // Settings
   'settings.voiceName': '语音名称',

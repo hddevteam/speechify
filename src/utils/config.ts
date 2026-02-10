@@ -21,7 +21,12 @@ export class ConfigManager {
       speechServicesRegion: config.get<string>('speechServicesRegion', 'eastus'),
       voiceName: config.get<string>('voiceName', 'zh-CN-YunyangNeural'),
       voiceGender: config.get<string>('voiceGender', 'Male'),
-      voiceStyle: config.get<string>('voiceStyle', 'friendly')
+      voiceStyle: config.get<string>('voiceStyle', 'friendly'),
+      voiceRole: config.get<string>('voiceRole', ''),
+      visionApiKey: config.get<string>('visionApiKey', ''),
+      visionEndpoint: config.get<string>('visionEndpoint', ''),
+      visionDeployment: config.get<string>('visionDeployment', 'gpt-5.2'),
+      refinementDeployment: config.get<string>('refinementDeployment', 'gpt-5.2')
     };
   }
 
@@ -68,6 +73,37 @@ export class ConfigManager {
   }
 
   /**
+   * Get Vision configuration
+   */
+  public static getVisionConfig() {
+    const config = this.getWorkspaceConfig();
+    
+    if (config.visionApiKey) {
+        return {
+          apiKey: config.visionApiKey,
+          endpoint: config.visionEndpoint || '',
+          deployment: config.visionDeployment || 'gpt-5.2',
+          refinementDeployment: config.refinementDeployment || 'gpt-5.2'
+        };
+    }
+
+    const testConfig = this.loadTestConfig();
+    if (testConfig?.vision) {
+        return {
+            ...testConfig.vision,
+            refinementDeployment: testConfig.vision.refinementDeployment || testConfig.vision.deployment
+        };
+    }
+
+    return {
+      apiKey: '',
+      endpoint: '',
+      deployment: 'gpt-5.2',
+      refinementDeployment: 'gpt-5.2'
+    };
+  }
+
+  /**
    * Load test configuration for development
    */
   public static loadTestConfig(): TestConfig | null {
@@ -102,11 +138,24 @@ export class ConfigManager {
     // Otherwise, try to load test config
     const testConfig = this.loadTestConfig();
     if (testConfig) {
+      // Extract region from endpoint if not provided
+      let region = 'eastus';
+      if (testConfig.endpoint) {
+        // Handle both https://region.api.cognitive.microsoft.com and https://region.tts.speech.microsoft.com
+        const match = testConfig.endpoint.match(/https:\/\/([^.]+)\.(api|tts)\./);
+        if (match && match[1]) {
+          region = match[1];
+        }
+      }
+
       return {
         subscriptionKey: testConfig.subscriptionKey,
         endpoint: testConfig.endpoint.includes('/cognitiveservices/v1') 
           ? testConfig.endpoint 
-          : `${testConfig.endpoint}/cognitiveservices/v1`
+          : testConfig.endpoint.endsWith('/') 
+            ? `${testConfig.endpoint}cognitiveservices/v1`
+            : `${testConfig.endpoint}/cognitiveservices/v1`,
+        region: region
       };
     }
 

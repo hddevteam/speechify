@@ -249,8 +249,22 @@ async function convertTextToVideo(args?: { text?: string, videoPath?: string }):
 
         const sourceFilePath = editor?.document.uri.fsPath || 'headless_conv.txt';
 
-        // Convert text to video
-        const result = await SpeechService.convertToVideo(selectedText, sourceFilePath, videoPath);
+        // Choose conversion mode
+        const mode = await vscode.window.showQuickPick([
+            { label: I18n.t('actions.standardConversion'), description: 'Direct script-to-video conversion', value: 'standard' },
+            { label: I18n.t('actions.visionAlignment'), description: 'Analyze video frames to sync script automatically', value: 'vision' }
+        ], {
+            placeHolder: I18n.t('config.prompts.selectConversionMode')
+        });
+
+        if (!mode) return;
+
+        let result;
+        if (mode.value === 'vision') {
+            result = await SpeechService.convertToVideoWithVision(selectedText, sourceFilePath, videoPath);
+        } else {
+            result = await SpeechService.convertToVideo(selectedText, sourceFilePath, videoPath);
+        }
 
         if (result.success && result.outputPaths && result.outputPaths.length > 0) {
             const outPath = result.outputPaths[0];
