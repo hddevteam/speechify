@@ -147,7 +147,17 @@ const chineseMessages: Messages = {
   'alignment.segments': '分段',
   'alignment.startTime': '开始时间',
   'alignment.currentTime': '当前时间',
-  'alignment.setToCurrent': '设为当前时间'
+  'alignment.setToCurrent': '设为当前时间',
+  'alignment.segmentTitle': '分段标题',
+
+  // Synthesis Modes
+  'modes.compact': '紧凑模式',
+  'modes.compactDesc': '自动裁切空白 + 转场动画 (推荐 Demo 使用)',
+  'modes.original': '原始时长',
+  'modes.originalDesc': '保留视频原始时长，不进行裁切',
+  'modes.custom': '使用全局设置',
+  'modes.customDesc': '使用 VS Code 设置面板中的配置',
+  'prompts.selectSynthesisMode': '选择视频合成与渲染模式'
 };
 
 export default chineseMessages;

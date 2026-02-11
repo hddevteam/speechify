@@ -149,7 +149,17 @@ const englishMessages: Messages = {
   'alignment.segments': 'Segment',
   'alignment.startTime': 'Start Time',
   'alignment.currentTime': 'Current Time',
-  'alignment.setToCurrent': 'Set to Current'
+  'alignment.setToCurrent': 'Set to Current',
+  'alignment.segmentTitle': 'Segment Title',
+  
+  // Synthesis Modes
+  'modes.compact': 'Compact Mode',
+  'modes.compactDesc': 'Auto-trim video + Transitions (Best for Demos)',
+  'modes.original': 'Original Duration',
+  'modes.originalDesc': 'Keep original video length, no trimming',
+  'modes.custom': 'Use Global Settings',
+  'modes.customDesc': 'Use preferences from VS Code settings',
+  'prompts.selectSynthesisMode': 'Select synthesis & rendering mode'
 };
 
 export default englishMessages;

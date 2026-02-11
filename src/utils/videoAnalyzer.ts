@@ -14,6 +14,7 @@ export interface TimingSegment {
     durationLimit?: number;
     adjustedContent?: string;
     audioPath?: string;
+    audioDuration?: number;
 }
 
 export interface TimingProject {
@@ -264,6 +265,11 @@ export class VideoAnalyzer {
 I have provided frames captured every ${interval} seconds (Frame 0=0s, Frame 1=${interval}s, Frame 2=${interval * 2}s, etc.).
 
 Please analyze these frames and map the provided script segments to the correct Frame Indices.
+
+IMPORTANT: Create catchy, click-worthy titles for each segment. Focus on the VALUE or ACTION shown. 
+Instead of generic descriptions like "Introduction", use power words or "Hook" style titles (e.g., "3 Steps to Success" instead of "Demo Part 1").
+Titles should be under 15 words or 15 Chinese characters.
+
 Script:
 ${script}
 

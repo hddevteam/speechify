@@ -130,6 +130,11 @@ export class SpeechService {
       forceRefine?: boolean;
       openAlignmentEditor?: boolean;
       frameInterval?: number;
+      renderOverrides?: {
+        autoTrimVideo?: boolean;
+        enableTransitions?: boolean;
+        transitionType?: string;
+      };
     } = {}
   ): Promise<VideoProcessingResult> {
     try {
@@ -306,6 +311,14 @@ export class SpeechService {
               
               seg.audioPath = segAudioPath;
               
+              // Calculate audio duration from boundaries
+              if (boundaries.length > 0) {
+                const lastB = boundaries[boundaries.length - 1];
+                if (lastB) {
+                    seg.audioDuration = (lastB.audioOffset + lastB.duration) / 1000;
+                }
+              }
+              
               const shiftedBoundaries = boundaries.map(b => ({
                 ...b,
                 audioOffset: b.audioOffset + startTimeMs
@@ -319,13 +332,22 @@ export class SpeechService {
               const seg = segments[i];
               if (!seg) continue;
               seg.audioPath = path.join(audioDir, `seg_${i}.mp3`);
-              const boundaries = JSON.parse(fs.readFileSync(path.join(boundariesDir, `seg_${i}.json`), 'utf-8'));
-              const startTimeMs = seg.startTime * 1000;
-              const shiftedBoundaries = boundaries.map((b: any) => ({
-                ...b,
-                audioOffset: b.audioOffset + startTimeMs
-              }));
-              allBoundaries.push(...shiftedBoundaries);
+              const boundariesPath = path.join(boundariesDir, `seg_${i}.json`);
+              if (fs.existsSync(boundariesPath)) {
+                const boundaries = JSON.parse(fs.readFileSync(boundariesPath, 'utf-8'));
+                if (boundaries.length > 0) {
+                    const lastB = boundaries[boundaries.length - 1];
+                    if (lastB) {
+                        seg.audioDuration = (lastB.audioOffset + lastB.duration) / 1000;
+                    }
+                }
+                const startTimeMs = seg.startTime * 1000;
+                const shiftedBoundaries = boundaries.map((b: any) => ({
+                  ...b,
+                  audioOffset: b.audioOffset + startTimeMs
+                }));
+                allBoundaries.push(...shiftedBoundaries);
+              }
           }
       }
 
@@ -336,19 +358,79 @@ export class SpeechService {
         cancellable: false
       }, async () => {
         console.log('[Pipeline] Step 5: Final Muxing...');
+        
+        const config = ConfigManager.getWorkspaceConfig();
+        const enableTransitions = options.renderOverrides?.enableTransitions !== undefined 
+          ? options.renderOverrides.enableTransitions 
+          : (config.enableTransitions ?? true);
+          
+        const autoTrimVideo = options.renderOverrides?.autoTrimVideo !== undefined
+          ? options.renderOverrides.autoTrimVideo
+          : (config.autoTrimVideo ?? true);
+          
+        const transitionType = options.renderOverrides?.transitionType !== undefined
+          ? options.renderOverrides.transitionType
+          : (config.transitionType ?? 'fade');
+
+        // If trimming is enabled, we need to recalculate offsets
+        let currentOffset = 0;
+        // const transitionDuration = enableTransitions ? 0.5 : 0;
+        
+        const shiftedSegments = segments.map((seg) => {
+          const startTime = autoTrimVideo ? currentOffset : seg.startTime;
+          
+          // Update offset for next segment
+          if (autoTrimVideo) {
+             const duration = (seg.audioDuration || 5); // Fallback to 5s if unknown
+             const padding = 0.8; // Buffer time to match Muxer
+             currentOffset += duration + padding; 
+          }
+
+          return {
+            ...seg,
+            targetStartTime: startTime
+          };
+        });
+
         const mergedAudioPath = path.join(projectDir, `merged_final.mp3`);
-        await this.mergeAudioWithOffsets(segments, mergedAudioPath);
+        // Use targetStartTime for merging if trimming, else use startTime
+        const mergeInput = shiftedSegments.map(s => ({ 
+            audioPath: s.audioPath!, 
+            startTime: s.targetStartTime 
+        }));
+        await this.mergeAudioWithOffsets(mergeInput, mergedAudioPath);
 
         const srtOutputPath = path.join(projectDir, `final.srt`);
-        const srtContent = SubtitleUtils.generateSRT(allBoundaries);
+        // Shift boundaries to targetStartTime
+        const shiftedBoundaries: any[] = [];
+        for (let i = 0; i < segments.length; i++) {
+            const ss = shiftedSegments[i];
+            if (!ss) continue;
+            const startTimeMs = (ss.targetStartTime) * 1000;
+            const boundaries = JSON.parse(fs.readFileSync(path.join(boundariesDir, `seg_${i}.json`), 'utf-8'));
+            shiftedBoundaries.push(...boundaries.map((b: any) => ({
+                ...b,
+                audioOffset: b.audioOffset + startTimeMs
+            })));
+        }
+        
+        const srtContent = SubtitleUtils.generateSRT(shiftedBoundaries);
         await SubtitleUtils.saveSRTFile(srtContent, srtOutputPath);
 
         const videoOutputPath = path.join(outputDir, `${projectName}_refined_vision.mp4`);
-        const finalVideoPath = await VideoMuxer.muxVideo(
+        
+        // Use Advanced Muxer
+        const finalVideoPath = await VideoMuxer.muxVideoWithSegments(
           videoFilePath,
           mergedAudioPath,
           srtOutputPath,
-          videoOutputPath
+          videoOutputPath,
+          shiftedSegments,
+          {
+            enableTransitions,
+            transitionType,
+            autoTrimVideo
+          }
         );
 
         return {
@@ -370,13 +452,13 @@ export class SpeechService {
   /**
    * Merge multiple audio files at specific start times using FFmpeg
    */
-  private static async mergeAudioWithOffsets(segments: any[], outputPath: string): Promise<void> {
+  private static async mergeAudioWithOffsets(segments: { audioPath: string, startTime: number }[], outputPath: string): Promise<void> {
     // Escape single quotes for labels and filter syntax
     const inputs = segments.map((s) => `-i "${s.audioPath}"`).join(' ');
     
     // Build amix filter with adelay
     // [0:a]adelay=1000|1000[a0]; [1:a]adelay=5000|5000[a1]; [a0][a1]amix=inputs=2
-    const delays = segments.map((s, i) => `[${i}:a]adelay=${s.startTime * 1000}|${s.startTime * 1000}[a${i}]`).join('; ');
+    const delays = segments.map((s, i) => `[${i}:a]adelay=${Math.round(s.startTime * 1000)}|${Math.round(s.startTime * 1000)}[a${i}]`).join('; ');
     const mixInput = segments.map((_, i) => `[a${i}]`).join('');
     const mix = `${delays}; ${mixInput}amix=inputs=${segments.length}:dropout_transition=0:normalize=0`;
     
@@ -655,10 +737,41 @@ export class SpeechService {
         }
     }
 
+    // --- NEW: Ask for Synthesis Mode ---
+    const modeSelection = await vscode.window.showQuickPick([
+        { 
+            label: `$(zap) ${I18n.t('modes.compact') || 'Compact Mode'}`, 
+            description: I18n.t('modes.compactDesc') || 'Auto-trim video + Transitions (Best for Demos)',
+            mode: 'compact' 
+        },
+        { 
+            label: `$(history) ${I18n.t('modes.original') || 'Original Duration'}`, 
+            description: I18n.t('modes.originalDesc') || 'Keep original video length, no trimming',
+            mode: 'original' 
+        },
+        { 
+            label: `$(settings-gear) ${I18n.t('modes.custom') || 'Use Global Settings'}`, 
+            description: I18n.t('modes.customDesc') || 'Use preferences from VS Code settings',
+            mode: 'custom' 
+        }
+    ], {
+        placeHolder: I18n.t('prompts.selectSynthesisMode') || 'Select synthesis & rendering mode'
+    });
+
+    if (!modeSelection) return;
+
+    let overrides = {};
+    if (modeSelection.mode === 'compact') {
+        overrides = { autoTrimVideo: true, enableTransitions: true };
+    } else if (modeSelection.mode === 'original') {
+        overrides = { autoTrimVideo: false, enableTransitions: false };
+    }
+
     const result = await this.convertToVideoWithVision("", "", videoFilePath, {
         startStep: PipelineStep.SSML,
         forceRefine: false,
-        openAlignmentEditor: false
+        openAlignmentEditor: false,
+        renderOverrides: overrides
     });
 
     if (result.success && result.videoOutputPath) {

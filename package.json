@@ -184,6 +184,22 @@
           "default": "",
           "description": "%speechify.configuration.voiceRole%"
         },
+        "speechify.enableTransitions": {
+          "type": "boolean",
+          "default": true,
+          "description": "%speechify.configuration.enableTransitions%"
+        },
+        "speechify.transitionType": {
+          "type": "string",
+          "default": "fade",
+          "enum": ["fade", "wipeleft", "slideleft"],
+          "description": "%speechify.configuration.transitionType%"
+        },
+        "speechify.autoTrimVideo": {
+          "type": "boolean",
+          "default": true,
+          "description": "%speechify.configuration.autoTrimVideo%"
+        },
         "speechify.visionApiKey": {
           "type": "string",
           "default": "",

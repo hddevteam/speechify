@@ -26,7 +26,10 @@ export class ConfigManager {
       visionApiKey: config.get<string>('visionApiKey', ''),
       visionEndpoint: config.get<string>('visionEndpoint', ''),
       visionDeployment: config.get<string>('visionDeployment', 'gpt-5.2'),
-      refinementDeployment: config.get<string>('refinementDeployment', 'gpt-5.2')
+      refinementDeployment: config.get<string>('refinementDeployment', 'gpt-5.2'),
+      enableTransitions: config.get<boolean>('enableTransitions', true),
+      transitionType: config.get<string>('transitionType', 'fade'),
+      autoTrimVideo: config.get<boolean>('autoTrimVideo', true)
     };
   }
 

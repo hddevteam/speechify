@@ -151,6 +151,16 @@ export interface Messages {
   'alignment.startTime': string;
   'alignment.currentTime': string;
   'alignment.setToCurrent': string;
+  'alignment.segmentTitle': string;
+  
+  // Synthesis Modes
+  'modes.compact': string;
+  'modes.compactDesc': string;
+  'modes.original': string;
+  'modes.originalDesc': string;
+  'modes.custom': string;
+  'modes.customDesc': string;
+  'prompts.selectSynthesisMode': string;
 }
 
 /**

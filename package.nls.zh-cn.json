@@ -16,5 +16,8 @@
   "speechify.configuration.voiceName": "语音合成的语音名称",
   "speechify.configuration.voiceGender": "语音性别偏好",
   "speechify.configuration.voiceStyle": "语音风格偏好",
-  "speechify.configuration.voiceRole": "支持角色扮演的语音角色"
+  "speechify.configuration.voiceRole": "支持角色扮演的语音角色",
+  "speechify.configuration.enableTransitions": "启用段落间的转场动画",
+  "speechify.configuration.transitionType": "转场动画类型",
+  "speechify.configuration.autoTrimVideo": "根据音频时长自动裁切视频空白部分"
 }

@@ -10,6 +10,7 @@ interface AlignmentEditorLabels {
   startTime: string;
   currentTime: string;
   setToCurrent: string;
+  segmentTitle: string;
   refine: string;
   cancel: string;
 }
@@ -49,6 +50,7 @@ export class AlignmentEditor {
         startTime: I18n.t('alignment.startTime'),
         currentTime: I18n.t('alignment.currentTime'),
         setToCurrent: I18n.t('alignment.setToCurrent'),
+        segmentTitle: I18n.t('alignment.segmentTitle') || 'Title',
         refine: I18n.t('actions.refine'),
         cancel: I18n.t('actions.cancel')
       }
@@ -350,7 +352,22 @@ export class AlignmentEditor {
       margin-bottom: 8px;
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 12px;
+    }
+    .title-input {
+      background: var(--bg);
+      color: var(--fg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 14px;
+      font-weight: 600;
+      flex-grow: 1;
+    }
+    .title-input:focus {
+      outline: none;
+      border-color: var(--accent);
     }
     .segment-time-badge {
       font-size: 11px;
@@ -663,11 +680,25 @@ export class AlignmentEditor {
         segmentsInfo.innerHTML = 
           '<div class="segment-card">' +
             '<div class="segment-title">' +
-              (seg.title || "") + 
+              '<input type="text" class="title-input" value="' + (seg.title || "").replace(/"/g, '&quot;') + '" placeholder="Segment Title" id="titleInput">' +
               '<span class="segment-time-badge">' + formatTime(segDuration) + 's</span>' +
             '</div>' +
             '<div class="segment-content">' + (seg.content || "") + '</div>' +
           '</div>';
+
+        const titleInput = document.getElementById('titleInput');
+        if (titleInput) {
+            titleInput.addEventListener('input', (e) => {
+                segments[selectedIndex].title = e.target.value;
+                // Update visual segment strong tag
+                const activeSegEl = timeline.querySelector('.segment.selected strong');
+                if (activeSegEl) {
+                    activeSegEl.textContent = e.target.value || segments[selectedIndex].content;
+                }
+                // Auto save
+                vscode.postMessage({ type: 'auto-save', segments });
+            });
+        }
       } else {
         segmentsInfo.innerHTML = '<div style="opacity: 0.5; text-align: center; padding: 40px;">' + initialState.labels.segments + '</div>';
       }
