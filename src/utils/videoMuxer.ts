@@ -149,17 +149,21 @@ export class VideoMuxer {
 
         const titleText = escapeDrawText(wrappedTitle);
         const lineCount = wrappedTitle.split('\n').length;
-        const fontSize = lineCount > 1 ? 40 : 46;
+        const fontSize = lineCount > 1 ? 52 : 64;
 
         const titleLength = seg.title.trim().length;
         const maxTitleDuration = Math.min(4.2, Math.max(2.4, 1.8 + titleLength * 0.08));
         const displayEnd = start + maxTitleDuration;
 
-        // Elegant title card: centered, soft box background, improved typography.
+        // Elegant title card: centered, with fade in/out animation for a modern feel.
+        const startFade = 0.4;
+        const endFade = 0.5;
+        const alpha = `if(lt(t,${start}+${startFade}),(t-${start})/${startFade},if(gt(t,${displayEnd}-${endFade}),(${displayEnd}-t)/${endFade},1))`;
+
         // Using fontfile for macOS to ensure the font is found.
         const fontParam = isMac ? `fontfile='${titleFont}'` : `font='${titleFont}'`;
         titleFilters += (titleFilters ? `,` : ``) + 
-          `drawtext=${fontParam}:text='${titleText}':fontcolor=white:fontsize=${fontSize}:line_spacing=12:box=1:boxcolor=black@0.45:boxborderw=20:shadowcolor=black@0.5:shadowx=0:shadowy=2:x=(w-text_w)/2:y=65:enable='between(t,${start.toFixed(2)},${displayEnd.toFixed(2)})'`;
+          `drawtext=${fontParam}:text='${titleText}':fontcolor=white:fontsize=${fontSize}:line_spacing=18:box=1:boxcolor=black@0.7:boxborderw=35:shadowcolor=black@0.8:shadowx=0:shadowy=4:x=(w-text_w)/2:y=(h-text_h)/2:alpha='${alpha}':enable='between(t,${start.toFixed(2)},${displayEnd.toFixed(2)})'`;
       }
 
       // --- SUBTITLE LOGIC ---
@@ -173,19 +177,19 @@ export class VideoMuxer {
 
       const subtitleStyle = [
         `FontName=${subtitleFont}`,
-        `FontSize=22`,
+        `FontSize=24`,
         `PrimaryColour=&H00FFFFFF`, // Pure white
         `OutlineColour=&H00000000`, // Black outline
-        `BackColour=&H80000000`,    // 50% transparent shadow
+        `BackColour=&H95000000`,    // More transparent shadow
         `BorderStyle=1`,            // Outline + Shadow style
-        `Outline=1.2`,             // Thin, sharp outline
-        `Shadow=1.0`,               // Subtle shadow
-        `Blur=0.6`,                 // Soften the edges a bit
-        `Spacing=0.5`,
+        `Outline=1.5`,             // Sharper outline
+        `Shadow=1.5`,               
+        `Blur=0.8`,                 // Soften the edges a bit
+        `Spacing=0.8`,
         `Alignment=2`,
-        `MarginL=50`,
-        `MarginR=50`,
-        `MarginV=35`
+        `MarginL=60`,
+        `MarginR=60`,
+        `MarginV=65`                // Positioned slightly higher for modern look
       ].join(',');
 
       let finalVideoFilter = `subtitles='${escapedSrtPath}':force_style='${subtitleStyle}'`;
@@ -256,19 +260,19 @@ export class VideoMuxer {
 
       const subtitleStyle = [
         `FontName=${subtitleFont}`,
-        `FontSize=22`,
-        `PrimaryColour=&H00FFFFFF`,
-        `OutlineColour=&H00000000`,
-        `BackColour=&H80000000`,
-        `BorderStyle=1`,
-        `Outline=1.2`,
-        `Shadow=1.0`,
-        `Blur=0.6`,
-        `Spacing=0.5`,
+        `FontSize=24`,
+        `PrimaryColour=&H00FFFFFF`, // Pure white
+        `OutlineColour=&H00000000`, // Black outline
+        `BackColour=&H95000000`,    // More transparent shadow
+        `BorderStyle=1`,            // Outline + Shadow style
+        `Outline=1.5`,             // Sharper outline
+        `Shadow=1.5`,               
+        `Blur=0.8`,                 // Soften the edges a bit
+        `Spacing=0.8`,
         `Alignment=2`,
-        `MarginL=50`,
-        `MarginR=50`,
-        `MarginV=35`
+        `MarginL=60`,
+        `MarginR=60`,
+        `MarginV=65`                // Positioned slightly higher for modern look
       ].join(',');
 
       // Use tpad filter to clone the last frame and remove -shortest (or use it with a very long tpad)
