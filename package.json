@@ -126,16 +126,16 @@
         },
         {
           "command": "extension.convertToVideo",
-          "group": "1_core@2"
+          "group": "2_video@1"
         },
         {
           "command": "extension.openAlignmentEditor",
-          "group": "2_vision@1",
+          "group": "2_video@2",
           "when": "resourceFilename == timing.json"
         },
         {
           "command": "extension.synthesizeVideoFromProject",
-          "group": "2_vision@2"
+          "group": "2_video@3"
         },
         {
           "command": "extension.selectSpeechifyVoiceStyle",
