@@ -97,6 +97,7 @@ const chineseMessages: Messages = {
   'actions.cancel': '取消',
   'actions.ok': '确定',
   'actions.retry': '重试',
+  'actions.previewVoice': '试听',
   'actions.visionAlignment': 'AI 视觉对齐',
   'actions.standardConversion': '标准模式',
   'actions.refine': '精炼',

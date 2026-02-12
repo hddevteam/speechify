@@ -10,6 +10,7 @@
     const playhead = document.getElementById('playhead');
     const segmentsInfo = document.getElementById('segmentsInfo');
     const saveBtn = document.getElementById('saveBtn');
+    const narratorBtn = document.getElementById('narratorBtn');
 
     let segments = initialState.segments.map(seg => ({ ...seg }));
     let duration = 0;
@@ -17,6 +18,8 @@
     let selectedIndex = segments.length > 0 ? 0 : -1; 
     let lastSeekTime = 0;
     let seekPending = false;
+    let currentAudio = null;
+    const audioCache = new Map();
 
     const formatTime = (value) => {
       const m = Math.floor(value / 60);
@@ -187,7 +190,12 @@
               value="${(seg.title || '').replace(/"/g, '&quot;')}" 
               placeholder="${initialState.labels.segmentTitle}">
             <div class="time-badge-pro">
-              ${formatTime(segDuration)}
+              <span>${formatTime(segDuration)}</span>
+              <button id="playVoiceBtn" class="play-voice-btn" title="${initialState.labels.preview}">
+                <svg viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
             </div>
           </div>
           <div class="content-body-pro">
@@ -204,6 +212,54 @@
               segmentEls[selectedIndex].querySelector('.segment-title-text').textContent = e.target.value || segments[selectedIndex].content.substring(0, 30);
           }
           vscode.postMessage({ type: 'auto-save', segments });
+      });
+
+      const playVoiceBtn = document.getElementById('playVoiceBtn');
+      if (playVoiceBtn) {
+        playVoiceBtn.addEventListener('click', () => {
+          // Stop any existing playback
+          if (currentAudio) {
+            currentAudio.pause();
+            currentAudio = null;
+            document.querySelectorAll('.play-voice-btn.playing').forEach(btn => btn.classList.remove('playing'));
+          }
+
+          const text = seg.content;
+          
+          // Use cached audio if available
+          if (audioCache.has(text)) {
+            console.log('[Webview] Using cached audio for preview');
+            playAudio(audioCache.get(text), playVoiceBtn);
+            return;
+          }
+
+          console.log('[Webview] Preview button clicked, requesting synthesis');
+          playVoiceBtn.classList.add('playing');
+          vscode.postMessage({ type: 'preview-voice', text });
+        });
+      }
+    };
+
+    const playAudio = (base64Data, btn) => {
+      if (btn) btn.classList.add('playing');
+      
+      currentAudio = new Audio(`data:audio/mpeg;base64,${base64Data}`);
+      currentAudio.onplay = () => console.log('[Webview] Audio started playing');
+      currentAudio.onended = () => {
+        console.log('[Webview] Audio playback ended');
+        if (btn) btn.classList.remove('playing');
+        currentAudio = null;
+      };
+      currentAudio.onerror = (e) => {
+        console.error('[Webview] Audio error:', currentAudio.error);
+        if (btn) btn.classList.remove('playing');
+        currentAudio = null;
+      };
+
+      currentAudio.play().catch(err => {
+        console.error('[Webview] Audio play promise failed:', err);
+        if (btn) btn.classList.remove('playing');
+        currentAudio = null;
       });
     };
 
@@ -231,6 +287,35 @@
       saveBtn.disabled = true;
       saveBtn.innerHTML = '<span class="animate-pulse">Synthesizing...</span>';
       vscode.postMessage({ type: 'save', segments });
+    });
+
+    if (narratorBtn) {
+      narratorBtn.addEventListener('click', () => {
+        vscode.postMessage({ type: 'configure-voice' });
+      });
+    }
+
+    window.addEventListener('message', event => {
+      const message = event.data;
+      console.log('[Webview] Received message:', message.type);
+
+      if (message.type === 'update-voice') {
+        const nameEl = document.getElementById('narratorName');
+        if (nameEl) nameEl.textContent = message.voiceName;
+      }
+      
+      if (message.type === 'audio-data') {
+        const playBtn = document.getElementById('playVoiceBtn');
+        console.log('[Webview] Audio data received, length:', message.data.length);
+
+        // Cache the result to avoid redundant API calls
+        const seg = segments[selectedIndex];
+        if (seg) {
+          audioCache.set(seg.content, message.data);
+        }
+
+        playAudio(message.data, playBtn);
+      }
     });
 
     (async function preloadVideo() {

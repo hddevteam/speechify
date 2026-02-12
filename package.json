@@ -142,12 +142,16 @@
           "group": "3_settings@1"
         },
         {
-          "command": "extension.selectSpeechifyVoiceRole",
+          "command": "extension.configureSpeechifyVoiceSettings",
           "group": "3_settings@2"
         },
         {
-          "command": "extension.showSpeechifyVoiceSettings",
+          "command": "extension.selectSpeechifyVoiceRole",
           "group": "3_settings@3"
+        },
+        {
+          "command": "extension.showSpeechifyVoiceSettings",
+          "group": "3_settings@4"
         }
       ]
     },

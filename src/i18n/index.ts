@@ -100,6 +100,7 @@ export interface Messages {
   'actions.cancel': string;
   'actions.ok': string;
   'actions.retry': string;
+  'actions.previewVoice': string;
   'actions.visionAlignment': string;
   'actions.standardConversion': string;
   'actions.refine': string;

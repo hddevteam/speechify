@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { TimingSegment } from '../utils/videoAnalyzer';
 import { I18n } from '../i18n';
+import { AzureSpeechService } from '../utils/azure';
+import { ConfigManager } from '../utils/config';
 
 interface AlignmentEditorLabels {
   title: string;
@@ -12,12 +14,14 @@ interface AlignmentEditorLabels {
   setToCurrent: string;
   segmentTitle: string;
   refine: string;
+  preview: string;
 }
 
 interface AlignmentEditorInitState {
   videoSrc: string;
   segments: TimingSegment[];
   labels: AlignmentEditorLabels;
+  voiceName: string;
 }
 
 export class AlignmentEditor {
@@ -45,6 +49,9 @@ export class AlignmentEditor {
     const styleUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'media', 'alignment-editor.css')));
     const scriptUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'media', 'alignment-editor.js')));
 
+    const config = vscode.workspace.getConfiguration('speechify');
+    const voiceName = config.get<string>('voiceName') || 'zh-CN-YunyangNeural';
+
     const initState: AlignmentEditorInitState = {
       videoSrc: videoUri,
       segments,
@@ -56,8 +63,10 @@ export class AlignmentEditor {
         currentTime: I18n.t('alignment.currentTime'),
         setToCurrent: I18n.t('alignment.setToCurrent'),
         segmentTitle: I18n.t('alignment.segmentTitle') || 'Title',
-        refine: I18n.t('actions.refine')
-      }
+        refine: I18n.t('actions.refine'),
+        preview: I18n.t('actions.previewVoice')
+      },
+      voiceName
     };
 
     panel.webview.html = this.getHtml(panel.webview, initState, styleUri, scriptUri);
@@ -81,6 +90,31 @@ export class AlignmentEditor {
       panel.webview.onDidReceiveMessage((message) => {
         if (message?.type === 'save' && Array.isArray(message.segments)) {
           finalize(message.segments as TimingSegment[]);
+        }
+
+        if (message?.type === 'configure-voice') {
+          vscode.commands.executeCommand('extension.configureSpeechifyVoiceSettings').then(() => {
+            // Update the display after configuration
+            const newConfig = vscode.workspace.getConfiguration('speechify');
+            const newVoice = newConfig.get<string>('voiceName') || 'zh-CN-YunyangNeural';
+            panel.webview.postMessage({ type: 'update-voice', voiceName: newVoice });
+          });
+        }
+
+        if (message?.type === 'preview-voice') {
+          const { text } = message;
+          
+          const azureConfig = ConfigManager.getAzureConfigForTesting();
+          const voiceSettings = ConfigManager.getVoiceSettings();
+          
+          AzureSpeechService.synthesizeWithBoundaries(text, voiceSettings, azureConfig)
+            .then(({ audioBuffer }: { audioBuffer: Buffer }) => {
+              const base64Audio = audioBuffer.toString('base64');
+              panel.webview.postMessage({ type: 'audio-data', data: base64Audio });
+            })
+            .catch((err: Error) => {
+              vscode.window.showErrorMessage(`Preview failed: ${err.message}`);
+            });
         }
 
         if (message?.type === 'auto-save' && Array.isArray(message.segments) && options?.autoSavePath) {
@@ -123,7 +157,7 @@ export class AlignmentEditor {
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} blob:; media-src ${webview.cspSource} blob:; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} blob:; media-src ${webview.cspSource} blob: data:; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${initState.labels.title}</title>
   <link rel="stylesheet" href="${styleUri}" />
@@ -138,6 +172,14 @@ export class AlignmentEditor {
     <!-- Video Area -->
     <div class="video-section">
       <video id="video" controls preload="auto" class="video-shadow"></video>
+      <div class="narrator-overlay" id="narratorBtn" title="Click to change narrator">
+        <svg class="narrator-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="22"></line>
+        </svg>
+        <span id="narratorName">${initState.voiceName}</span>
+      </div>
     </div>
 
     <!-- Controls & Info Area (Merged) -->
