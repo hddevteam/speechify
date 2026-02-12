@@ -7,7 +7,7 @@
   "speechify.command.configureAzure": "设置 Azure 密钥",
   "speechify.command.selectStyle": "切换语音风格",
   "speechify.command.selectRole": "切换解说员/角色",
-  "speechify.command.convertToVideo": "生成视频解说 (AI 对齐)",
+  "speechify.command.convertToVideo": "AI 视觉对齐合成",
   "speechify.command.alignmentEditor": "微调音画同步",
   "speechify.command.synthesizeVideoFromProject": "立即合成最终视频",
   "speechify.configuration.title": "Speechify",

@@ -17,6 +17,7 @@ export interface Messages {
   'commands.convertToVideo.description': string;
   'commands.alignmentEditor.title': string;
   'commands.alignmentEditor.description': string;
+  'commands.synthesizeVideoFromProject.title': string;
   
   // Notifications
   'notifications.success.speechGenerated': string;
@@ -89,6 +90,7 @@ export interface Messages {
   'progress.loadingVoiceList': string;
   'progress.configuringSettings': string;
   'progress.muxingVideo': string;
+  'progress.startingSynthesis': string;
   
   // Actions
   'actions.later': string;
@@ -106,6 +108,8 @@ export interface Messages {
   'actions.refine': string;
   'actions.saveAndRefine': string;
   'actions.resetToAi': string;
+  'actions.restoreOriginal': string;
+  'actions.restoring': string;
   
   // Settings
   'settings.voiceName': string;

@@ -29,6 +29,11 @@ export interface VisionTimingResult {
     segments: TimingSegment[];
 }
 
+interface AIResponse {
+    segments?: TimingSegment[];
+    [key: string]: unknown;
+}
+
 export class VideoAnalyzer {
     /**
      * Count words in a string (handles Chinese characters and English words)
@@ -186,7 +191,7 @@ export class VideoAnalyzer {
                 continue;
             }
 
-            const userContent: any[] = [
+            const userContent: { type: string; text?: string; image_url?: { url: string } }[] = [
                 {
                     type: 'text',
                     text: `Attached are 10-11 frames from a video, captured every 1 second starting from ${searchStart} seconds. 
@@ -257,8 +262,8 @@ export class VideoAnalyzer {
         endpoint: string,
         deployment: string,
         interval: number = 10
-    ): Promise<any> {
-        const userContent: any[] = [
+    ): Promise<AIResponse> {
+        const userContent: { type: string; text?: string; image_url?: { url: string } }[] = [
             {
                 type: 'text',
                 text: `Video Total Duration: ${videoDuration.toFixed(1)} seconds. 
@@ -358,7 +363,7 @@ Return a JSON object with a "segments" array. Each segment should have "startTim
     ): Promise<number> {
         if (frames.length === 0) return coarseTime;
 
-        const userContent: any[] = [
+        const userContent: { type: string; text?: string; image_url?: { url: string } }[] = [
             {
                 type: 'text',
                 text: `These are 10 consecutive frames captured at 1-second intervals starting from ${Math.max(0, coarseTime - 5)}s.
@@ -414,7 +419,7 @@ Respond with JSON only.`
     ): Promise<TimingSegment[]> {
         const refinedSegments: TimingSegment[] = [];
         const WORDS_PER_SECOND = wordsPerSecond;
-        const MAX_RETRIES = 3;
+        const MAX_RETRIES = 1;
 
         for (let i = 0; i < segments.length; i++) {
             const seg = segments[i];
@@ -430,15 +435,21 @@ Respond with JSON only.`
             
             seg.durationLimit = durationLimit;
 
-            // SPECIAL CASE: Last segment doesn't need refinement (user will extend video end)
-            // Also skip if content is already short enough in words
-            if (!nextSeg || currentWords <= maxWords) {
+            // Skip only if content is already short enough in words.
+            // (Removed !nextSeg check so per-segment refinement works correctly)
+            // The user wants refinement even if the limit is not strictly exceeded (for tone/style)
+            // Or we just proceed to let the AI decide how to optimize it.
+            /* 
+            if (currentWords <= maxWords) {
                 seg.adjustedContent = seg.content;
                 refinedSegments.push(seg);
                 continue;
             }
+            */
 
             let currentContent = seg.content;
+            let bestAttempt = seg.content;
+            let bestWordCount = currentWords;
             let success = false;
 
             for (let retry = 1; retry <= MAX_RETRIES; retry++) {
@@ -448,17 +459,17 @@ Respond with JSON only.`
 
                 console.log(`Refining segment ${i} (Try ${retry}): "${seg.title}" (Limit: ${durationLimit.toFixed(1)}s, Max Words: ${maxWords}, Current: ${words}, WPS: ${WORDS_PER_SECOND.toFixed(2)})`);
 
-                const prompt = `You are a script condensation expert. Your goal is to REWRITE and PARAPHRASE the following segment to fit a specific timing.
-DO NOT just truncate or cut off the text. Instead, compress the meaning by using more concise phrasing and summarizing key points.
+                const prompt = `You are a professional Broadcaster and script editor. Your goal is to REWRITE and PARAPHRASE the following segment to fit a specific timing.
+DO NOT just truncate or cut off the text. Instead, compress the meaning by using more concise phrasing and summarizing key points while keeping the tone engaging as a broadcaster.
 
 CURRENT TEXT: "${currentContent}"
-${timeMismatch ? `OBSERVATION: ${timeMismatch}. The text is TOO LONG and needs significant compression.` : ''}
+${timeMismatch ? `OBSERVATION: ${timeMismatch}. The text is currently too long and MUST be compressed to flow naturally within the target duration.` : ''}
 MAX WORD LIMIT: ${maxWords} units (Each Chinese character or English word counts as 1).
 
 REQUIREMENTS:
-1. The "refinedText" MUST NOT exceed ${maxWords} units.
+1. Aim for a "refinedText" that is close to or under ${maxWords} units.
 2. Maintain the core message, impact, and conversational tone.
-3. DO NOT just remove the end of the text. Rewrite the whole thing to be punchy.
+3. Rewrite the whole thing to be punchy and professional.
 4. Output as JSON only.
 5. IMPORTANT: DO NOT use ellipses (...) or truncated symbols. The sentences MUST be complete and natural.
 
@@ -470,7 +481,7 @@ JSON FORMAT:
 }`;
 
                 const messages = [
-                    { role: 'system', content: 'You are a professional video script editor. Summarize the text to be strictly within word limits. Output ONLY the JSON object. Do not explain your reasoning.' },
+                    { role: 'system', content: 'You are an expert broadcaster. Rewrite the script to be concise and perfectly timed. Output ONLY the JSON object.' },
                     { role: 'user', content: prompt }
                 ];
 
@@ -505,14 +516,22 @@ JSON FORMAT:
                     const refinedResult = this.sanitizeRefinedText(content.refinedText);
                     const refinedWords = this.countWords(refinedResult);
                     
+                    // Always record the best attempt (closest to target)
+                    if (refinedWords > 0 && (refinedWords < bestWordCount || bestWordCount > maxWords)) {
+                        bestAttempt = refinedResult;
+                        bestWordCount = refinedWords;
+                    }
+
                     if (refinedWords > 0 && refinedWords <= maxWords) {
                         console.log(`Successfully refined to: "${refinedResult}" (${refinedWords} words)`);
                         seg.adjustedContent = refinedResult;
                         success = true;
                         break;
-                    } else if (refinedWords > 0) {
-                        console.warn(`Attempt ${retry} failed: Result too long (${refinedWords} words > ${maxWords}). Retrying...`);
+                    } else if (refinedWords > 0 && retry < MAX_RETRIES) {
+                        console.warn(`Attempt ${retry} exceeded limit: ${refinedWords} words > ${maxWords}. Retrying...`);
                         currentContent = refinedResult; 
+                    } else if (refinedWords > 0) {
+                        console.warn(`Attempt ${retry} finished, still exceeded limit: ${refinedWords} words > ${maxWords}.`);
                     }
                 } catch (error: unknown) {
                     const message = error instanceof Error ? error.message : String(error);
@@ -521,43 +540,8 @@ JSON FORMAT:
             }
 
             if (!success) {
-                console.error(`Failed to refine segment ${i} after ${MAX_RETRIES} attempts. Fallback to hard truncation.`);
-                
-                // Better fallback: Try to keep at least 90% of maxWords if original is very long
-                // but ensure we don't exceed maxWords and don't end with unfinished thoughts if possible
-                const text = seg.content;
-                const chars = text.split('');
-                const safeLimit = Math.min(chars.length, maxWords);
-                
-                // Try to find a sentence ender or punctuation within the limit
-                let bestLimit = safeLimit;
-                const searchRegion = text.substring(0, safeLimit);
-                const lastStrongPunctuation = Math.max(
-                    searchRegion.lastIndexOf('。'),
-                    searchRegion.lastIndexOf('.'),
-                    searchRegion.lastIndexOf('！'),
-                    searchRegion.lastIndexOf('!'),
-                    searchRegion.lastIndexOf('？'),
-                    searchRegion.lastIndexOf('?'),
-                    searchRegion.lastIndexOf('；'),
-                    searchRegion.lastIndexOf(';')
-                );
-
-                const lastWeakPunctuation = Math.max(
-                    searchRegion.lastIndexOf('，'),
-                    searchRegion.lastIndexOf(','),
-                    searchRegion.lastIndexOf('、'),
-                    searchRegion.lastIndexOf('：'),
-                    searchRegion.lastIndexOf(':')
-                );
-
-                if (lastStrongPunctuation > safeLimit * 0.5) {
-                    bestLimit = lastStrongPunctuation + 1;
-                } else if (lastWeakPunctuation > safeLimit * 0.7) {
-                    bestLimit = lastWeakPunctuation + 1;
-                }
-
-                seg.adjustedContent = this.sanitizeRefinedText(text.substring(0, bestLimit));
+                console.log(`Providing best attempt after ${MAX_RETRIES} tries: "${bestAttempt}" (${bestWordCount} words)`);
+                seg.adjustedContent = bestAttempt;
             }
             
             refinedSegments.push(seg);

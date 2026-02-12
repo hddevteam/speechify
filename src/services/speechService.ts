@@ -203,7 +203,7 @@ export class SpeechService {
               visionConfig.deployment,
               interval
             );
-            return timingResult.segments;
+            return timingResult.segments || [];
           });
           
           saveProject(segments);
@@ -233,10 +233,9 @@ export class SpeechService {
       }
 
       // --- STEP 2: REFINE ---
-      const shouldRefine = options.forceRefine || 
-                        (!options.startStep) || 
-                        (options.startStep === PipelineStep.ANALYZE) ||
-                        (options.startStep === PipelineStep.REFINE);
+      // User decision: Skip automatic bulk refinement. We now use manual alignment editor 
+      // where individual segments can be refined if needed.
+      const shouldRefine = options.forceRefine || (options.startStep === PipelineStep.REFINE);
 
       if (shouldRefine) {
           console.log('[Pipeline] Step 2: Refining Script...');
@@ -643,49 +642,15 @@ export class SpeechService {
       return;
     }
 
-    const analyzer = new VideoAnalyzer();
-    const visionConfig = ConfigManager.getVisionConfig();
-    if (!visionConfig.apiKey || !visionConfig.endpoint) {
-      vscode.window.showErrorMessage(I18n.t('errors.visionConfigurationIncomplete'));
-      return;
-    }
-    const azureConfig = ConfigManager.getAzureConfigForTesting();
-    const voiceSettings = ConfigManager.getVoiceSettings();
-    const segmentsToRefine = updatedSegments;
-    let firstContent = '';
-    if (segmentsToRefine.length > 0) {
-      const firstSeg = segmentsToRefine[0];
-      if (firstSeg) {
-        firstContent = firstSeg.content || '';
-      }
-    }
-
-    const refinedSegments = await vscode.window.withProgress({
-      location: vscode.ProgressLocation.Notification,
-      title: I18n.t('progress.refiningScript'),
-      cancellable: false
-    }, async () => {
-      return await this.refineSegmentsWithCalibration(
-        analyzer,
-        segmentsToRefine,
-        videoFilePath,
-        firstContent,
-        visionConfig,
-        azureConfig,
-        voiceSettings
-      );
-    });
-
-    // Always save in Project format (already upgraded at start)
-    const finalContent = fs.readFileSync(timingPath, 'utf-8');
-    const finalProject = JSON.parse(finalContent);
+    // Always save in Project format
+    const projectContent = fs.readFileSync(timingPath, 'utf-8');
+    const finalProject = JSON.parse(projectContent);
     if (finalProject && !Array.isArray(finalProject) && 'segments' in finalProject) {
-        finalProject.segments = refinedSegments;
+        finalProject.segments = updatedSegments;
         finalProject.lastModified = new Date().toISOString();
         fs.writeFileSync(timingPath, JSON.stringify(finalProject, null, 2));
     } else {
-        // Fallback for safety
-        fs.writeFileSync(timingPath, JSON.stringify(refinedSegments, null, 2));
+        fs.writeFileSync(timingPath, JSON.stringify(updatedSegments, null, 2));
     }
     vscode.window.showInformationMessage(I18n.t('notifications.success.alignmentSaved'));
   }

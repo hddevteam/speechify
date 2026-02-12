@@ -17,8 +17,10 @@ interface AlignmentEditorLabels {
   preview: string;
   reserved: string;
   actual: string;
+  restore: string;
   ok: string;
   synthesize: string;
+  synthesizing: string;
 }
 
 interface AlignmentEditorInitState {
@@ -71,8 +73,10 @@ export class AlignmentEditor {
         preview: I18n.t('actions.previewVoice'),
         reserved: I18n.t('alignment.reservedDuration'),
         actual: I18n.t('alignment.actualDuration'),
+        restore: I18n.t('actions.restoreOriginal'),
         ok: I18n.t('actions.ok'),
-        synthesize: I18n.t('commands.convertToVideo.title')
+        synthesize: I18n.t('commands.synthesizeVideoFromProject.title'),
+        synthesizing: I18n.t('progress.startingSynthesis')
       },
       voiceName
     };
@@ -150,10 +154,12 @@ export class AlignmentEditor {
               );
 
               if (refined && refined[0]) {
+                const resultText = refined[0].adjustedContent || refined[0].content;
+                console.log(`[ExtensionHost] Refinement complete for segment ${index}. New length: ${resultText.length} chars`);
                 panel.webview.postMessage({
                   type: 'refined-text',
                   index,
-                  text: refined[0].adjustedContent || refined[0].content
+                  text: resultText
                 });
               }
             } catch (err) {
@@ -170,13 +176,15 @@ export class AlignmentEditor {
           const voiceSettings = ConfigManager.getVoiceSettings();
           
           AzureSpeechService.synthesizeWithBoundaries(text, voiceSettings, azureConfig)
-            .then(({ audioBuffer, boundaries }: { audioBuffer: Buffer, boundaries: any[] }) => {
+            .then(({ audioBuffer, boundaries }: { audioBuffer: Buffer, boundaries: { audioOffset: number; duration?: number }[] }) => {
               const base64Audio = audioBuffer.toString('base64');
               
               let duration = 0;
               if (boundaries && boundaries.length > 0) {
                 const lastB = boundaries[boundaries.length - 1];
-                duration = (lastB.audioOffset + (lastB.duration || 0)) / 1000;
+                if (lastB) {
+                  duration = (lastB.audioOffset + (lastB.duration || 0)) / 1000;
+                }
               }
               
               panel.webview.postMessage({ 
@@ -217,7 +225,7 @@ export class AlignmentEditor {
           finalize(message.segments as TimingSegment[]);
           
           // 2. Trigger the final synthesis process in background
-          vscode.commands.executeCommand('extension.synthesizeFromProject', options?.autoSavePath);
+          vscode.commands.executeCommand('extension.synthesizeVideoFromProject', options?.autoSavePath);
         }
       });
 
@@ -251,7 +259,7 @@ export class AlignmentEditor {
 
   <div class="app-container">
     <!-- Video Area -->
-    <div class="video-section">
+    <div class="video-section" id="videoSection">
       <video id="video" controls preload="auto" class="video-shadow"></video>
       <div class="narrator-overlay" id="narratorBtn" title="Click to change narrator">
         <svg class="narrator-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -263,8 +271,13 @@ export class AlignmentEditor {
       </div>
     </div>
 
+    <!-- Draggable Resizer -->
+    <div class="resizer" id="resizer">
+      <div class="resizer-handle"></div>
+    </div>
+
     <!-- Controls & Info Area (Merged) -->
-    <div class="controls-section">
+    <div class="controls-section" id="controlsSection">
       <!-- Dynamic Header -->
       <div class="timeline-header">
         <div class="flex items-center gap-3">

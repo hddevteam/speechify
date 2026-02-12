@@ -75,7 +75,7 @@ body {
 
 /* Video Section */
 .video-section {
-  flex: 1.8; /* Increased priority for video */
+  flex: 0 0 500px; /* Force a base height to allow resizing */
   background: #000;
   display: flex;
   align-items: center;
@@ -83,6 +83,35 @@ body {
   overflow: hidden;
   position: relative;
   border-bottom: 2px solid var(--vscode-border);
+}
+
+.resizer {
+  height: 8px;
+  background: var(--vscode-bg);
+  border-top: 1px solid var(--vscode-border);
+  border-bottom: 1px solid var(--vscode-border);
+  cursor: ns-resize;
+  position: relative;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.resizer:hover {
+  background: var(--vscode-border);
+}
+
+.resizer-handle {
+  width: 32px;
+  height: 4px;
+  background: var(--vscode-border);
+  border-radius: 2px;
+}
+
+.resizer:hover .resizer-handle {
+  background: var(--vscode-accent);
 }
 
 .narrator-overlay {
@@ -137,11 +166,11 @@ video {
 
 /* Controls Section */
 .controls-section {
-  flex: 1; /* Reduced relative height */
+  flex: 1; 
   display: flex;
   flex-direction: column;
   background: var(--vscode-bg);
-  min-height: 0;
+  min-height: 200px;
   box-shadow: 0 -10px 30px rgba(0,0,0,0.3);
 }
 
@@ -559,6 +588,18 @@ video {
 .btn-primary:hover:not(:disabled) {
   background: var(--vscode-accent-hover);
   transform: scale(1.05);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
 }
 
 .btn-warn {

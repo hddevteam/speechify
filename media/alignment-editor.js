@@ -11,11 +11,37 @@
     const segmentsInfo = document.getElementById('segmentsInfo');
     const synthesizeBtn = document.getElementById('synthesizeBtn');
     const narratorBtn = document.getElementById('narratorBtn');
+    const resizer = document.getElementById('resizer');
+    const videoSection = document.getElementById('videoSection');
 
     let segments = initialState.segments.map(seg => ({ 
       ...seg, 
       adjustedContent: seg.adjustedContent || seg.content
     }));
+
+    // Resizer Logic
+    if (resizer) {
+      resizer.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        const startY = e.clientY;
+        const startHeight = videoSection.getBoundingClientRect().height;
+
+        const onMouseMove = (moveEvent) => {
+          const deltaY = moveEvent.clientY - startY;
+          const newHeight = Math.max(100, Math.min(window.innerHeight - 250, startHeight + deltaY));
+          videoSection.style.flex = `0 0 ${newHeight}px`;
+          rebuildSegments(); // Ensure timeline scale is updated if width changed (though height shouldn't affect width)
+        };
+
+        const onMouseUp = () => {
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+        };
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+      });
+    }
     let duration = 0;
     let activeIndex = -1; 
     let selectedIndex = segments.length > 0 ? 0 : -1; 
@@ -222,6 +248,16 @@
               <button id="refineSegBtn" class="btn ${isTooLong ? 'btn-warn' : 'btn-primary'} btn-sm" title="${initialState.labels.refine}">
                 ${initialState.labels.refine}
               </button>
+
+              ${isModified ? `
+                <button id="restoreSegBtn" class="btn btn-secondary btn-sm" title="${initialState.labels.restore}">
+                  <svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:3;margin-right:2px;vertical-align:middle;">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                    <path d="M3 3v5h5"></path>
+                  </svg>
+                  ${initialState.labels.restore}
+                </button>
+              ` : ''}
             </div>
           </div>
           
@@ -273,6 +309,17 @@
         });
       }
 
+      const restoreSegBtn = document.getElementById('restoreSegBtn');
+      if (restoreSegBtn) {
+        restoreSegBtn.addEventListener('click', () => {
+          console.log('[Webview] Restoring original content for segment:', selectedIndex);
+          segments[selectedIndex].adjustedContent = segments[selectedIndex].content;
+          rebuildSegments();
+          updateInfo();
+          vscode.postMessage({ type: 'auto-save', segments });
+        });
+      }
+
       const playVoiceBtn = document.getElementById('playVoiceBtn');
       if (playVoiceBtn) {
         playVoiceBtn.addEventListener('click', () => {
@@ -306,14 +353,24 @@
         btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
       }
       
-      currentAudio = new Audio(`data:audio/mpeg;base64,${base64Data}`);
-      currentAudio.onended = () => {
+      try {
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio = null;
+        }
+        currentAudio = new Audio(`data:audio/mpeg;base64,${base64Data}`);
+        currentAudio.onended = () => {
+          if (btn) btn.classList.remove('playing');
+          currentAudio = null;
+        };
+        currentAudio.play().catch(err => {
+          console.error('[Webview] Playback failed/blocked:', err);
+          if (btn) btn.classList.remove('playing');
+        });
+      } catch (err) {
+        console.error('[Webview] Audio creation failed:', err);
         if (btn) btn.classList.remove('playing');
-        currentAudio = null;
-      };
-      currentAudio.play().catch(() => {
-        if (btn) btn.classList.remove('playing');
-      });
+      }
     };
 
     video.addEventListener('loadedmetadata', () => {
@@ -339,7 +396,7 @@
     if (synthesizeBtn) {
       synthesizeBtn.addEventListener('click', () => {
         synthesizeBtn.disabled = true;
-        synthesizeBtn.innerHTML = '<span class="animate-pulse">Starting Synthesis...</span>';
+        synthesizeBtn.innerHTML = `<span class="animate-pulse">${initialState.labels.synthesizing}</span>`;
         vscode.postMessage({ type: 'synthesize-video', segments });
       });
     }
@@ -374,15 +431,25 @@
       }
       
       if (message.type === 'audio-data') {
-        const playBtn = document.getElementById('playVoiceBtn');
         const seg = segments[selectedIndex];
         if (seg) {
-          audioCache.set(seg.adjustedContent || seg.content, {
+          const text = seg.adjustedContent || seg.content;
+          audioCache.set(text, {
             data: message.data,
             duration: message.duration
           });
-          updateInfo(); // Refresh to show actual duration
-          playAudio(message.data, document.getElementById('playVoiceBtn'));
+          
+          // 1. Refresh UI to show duration and update the play button state
+          updateInfo(); 
+          
+          // 2. Use a small timeout to let the DOM settle before starting playback
+          setTimeout(() => {
+            const playBtn = document.getElementById('playVoiceBtn');
+            if (playBtn) {
+              console.log('[Webview] Auto-playing newly synthesized audio');
+              playAudio(message.data, playBtn);
+            }
+          }, 80);
         }
       }
     });

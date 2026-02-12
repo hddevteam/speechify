@@ -12,10 +12,11 @@ const englishMessages: Messages = {
   'commands.selectRole.description': 'Select voice roleplay character for neural voices',
   'commands.configureAzure.title': 'Speechify: Configure Azure Settings',
   'commands.configureAzure.description': 'Configure Azure Speech Services credentials and region',
-  'commands.convertToVideo.title': 'Speechify: Convert Text to Video',
+  'commands.convertToVideo.title': 'Speechify: AI Visual Alignment Synthesis',
   'commands.convertToVideo.description': 'Convert text to speech and merge with a video file with subtitles',
   'commands.alignmentEditor.title': 'Speechify: Open Alignment Editor',
   'commands.alignmentEditor.description': 'Fine-tune precision timing with a visual timeline editor',
+  'commands.synthesizeVideoFromProject.title': 'Synthesize Final Video Now',
   
   // Notifications
   'notifications.success.speechGenerated': 'Speech generated successfully! Audio saved to: {0}',
@@ -88,6 +89,7 @@ const englishMessages: Messages = {
   'progress.loadingVoiceList': 'Loading voice list...',
   'progress.configuringSettings': 'Configuring settings...',
   'progress.muxingVideo': 'Merging audio and subtitles into video...',
+  'progress.startingSynthesis': 'Starting Synthesis...',
   
   // Actions
   'actions.configureNow': 'Configure Now',
@@ -103,6 +105,8 @@ const englishMessages: Messages = {
   'actions.refine': 'Refine',
   'actions.saveAndRefine': 'Save & Refine',
   'actions.resetToAi': 'Reset to AI Suggestion',
+  'actions.restoreOriginal': 'Restore Original',
+  'actions.restoring': 'Restoring...',
   
   // Settings
   'settings.voiceName': 'Voice Name',

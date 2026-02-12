@@ -12,10 +12,11 @@ const chineseMessages: Messages = {
   'commands.selectRole.description': '为神经语音选择角色扮演角色',
   'commands.configureAzure.title': 'Speechify: 配置 Azure 设置',
   'commands.configureAzure.description': '配置 Azure 语音服务凭据和区域',
-  'commands.convertToVideo.title': 'Speechify: 转换文字为视频',
+  'commands.convertToVideo.title': 'Speechify: AI 视觉对齐合成',
   'commands.convertToVideo.description': '将文字转换为语音，并与视频文件合并生成带字幕的视频',
   'commands.alignmentEditor.title': 'Speechify: 打开对齐编辑器',
   'commands.alignmentEditor.description': '通过可视化时间轴微调精准对齐',
+  'commands.synthesizeVideoFromProject.title': '立即合成最终视频',
   
   // Notifications
   'notifications.success.speechGenerated': '语音生成成功！音频已保存到：{0}',
@@ -86,6 +87,7 @@ const chineseMessages: Messages = {
   'progress.loadingVoiceList': '正在加载语音列表...',
   'progress.configuringSettings': '正在配置设置...',
   'progress.muxingVideo': '正在将音频和字幕合并进视频...',
+  'progress.startingSynthesis': '正在开始合成...',
   
   // Actions
   'actions.configureNow': '立即配置',
@@ -103,6 +105,8 @@ const chineseMessages: Messages = {
   'actions.refine': '精炼',
   'actions.saveAndRefine': '保存并精炼',
   'actions.resetToAi': '恢复 AI 建议',
+  'actions.restoreOriginal': '还原原文',
+  'actions.restoring': '还原中...',
   
   // Settings
   'settings.voiceName': '语音名称',
