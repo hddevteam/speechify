@@ -139,7 +139,7 @@ const chineseMessages: Messages = {
   'messages.audioFilesSaved': '音频文件已成功保存。',
   'messages.extensionActivated': 'Speechify 扩展现已激活！',
   'messages.extensionDeactivated': 'Speechify 扩展现已停用！',
-  'messages.alignmentEditorCanceled': '对齐编辑器已关闭，未保存改动。',
+  'messages.alignmentEditorCanceled': '对齐编辑器已关闭，改动已自动同步。',
 
   // Alignment Editor
   'alignment.editorTitle': 'Speechify 对齐编辑器',

@@ -141,7 +141,7 @@ const englishMessages: Messages = {
   'messages.audioFilesSaved': 'Audio files have been saved successfully.',
   'messages.extensionActivated': 'Speechify extension is now active!',
   'messages.extensionDeactivated': 'Speechify extension is now deactivated!',
-  'messages.alignmentEditorCanceled': 'Alignment editor was closed without saving.',
+  'messages.alignmentEditorCanceled': 'Alignment editor closed, changes auto-synced.',
 
   // Alignment Editor
   'alignment.editorTitle': 'Speechify Alignment Editor',
