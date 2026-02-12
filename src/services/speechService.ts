@@ -219,17 +219,19 @@ export class SpeechService {
         (!options.startStep || options.startStep === PipelineStep.ANALYZE);
 
       if (shouldOpenEditor) {
-        const editedSegments = await this.openAlignmentEditor(
+        const result = await this.openAlignmentEditor(
           videoFilePath,
           timingPath,
           segments
         );
 
-        if (!editedSegments) {
+        if (!result) {
           throw new Error(I18n.t('errors.alignmentEditorCanceled'));
         }
 
-        segments = editedSegments;
+        segments = result.segments;
+        // If they clicked synthesize in the editor during first run, we should 
+        // proceed but maybe skip the mode selection later or just let it happen.
       }
 
       // --- STEP 2: REFINE ---
@@ -631,16 +633,18 @@ export class SpeechService {
         segments = Array.isArray(data) ? data : [];
     }
 
-    const updatedSegments = await this.openAlignmentEditor(
+    const result = await this.openAlignmentEditor(
       videoFilePath,
       timingPath,
       segments
     );
 
-    if (!updatedSegments) {
+    if (!result) {
       vscode.window.showInformationMessage(I18n.t('messages.alignmentEditorCanceled'));
       return;
     }
+
+    const { segments: updatedSegments, action } = result;
 
     // Always save in Project format
     const projectContent = fs.readFileSync(timingPath, 'utf-8');
@@ -652,16 +656,24 @@ export class SpeechService {
     } else {
         fs.writeFileSync(timingPath, JSON.stringify(updatedSegments, null, 2));
     }
-    vscode.window.showInformationMessage(I18n.t('notifications.success.alignmentSaved'));
+
+    // If synthesis was requested, start it now
+    if (action === 'synthesize') {
+        // Trigger synthesis silently (using Compact Mode by default)
+        await this.synthesizeVideoFromProject(timingPath, { silent: true, mode: 'compact' });
+    } else {
+        vscode.window.showInformationMessage(I18n.t('notifications.success.alignmentSaved'));
+    }
   }
 
   /**
    * Synthesize video using an existing vision project (timing.json)
    * This skips analysis and refinement, directly generating audio and muxing.
    */
-  public static async synthesizeVideoFromProject(filePath: string): Promise<void> {
+  public static async synthesizeVideoFromProject(input: string | vscode.Uri, options: { silent?: boolean, mode?: 'compact' | 'original' } = {}): Promise<void> {
     let timingPath: string;
     let videoFilePath: string;
+    const filePath = typeof input === 'string' ? input : input.fsPath;
 
     if (filePath.toLowerCase().endsWith('.json')) {
         timingPath = filePath;
@@ -703,25 +715,30 @@ export class SpeechService {
     }
 
     // --- NEW: Ask for Synthesis Mode ---
-    const modeSelection = await vscode.window.showQuickPick([
-        { 
-            label: `$(zap) ${I18n.t('modes.compact') || 'Compact Mode'}`, 
-            description: I18n.t('modes.compactDesc') || 'Auto-trim video + Transitions (Best for Demos)',
-            mode: 'compact' 
-        },
-        { 
-            label: `$(history) ${I18n.t('modes.original') || 'Original Duration'}`, 
-            description: I18n.t('modes.originalDesc') || 'Keep original video length, no trimming',
-            mode: 'original' 
-        },
-        { 
-            label: `$(settings-gear) ${I18n.t('modes.custom') || 'Use Global Settings'}`, 
-            description: I18n.t('modes.customDesc') || 'Use preferences from VS Code settings',
-            mode: 'custom' 
-        }
-    ], {
-        placeHolder: I18n.t('prompts.selectSynthesisMode') || 'Select synthesis & rendering mode'
-    });
+    let modeSelection: any = null;
+    if (options.silent && options.mode) {
+        modeSelection = { mode: options.mode };
+    } else {
+        modeSelection = await vscode.window.showQuickPick([
+            { 
+                label: `$(zap) ${I18n.t('modes.compact') || 'Compact Mode'}`, 
+                description: I18n.t('modes.compactDesc') || 'Auto-trim video + Transitions (Best for Demos)',
+                mode: 'compact' 
+            },
+            { 
+                label: `$(history) ${I18n.t('modes.original') || 'Original Duration'}`, 
+                description: I18n.t('modes.originalDesc') || 'Keep original video length, no trimming',
+                mode: 'original' 
+            },
+            { 
+                label: `$(settings-gear) ${I18n.t('modes.custom') || 'Use Global Settings'}`, 
+                description: I18n.t('modes.customDesc') || 'Use preferences from VS Code settings',
+                mode: 'custom' 
+            }
+        ], {
+            placeHolder: I18n.t('prompts.selectSynthesisMode') || 'Select synthesis & rendering mode'
+        });
+    }
 
     if (!modeSelection) return;
 
@@ -757,14 +774,14 @@ export class SpeechService {
     videoFilePath: string,
     timingPath: string,
     segments: TimingSegment[]
-  ): Promise<TimingSegment[] | null> {
+  ): Promise<any | null> {
     const context = this.extensionContext;
     if (!context) {
       vscode.window.showErrorMessage(I18n.t('errors.alignmentEditorUnavailable'));
       return null;
     }
 
-    const updatedSegments = await AlignmentEditor.open(
+    const result = await AlignmentEditor.open(
       context,
       videoFilePath,
       segments,
@@ -773,23 +790,11 @@ export class SpeechService {
       }
     );
 
-    if (!updatedSegments) {
+    if (!result) {
       return null;
     }
 
-    // Wrap the result back into the project structure if it exists
-    const content = fs.readFileSync(timingPath, 'utf-8');
-    const currentData = JSON.parse(content);
-    if (currentData && !Array.isArray(currentData) && 'segments' in currentData) {
-        const project = currentData as any;
-        project.segments = updatedSegments;
-        project.lastModified = new Date().toISOString();
-        fs.writeFileSync(timingPath, JSON.stringify(project, null, 2));
-    } else {
-        fs.writeFileSync(timingPath, JSON.stringify(updatedSegments, null, 2));
-    }
-
-    return updatedSegments;
+    return result;
   }
 
   private static getVisionProjectDir(videoFilePath: string): string {

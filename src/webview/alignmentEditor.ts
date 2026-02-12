@@ -30,13 +30,18 @@ interface AlignmentEditorInitState {
   voiceName: string;
 }
 
+export interface AlignmentResult {
+  segments: TimingSegment[];
+  action: 'save' | 'synthesize';
+}
+
 export class AlignmentEditor {
   public static async open(
     context: vscode.ExtensionContext,
     videoFilePath: string,
     segments: TimingSegment[],
     options?: { autoSavePath?: string }
-  ): Promise<TimingSegment[] | null> {
+  ): Promise<AlignmentResult | null> {
     const panel = vscode.window.createWebviewPanel(
       'speechifyAlignmentEditor',
       I18n.t('alignment.editorTitle'),
@@ -86,10 +91,14 @@ export class AlignmentEditor {
     return new Promise((resolve) => {
       let resolved = false;
 
-      const finalize = (value: TimingSegment[] | null): void => {
+      const finalize = (segments: TimingSegment[] | null, action: 'save' | 'synthesize' = 'save'): void => {
         if (resolved) return;
         resolved = true;
-        resolve(value);
+        if (segments) {
+            resolve({ segments, action });
+        } else {
+            resolve(null);
+        }
         panel.dispose();
       };
 
@@ -101,7 +110,7 @@ export class AlignmentEditor {
 
       panel.webview.onDidReceiveMessage((message) => {
         if (message?.type === 'save' && Array.isArray(message.segments)) {
-          finalize(message.segments as TimingSegment[]);
+          finalize(message.segments as TimingSegment[], 'save');
         }
 
         if (message?.type === 'configure-voice') {
@@ -221,11 +230,7 @@ export class AlignmentEditor {
         }
 
         if (message?.type === 'synthesize-video' && Array.isArray(message.segments)) {
-          // 1. Resolve segments first to close the editor
-          finalize(message.segments as TimingSegment[]);
-          
-          // 2. Trigger the final synthesis process in background
-          vscode.commands.executeCommand('extension.synthesizeVideoFromProject', options?.autoSavePath);
+          finalize(message.segments as TimingSegment[], 'synthesize');
         }
       });
 
