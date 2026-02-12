@@ -34,13 +34,52 @@ export class VideoMuxer {
       const sRel = path.relative(vDir, srtPath);
       const aRel = path.relative(vDir, audioSourcePath);
 
-      // Escape helper for drawtext
-      const escapeTitle = (t: string) => t.replace(/'/g, "'\\\\''").replace(/:/g, '\\:');
+      // Escape helper for drawtext text argument
+      const escapeDrawText = (text: string): string => text
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "'\\\\''")
+        .replace(/:/g, '\\:')
+        .replace(/%/g, '\\%')
+        .replace(/\n/g, '\\\\n');
+
+      // Wrap long titles into 1-2 lines for better readability in short videos
+      const wrapTitleText = (input: string, maxCharsPerLine = 18): string => {
+        const trimmed = (input || '').trim();
+        if (!trimmed) return '';
+
+        const hasWhitespace = /\s/.test(trimmed);
+        if (hasWhitespace) {
+          const words = trimmed.split(/\s+/);
+          const lines: string[] = [];
+          let currentLine = '';
+
+          for (const word of words) {
+            const candidate = currentLine ? `${currentLine} ${word}` : word;
+            if (candidate.length <= maxCharsPerLine) {
+              currentLine = candidate;
+            } else {
+              if (currentLine) lines.push(currentLine);
+              currentLine = word;
+            }
+          }
+          if (currentLine) lines.push(currentLine);
+          return lines.slice(0, 2).join('\n');
+        }
+
+        // For CJK-heavy text without spaces, wrap by character length.
+        const chunks: string[] = [];
+        for (let i = 0; i < trimmed.length; i += maxCharsPerLine) {
+          chunks.push(trimmed.slice(i, i + maxCharsPerLine));
+          if (chunks.length >= 2) break;
+        }
+        return chunks.join('\n');
+      };
       
-      // Use Heiti SC or Songti SC for macOS to avoid garbled Chinese characters
+      // Use Hiragino Sans GB for macOS as a reliable and elegant CJK font
       const isMac = process.platform === 'darwin';
-      // On macOS, FFmpeg drawtext often works better with the direct font name if fontconfig is active
-      const fontPart = isMac ? `font='Heiti SC':` : ``;
+      const macFontPath = '/System/Library/Fonts/Hiragino Sans GB.ttc';
+      const titleFont = isMac ? macFontPath : 'Noto Sans CJK SC';
+      const subtitleFont = isMac ? 'PingFang SC' : 'Noto Sans CJK SC';
 
       let filterComplex = '';
       let videoMap = '0:v';
@@ -91,13 +130,22 @@ export class VideoMuxer {
         if (!seg.title) continue;
 
         const start = options.autoTrimVideo ? (seg.targetStartTime || 0) : seg.startTime;
-        const maxTitleDuration = 3.0; // Show title for max 3 seconds
+        const wrappedTitle = wrapTitleText(seg.title, 18);
+        if (!wrappedTitle) continue;
+
+        const titleText = escapeDrawText(wrappedTitle);
+        const lineCount = wrappedTitle.split('\n').length;
+        const fontSize = lineCount > 1 ? 40 : 46;
+
+        const titleLength = seg.title.trim().length;
+        const maxTitleDuration = Math.min(4.2, Math.max(2.4, 1.8 + titleLength * 0.08));
         const displayEnd = start + maxTitleDuration;
 
-        const titleText = escapeTitle(seg.title);
-        // Position: Top center, slightly below the edge
+        // Elegant title card: centered, soft box background, improved typography.
+        // Using fontfile for macOS to ensure the font is found.
+        const fontParam = isMac ? `fontfile='${titleFont}'` : `font='${titleFont}'`;
         titleFilters += (titleFilters ? `,` : ``) + 
-          `drawtext=${fontPart}text='${titleText}':fontcolor=white:fontsize=44:box=1:boxcolor=black@0.5:boxborderw=15:x=(w-text_w)/2:y=60:enable='between(t,${start},${displayEnd})'`;
+          `drawtext=${fontParam}:text='${titleText}':fontcolor=white:fontsize=${fontSize}:line_spacing=12:box=1:boxcolor=black@0.45:boxborderw=20:shadowcolor=black@0.5:shadowx=0:shadowy=2:x=(w-text_w)/2:y=65:enable='between(t,${start.toFixed(2)},${displayEnd.toFixed(2)})'`;
       }
 
       // --- SUBTITLE LOGIC ---
@@ -109,7 +157,24 @@ export class VideoMuxer {
         .replace(/\[/g, '\\[')
         .replace(/\]/g, '\\]');
 
-      let finalVideoFilter = `subtitles='${escapedSrtPath}':force_style='FontSize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=0,Alignment=2'`;
+      const subtitleStyle = [
+        `FontName=${subtitleFont}`,
+        `FontSize=22`,
+        `PrimaryColour=&H00FFFFFF`, // Pure white
+        `OutlineColour=&H00000000`, // Black outline
+        `BackColour=&H80000000`,    // 50% transparent shadow
+        `BorderStyle=1`,            // Outline + Shadow style
+        `Outline=1.2`,             // Thin, sharp outline
+        `Shadow=1.0`,               // Subtle shadow
+        `Blur=0.6`,                 // Soften the edges a bit
+        `Spacing=0.5`,
+        `Alignment=2`,
+        `MarginL=50`,
+        `MarginR=50`,
+        `MarginV=35`
+      ].join(',');
+
+      let finalVideoFilter = `subtitles='${escapedSrtPath}':force_style='${subtitleStyle}'`;
       if (titleFilters) {
           finalVideoFilter += `,${titleFilters}`;
       }
@@ -155,6 +220,9 @@ export class VideoMuxer {
       const vBase = path.basename(videoSourcePath);
       const aRel = path.relative(vDir, audioSourcePath);
       const sRel = path.relative(vDir, srtPath);
+      const isMac = process.platform === 'darwin';
+      // PingFang SC is usually available to libass on Mac via CoreText/FontConfig
+      const subtitleFont = isMac ? 'PingFang SC' : 'Noto Sans CJK SC';
 
       // In FFmpeg's subtitles filter, the filename must be properly escaped.
       // Since we are using relative paths now, it's much safer.
@@ -172,10 +240,27 @@ export class VideoMuxer {
       const aIn = `"${aRel}"`;
       const oOut = `"${path.relative(vDir, outputPath)}"`;
 
+      const subtitleStyle = [
+        `FontName=${subtitleFont}`,
+        `FontSize=22`,
+        `PrimaryColour=&H00FFFFFF`,
+        `OutlineColour=&H00000000`,
+        `BackColour=&H80000000`,
+        `BorderStyle=1`,
+        `Outline=1.2`,
+        `Shadow=1.0`,
+        `Blur=0.6`,
+        `Spacing=0.5`,
+        `Alignment=2`,
+        `MarginL=50`,
+        `MarginR=50`,
+        `MarginV=35`
+      ].join(',');
+
       // Use tpad filter to clone the last frame and remove -shortest (or use it with a very long tpad)
       // This ensures that if audio is longer than video, the last frame of video is repeated.
       // We also use -shortest so it doesn't run forever if tpad is too long.
-      const command = `ffmpeg -y -i ${vIn} -i ${aIn} -vf "subtitles='${escapedSrtPath}':force_style='FontSize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=0,Alignment=2',tpad=stop_mode=clone:stop_duration=3600" -c:v libx264 -c:a aac -map 0:v:0 -map 1:a:0 -shortest ${oOut}`;
+      const command = `ffmpeg -y -i ${vIn} -i ${aIn} -vf "subtitles='${escapedSrtPath}':force_style='${subtitleStyle}',tpad=stop_mode=clone:stop_duration=3600" -c:v libx264 -c:a aac -map 0:v:0 -map 1:a:0 -shortest ${oOut}`;
 
       console.log('Running FFmpeg in CWD:', vDir);
       console.log('Command:', command);
