@@ -160,7 +160,15 @@ const chineseMessages: Messages = {
   'modes.originalDesc': '保留视频原始时长，不进行裁切',
   'modes.custom': '使用全局设置',
   'modes.customDesc': '使用 VS Code 设置面板中的配置',
-  'prompts.selectSynthesisMode': '选择视频合成与渲染模式'
+  'prompts.selectSynthesisMode': '选择视频合成与渲染模式',
+
+  // Vision Precision
+  'vision.precision.high.label': '高精度 (1秒/帧)',
+  'vision.precision.high.desc': '逐帧分析以获得最佳同步效果',
+  'vision.precision.medium.label': '标准 (2秒/帧)',
+  'vision.precision.medium.desc': '速度与准确度的平衡点',
+  'vision.precision.low.label': '快速 (5秒/帧)',
+  'vision.precision.low.desc': '粗略脚本的快速分析模式'
 };
 
 export default chineseMessages;

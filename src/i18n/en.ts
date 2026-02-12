@@ -160,7 +160,15 @@ const englishMessages: Messages = {
   'modes.originalDesc': 'Keep original video length, no trimming',
   'modes.custom': 'Use Global Settings',
   'modes.customDesc': 'Use preferences from VS Code settings',
-  'prompts.selectSynthesisMode': 'Select synthesis & rendering mode'
+  'prompts.selectSynthesisMode': 'Select synthesis & rendering mode',
+
+  // Vision Precision
+  'vision.precision.high.label': 'High Precision (1s)',
+  'vision.precision.high.desc': 'Frame-by-frame analysis for best sync',
+  'vision.precision.medium.label': 'Standard (2s)',
+  'vision.precision.medium.desc': 'Balanced speed and accuracy',
+  'vision.precision.low.label': 'Fast (5s)',
+  'vision.precision.low.desc': 'Quick analysis for rough scripts'
 };
 
 export default englishMessages;

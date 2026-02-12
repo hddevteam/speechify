@@ -18,6 +18,7 @@ interface AlignmentEditorLabels {
   reserved: string;
   actual: string;
   ok: string;
+  synthesize: string;
 }
 
 interface AlignmentEditorInitState {
@@ -70,7 +71,8 @@ export class AlignmentEditor {
         preview: I18n.t('actions.previewVoice'),
         reserved: I18n.t('alignment.reservedDuration'),
         actual: I18n.t('alignment.actualDuration'),
-        ok: I18n.t('actions.ok')
+        ok: I18n.t('actions.ok'),
+        synthesize: I18n.t('commands.convertToVideo.title')
       },
       voiceName
     };
@@ -109,6 +111,7 @@ export class AlignmentEditor {
 
         if (message?.type === 'refine-segment') {
           const { index, reservedDuration, actualDuration, content } = message;
+          console.log(`[ExtensionHost] Refining segment ${index}: reserved=${reservedDuration}s, actual=${actualDuration}s`);
           
           const analyzer = new VideoAnalyzer();
           const visionConfig = ConfigManager.getVisionConfig();
@@ -208,6 +211,14 @@ export class AlignmentEditor {
         if (message?.type === 'cancel') {
           finalize(null);
         }
+
+        if (message?.type === 'synthesize-video' && Array.isArray(message.segments)) {
+          // 1. Resolve segments first to close the editor
+          finalize(message.segments as TimingSegment[]);
+          
+          // 2. Trigger the final synthesis process in background
+          vscode.commands.executeCommand('extension.synthesizeFromProject', options?.autoSavePath);
+        }
       });
 
       context.subscriptions.push(panel, disposeListener);
@@ -261,7 +272,10 @@ export class AlignmentEditor {
           <span id="currentSelection" class="selection-badge"></span>
         </div>
         <div class="footer-actions">
-           <button id="saveBtn" class="btn btn-primary">${initState.labels.ok}</button>
+           <button id="synthesizeBtn" class="btn btn-primary" title="Synthesize final video with these settings">
+             <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;margin-right:4px;vertical-align:middle;"><path d="M5 3l14 9-14 9V3z"/></svg>
+             ${initState.labels.synthesize}
+           </button>
         </div>
       </div>
 

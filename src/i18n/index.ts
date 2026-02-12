@@ -164,6 +164,14 @@ export interface Messages {
   'modes.custom': string;
   'modes.customDesc': string;
   'prompts.selectSynthesisMode': string;
+  
+  // Vision Precision
+  'vision.precision.high.label': string;
+  'vision.precision.high.desc': string;
+  'vision.precision.medium.label': string;
+  'vision.precision.medium.desc': string;
+  'vision.precision.low.label': string;
+  'vision.precision.low.desc': string;
 }
 
 /**

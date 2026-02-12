@@ -443,12 +443,16 @@ Respond with JSON only.`
 
             for (let retry = 1; retry <= MAX_RETRIES; retry++) {
                 const words = this.countWords(currentContent);
+                const actualDuration = (words / WORDS_PER_SECOND);
+                const timeMismatch = actualDuration > durationLimit ? `Current estimate: ${actualDuration.toFixed(1)}s vs Target: ${durationLimit.toFixed(1)}s` : '';
+
                 console.log(`Refining segment ${i} (Try ${retry}): "${seg.title}" (Limit: ${durationLimit.toFixed(1)}s, Max Words: ${maxWords}, Current: ${words}, WPS: ${WORDS_PER_SECOND.toFixed(2)})`);
 
                 const prompt = `You are a script condensation expert. Your goal is to REWRITE and PARAPHRASE the following segment to fit a specific timing.
 DO NOT just truncate or cut off the text. Instead, compress the meaning by using more concise phrasing and summarizing key points.
 
 CURRENT TEXT: "${currentContent}"
+${timeMismatch ? `OBSERVATION: ${timeMismatch}. The text is TOO LONG and needs significant compression.` : ''}
 MAX WORD LIMIT: ${maxWords} units (Each Chinese character or English word counts as 1).
 
 REQUIREMENTS:

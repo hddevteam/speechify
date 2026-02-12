@@ -253,9 +253,9 @@ async function convertTextToVideo(args?: { text?: string, videoPath?: string }):
 
         // 100% Vision mode now. Let user choose extraction interval.
         const interval = await vscode.window.showQuickPick([
-            { label: 'High (Every 5s)', description: 'More precise but slower/higher cost', value: 5 },
-            { label: 'Medium (Every 10s)', description: 'Balanced (Default)', value: 10 },
-            { label: 'Low (Every 20s)', description: 'Fast/Lower cost but may skip events', value: 20 }
+            { label: I18n.t('vision.precision.high.label'), description: I18n.t('vision.precision.high.desc'), value: 5 },
+            { label: I18n.t('vision.precision.medium.label'), description: I18n.t('vision.precision.medium.desc'), value: 10 },
+            { label: I18n.t('vision.precision.low.label'), description: I18n.t('vision.precision.low.desc'), value: 20 }
         ], {
             placeHolder: I18n.t('config.prompts.selectAnalysisDepth', 'Select AI analysis depth (frame interval)')
         });

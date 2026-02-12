@@ -9,12 +9,12 @@
     const timeline = document.getElementById('timeline');
     const playhead = document.getElementById('playhead');
     const segmentsInfo = document.getElementById('segmentsInfo');
-    const saveBtn = document.getElementById('saveBtn');
+    const synthesizeBtn = document.getElementById('synthesizeBtn');
     const narratorBtn = document.getElementById('narratorBtn');
 
     let segments = initialState.segments.map(seg => ({ 
       ...seg, 
-      originalContent: seg.originalContent || seg.content 
+      adjustedContent: seg.adjustedContent || seg.content
     }));
     let duration = 0;
     let activeIndex = -1; 
@@ -90,6 +90,8 @@
 
         const segmentEl = document.createElement('div');
         segmentEl.className = 'segment';
+        const isModified = seg.adjustedContent && seg.adjustedContent !== seg.content;
+        if (isModified) segmentEl.classList.add('modified');
         if (index === activeIndex) segmentEl.classList.add('active');
         if (index === selectedIndex) segmentEl.classList.add('selected');
 
@@ -184,8 +186,8 @@
       const nextSeg = segments[selectedIndex + 1];
       const end = nextSeg ? nextSeg.startTime : duration;
       const reservedDur = end - seg.startTime;
-      const cached = audioCache.get(seg.content);
-      const isModified = seg.content !== seg.originalContent;
+      const cached = audioCache.get(seg.adjustedContent || seg.content);
+      const isModified = seg.adjustedContent && seg.adjustedContent !== seg.content;
       const isTooLong = cached && cached.duration > (reservedDur + 0.1); // Adding 100ms grace period
 
       segmentsInfo.innerHTML = `
@@ -226,7 +228,7 @@
           <div class="editor-container">
             <textarea id="contentInput" 
               class="content-body-pro-input ${isModified ? 'border-modified' : ''}" 
-              placeholder="Enter script content...">${seg.content}</textarea>
+              placeholder="Enter script content...">${seg.adjustedContent || seg.content}</textarea>
             ${isModified ? `
               <div class="modified-indicator" title="Text has been modified">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -252,7 +254,7 @@
 
       const contentInput = document.getElementById('contentInput');
       contentInput.addEventListener('input', (e) => {
-          segments[selectedIndex].content = e.target.value;
+          segments[selectedIndex].adjustedContent = e.target.value;
           vscode.postMessage({ type: 'auto-save', segments });
       });
 
@@ -260,12 +262,13 @@
       if (refineSegBtn) {
         refineSegBtn.addEventListener('click', () => {
           const actualDuration = cached ? cached.duration : -1;
+          console.log('[Webview] Requesting refinement:', { index: selectedIndex, reservedDur, actualDuration });
           vscode.postMessage({ 
             type: 'refine-segment', 
             index: selectedIndex,
             reservedDuration: reservedDur,
             actualDuration: actualDuration,
-            content: segments[selectedIndex].content
+            content: segments[selectedIndex].adjustedContent || segments[selectedIndex].content
           });
         });
       }
@@ -279,7 +282,7 @@
             document.querySelectorAll('.play-voice-btn.playing').forEach(btn => btn.classList.remove('playing'));
           }
 
-          const text = seg.content;
+          const text = seg.adjustedContent || seg.content;
           if (audioCache.has(text)) {
             playAudio(audioCache.get(text).data, playVoiceBtn);
             return;
@@ -333,11 +336,13 @@
       video.currentTime = clamp((event.clientX - rect.left) / scale, 0, duration);
     });
 
-    saveBtn.addEventListener('click', () => {
-      saveBtn.disabled = true;
-      saveBtn.innerHTML = '<span class="animate-pulse">Saving...</span>';
-      vscode.postMessage({ type: 'save', segments });
-    });
+    if (synthesizeBtn) {
+      synthesizeBtn.addEventListener('click', () => {
+        synthesizeBtn.disabled = true;
+        synthesizeBtn.innerHTML = '<span class="animate-pulse">Starting Synthesis...</span>';
+        vscode.postMessage({ type: 'synthesize-video', segments });
+      });
+    }
 
     if (narratorBtn) {
       narratorBtn.addEventListener('click', () => {
@@ -360,7 +365,7 @@
       if (message.type === 'refined-text') {
         const { index, text } = message;
         if (segments[index]) {
-          segments[index].content = text;
+          segments[index].adjustedContent = text;
           if (selectedIndex === index) {
             updateInfo();
           }
@@ -372,7 +377,7 @@
         const playBtn = document.getElementById('playVoiceBtn');
         const seg = segments[selectedIndex];
         if (seg) {
-          audioCache.set(seg.content, {
+          audioCache.set(seg.adjustedContent || seg.content, {
             data: message.data,
             duration: message.duration
           });
@@ -383,11 +388,20 @@
     });
 
     (async function preloadVideo() {
+      console.log('[Webview] Starting video preload:', initialState.videoSrc);
       try {
         const response = await fetch(initialState.videoSrc);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
         const reader = response.body.getReader();
         const contentLength = +response.headers.get('Content-Length');
         
+        // If file is too small or size unknown, just set src directly to avoid overhead
+        if (!contentLength || contentLength < 1024 * 1024) { 
+           console.log('[Webview] Video is small or unknown size, skipping manual buffer');
+           throw new Error('Skip manual buffer');
+        }
+
         let receivedLength = 0;
         let chunks = [];
         while(true) {
@@ -397,17 +411,32 @@
           receivedLength += value.length;
           if (contentLength) {
             const percent = Math.round((receivedLength / contentLength) * 100);
-            loadingText.textContent = 'Buffering Studio Quality Video: ' + percent + '%';
+            loadingText.textContent = `Buffering: ${percent}%`;
           }
         }
 
         const blob = new Blob(chunks, { type: 'video/mp4' });
         video.src = URL.createObjectURL(blob);
+        console.log('[Webview] Video buffered successfully');
         loadingOverlay.classList.add('hide');
         setTimeout(() => loadingOverlay.remove(), 600);
       } catch (err) {
+        console.warn('[Webview] Preload failed, falling back to direct stream:', err);
         video.src = initialState.videoSrc;
-        loadingOverlay.remove();
+        // Ensure overlay is removed even on failure
+        video.addEventListener('canplay', () => {
+            loadingOverlay.classList.add('hide');
+            setTimeout(() => loadingOverlay.remove(), 600);
+        }, { once: true });
+        
+        // Fail-safe: remove after 3 seconds anyway if video doesn't report canplay
+        setTimeout(() => {
+            if (loadingOverlay.parentNode) {
+                console.error('[Webview] Load timeout, forcing overlay removal');
+                loadingOverlay.classList.add('hide');
+                setTimeout(() => loadingOverlay.remove(), 600);
+            }
+        }, 3000);
       }
     })();
 })();

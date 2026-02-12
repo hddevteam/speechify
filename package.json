@@ -34,17 +34,7 @@
     "english"
   ],
   "publisher": "luckyXmobile",
-  "activationEvents": [
-    "onCommand:extension.speechify",
-    "onCommand:extension.showSpeechifyVoiceSettings",
-    "onCommand:extension.configureSpeechifyVoiceSettings",
-    "onCommand:extension.configureSpeechifyAzureSettings",
-    "onCommand:extension.selectSpeechifyVoiceStyle",
-    "onCommand:extension.selectSpeechifyVoiceRole",
-    "onCommand:extension.convertToVideo",
-    "onCommand:extension.openAlignmentEditor",
-    "onCommand:extension.synthesizeVideoFromProject"
-  ],
+  "activationEvents": [],
   "repository": {
     "type": "git",
     "url": "https://github.com/hddevteam/speechify"
