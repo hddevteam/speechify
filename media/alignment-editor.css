@@ -137,13 +137,13 @@ video {
 
 .ruler {
   position: relative;
-  height: 22px;
+  height: 28px; /* Slightly increased for label space */
   margin-bottom: 2px;
 }
 
 .marker {
   position: absolute;
-  top: 12px;
+  top: 18px; /* Offset line further down from labels */
   bottom: 0;
   width: 1px;
   background: var(--vscode-border);
@@ -154,19 +154,21 @@ video {
   background: var(--vscode-accent);
   width: 2px;
   z-index: 10;
-  top: 6px;
+  top: 12px; /* Selected line still stands out but won't hit text */
 }
 
 .marker-label {
   position: absolute;
-  top: -4px;
+  top: -16px; /* Moved further up to avoid overlap */
   left: 50%;
   transform: translateX(-50%);
   font-size: 10px;
   font-weight: 800;
-  opacity: 0.7; /* Increased opacity */
+  opacity: 0.7;
   white-space: nowrap;
   font-family: ui-monospace, SFMono-Regular, monospace;
+  /* Add text shadow as a halo to stay readable over the marker line */
+  text-shadow: 0 0 4px var(--vscode-bg), 0 0 2px var(--vscode-bg);
 }
 
 .marker.selected .marker-label {
