@@ -84,7 +84,7 @@ export class VideoMuxer {
       let filterComplex = '';
       let videoMap = '0:v';
 
-      if (options.autoTrimVideo) {
+      if (options.autoTrimVideo && segments.length > 0) {
         // --- AUTO-TRIM LOGIC ---
         // We need to cut the video into segments and then concat/xfade them
         const transitionDuration = options.enableTransitions ? 0.5 : 0;
@@ -97,11 +97,15 @@ export class VideoMuxer {
             const start = seg.startTime;
             // Add padding plus transition for non-last segments
             const duration = (seg.audioDuration || 5) + paddingDuration + (i < segments.length - 1 ? transitionDuration : 0);
-            
+
             // We force scale, fps and format to ensure all segments are identical for xfade.
-            // NEW: Added tpad to EACH segment and a final trim to ensure exactly 'duration' length.
-            // This ensures if the source video ends early, the last frame is cloned until duration is met.
-            segmentFilters += `[0:v]trim=start=${start}:duration=${duration},setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration=${duration},trim=duration=${duration},fps=30,scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[seg${i}]; `;
+            // For non-last segments, add tpad+trim so the segment can hold frame until its audio window ends.
+            // This avoids mid-segment audio overlap causing an early visual cut.
+            if (i < segments.length - 1) {
+              segmentFilters += `[0:v]trim=start=${start}:duration=${duration},setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration=${duration},trim=duration=${duration},fps=30,scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[seg${i}]; `;
+            } else {
+              segmentFilters += `[0:v]trim=start=${start}:duration=${duration},setpts=PTS-STARTPTS,fps=30,scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[seg${i}]; `;
+            }
         }
         
         let lastV = 'seg0';
@@ -128,6 +132,8 @@ export class VideoMuxer {
         
         filterComplex = segmentFilters;
         videoMap = lastV;
+      } else if (options.autoTrimVideo && segments.length === 0) {
+        console.warn('[Muxer] autoTrimVideo enabled but segments is empty. Falling back to full video stream.');
       }
 
       // --- TITLE OVERLAY LOGIC ---
