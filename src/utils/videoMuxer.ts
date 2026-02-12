@@ -111,12 +111,17 @@ export class VideoMuxer {
                 lastV = nextV;
                 offset += (segments[i].audioDuration || 5) + paddingDuration;
             }
-        } else {
+        } else if (segments.length > 1) {
             // Simple concat
             const inputs = segments.map((_, i) => `[seg${i}]`).join('');
             segmentFilters += `${inputs}concat=n=${segments.length}:v=1:a=0[concatv]; `;
             lastV = 'concatv';
         }
+
+        // Add padding to the last segment to ensure video length covers audio length
+        // We use tpad to clone the last frame of the final processed video stream
+        segmentFilters += `[${lastV}]tpad=stop_mode=clone:stop_duration=3600[paddedv]; `;
+        lastV = 'paddedv';
         
         filterComplex = segmentFilters;
         videoMap = lastV;
