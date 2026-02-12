@@ -680,7 +680,7 @@ export class AlignmentEditor {
         segmentsInfo.innerHTML = 
           '<div class="segment-card">' +
             '<div class="segment-title">' +
-              '<input type="text" class="title-input" value="' + (seg.title || "").replace(/"/g, '&quot;') + '" placeholder="Segment Title" id="titleInput">' +
+              '<input type="text" class="title-input" value="' + (seg.title || "").replace(/"/g, '&quot;') + '" placeholder="' + initialState.labels.segmentTitle.replace(/"/g, '&quot;') + '" id="titleInput">' +
               '<span class="segment-time-badge">' + formatTime(segDuration) + 's</span>' +
             '</div>' +
             '<div class="segment-content">' + (seg.content || "") + '</div>' +
