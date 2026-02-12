@@ -150,6 +150,8 @@ const chineseMessages: Messages = {
   'alignment.currentTime': '当前时间',
   'alignment.setToCurrent': '设为当前时间',
   'alignment.segmentTitle': '分段标题',
+  'alignment.reservedDuration': '预留',
+  'alignment.actualDuration': '实际',
 
   // Synthesis Modes
   'modes.compact': '紧凑模式',

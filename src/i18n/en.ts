@@ -150,7 +150,9 @@ const englishMessages: Messages = {
   'alignment.currentTime': 'Current Time',
   'alignment.setToCurrent': 'Set to Current',
   'alignment.segmentTitle': 'Segment Title',
-  
+  'alignment.reservedDuration': 'Reserved',
+  'alignment.actualDuration': 'Actual',
+
   // Synthesis Modes
   'modes.compact': 'Compact Mode',
   'modes.compactDesc': 'Auto-trim video + Transitions (Best for Demos)',

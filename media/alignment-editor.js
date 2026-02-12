@@ -12,7 +12,10 @@
     const saveBtn = document.getElementById('saveBtn');
     const narratorBtn = document.getElementById('narratorBtn');
 
-    let segments = initialState.segments.map(seg => ({ ...seg }));
+    let segments = initialState.segments.map(seg => ({ 
+      ...seg, 
+      originalContent: seg.originalContent || seg.content 
+    }));
     let duration = 0;
     let activeIndex = -1; 
     let selectedIndex = segments.length > 0 ? 0 : -1; 
@@ -180,7 +183,10 @@
       const seg = segments[selectedIndex];
       const nextSeg = segments[selectedIndex + 1];
       const end = nextSeg ? nextSeg.startTime : duration;
-      const segDuration = end - seg.startTime;
+      const reservedDur = end - seg.startTime;
+      const cached = audioCache.get(seg.content);
+      const isModified = seg.content !== seg.originalContent;
+      const isTooLong = cached && cached.duration > (reservedDur + 0.1); // Adding 100ms grace period
 
       segmentsInfo.innerHTML = `
         <div class="segment-card animate-slide-up">
@@ -189,17 +195,47 @@
               class="title-input-pro" 
               value="${(seg.title || '').replace(/"/g, '&quot;')}" 
               placeholder="${initialState.labels.segmentTitle}">
+            
             <div class="time-badge-pro">
-              <span>${formatTime(segDuration)}</span>
+              <div class="time-item">
+                <span class="time-label">${initialState.labels.reserved}</span>
+                <span class="time-value">${formatTime(reservedDur)}</span>
+              </div>
+              ${cached ? `
+                <div class="time-divider"></div>
+                <div class="time-item">
+                  <span class="time-label">${initialState.labels.actual}</span>
+                  <span class="time-value ${isTooLong ? 'warning-text pulse-warn' : 'success-text'}">${formatTime(cached.duration)}</span>
+                </div>
+              ` : ''}
+              
+              <div class="action-divider"></div>
+
               <button id="playVoiceBtn" class="play-voice-btn" title="${initialState.labels.preview}">
-                <svg viewBox="0 0 24 24">
+                <svg viewBox="0 0 24 24" id="playIcon">
                   <path d="M8 5v14l11-7z"/>
                 </svg>
               </button>
+              
+              <button id="refineSegBtn" class="btn ${isTooLong ? 'btn-warn' : 'btn-primary'} btn-sm" title="${initialState.labels.refine}">
+                ${initialState.labels.refine}
+              </button>
             </div>
           </div>
-          <div class="content-body-pro">
-            ${seg.content}
+          
+          <div class="editor-container">
+            <textarea id="contentInput" 
+              class="content-body-pro-input ${isModified ? 'border-modified' : ''}" 
+              placeholder="Enter script content...">${seg.content}</textarea>
+            ${isModified ? `
+              <div class="modified-indicator" title="Text has been modified">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                <span>Modified</span>
+              </div>
+            ` : ''}
           </div>
         </div>
       `;
@@ -214,10 +250,29 @@
           vscode.postMessage({ type: 'auto-save', segments });
       });
 
+      const contentInput = document.getElementById('contentInput');
+      contentInput.addEventListener('input', (e) => {
+          segments[selectedIndex].content = e.target.value;
+          vscode.postMessage({ type: 'auto-save', segments });
+      });
+
+      const refineSegBtn = document.getElementById('refineSegBtn');
+      if (refineSegBtn) {
+        refineSegBtn.addEventListener('click', () => {
+          const actualDuration = cached ? cached.duration : -1;
+          vscode.postMessage({ 
+            type: 'refine-segment', 
+            index: selectedIndex,
+            reservedDuration: reservedDur,
+            actualDuration: actualDuration,
+            content: segments[selectedIndex].content
+          });
+        });
+      }
+
       const playVoiceBtn = document.getElementById('playVoiceBtn');
       if (playVoiceBtn) {
         playVoiceBtn.addEventListener('click', () => {
-          // Stop any existing playback
           if (currentAudio) {
             currentAudio.pause();
             currentAudio = null;
@@ -225,41 +280,36 @@
           }
 
           const text = seg.content;
-          
-          // Use cached audio if available
           if (audioCache.has(text)) {
-            console.log('[Webview] Using cached audio for preview');
-            playAudio(audioCache.get(text), playVoiceBtn);
+            playAudio(audioCache.get(text).data, playVoiceBtn);
             return;
           }
 
-          console.log('[Webview] Preview button clicked, requesting synthesis');
-          playVoiceBtn.classList.add('playing');
+          playVoiceBtn.classList.add('synthesizing');
+          playVoiceBtn.innerHTML = `
+            <svg class="icon-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" stroke-linecap="round"/>
+            </svg>
+          `;
           vscode.postMessage({ type: 'preview-voice', text });
         });
       }
     };
 
     const playAudio = (base64Data, btn) => {
-      if (btn) btn.classList.add('playing');
+      if (btn) {
+        btn.classList.remove('synthesizing');
+        btn.classList.add('playing');
+        btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
+      }
       
       currentAudio = new Audio(`data:audio/mpeg;base64,${base64Data}`);
-      currentAudio.onplay = () => console.log('[Webview] Audio started playing');
       currentAudio.onended = () => {
-        console.log('[Webview] Audio playback ended');
         if (btn) btn.classList.remove('playing');
         currentAudio = null;
       };
-      currentAudio.onerror = (e) => {
-        console.error('[Webview] Audio error:', currentAudio.error);
+      currentAudio.play().catch(() => {
         if (btn) btn.classList.remove('playing');
-        currentAudio = null;
-      };
-
-      currentAudio.play().catch(err => {
-        console.error('[Webview] Audio play promise failed:', err);
-        if (btn) btn.classList.remove('playing');
-        currentAudio = null;
       });
     };
 
@@ -285,7 +335,7 @@
 
     saveBtn.addEventListener('click', () => {
       saveBtn.disabled = true;
-      saveBtn.innerHTML = '<span class="animate-pulse">Synthesizing...</span>';
+      saveBtn.innerHTML = '<span class="animate-pulse">Saving...</span>';
       vscode.postMessage({ type: 'save', segments });
     });
 
@@ -302,19 +352,33 @@
       if (message.type === 'update-voice') {
         const nameEl = document.getElementById('narratorName');
         if (nameEl) nameEl.textContent = message.voiceName;
+        // Invalidate cache when voice changes
+        audioCache.clear();
+        updateInfo();
+      }
+
+      if (message.type === 'refined-text') {
+        const { index, text } = message;
+        if (segments[index]) {
+          segments[index].content = text;
+          if (selectedIndex === index) {
+            updateInfo();
+          }
+          vscode.postMessage({ type: 'auto-save', segments });
+        }
       }
       
       if (message.type === 'audio-data') {
         const playBtn = document.getElementById('playVoiceBtn');
-        console.log('[Webview] Audio data received, length:', message.data.length);
-
-        // Cache the result to avoid redundant API calls
         const seg = segments[selectedIndex];
         if (seg) {
-          audioCache.set(seg.content, message.data);
+          audioCache.set(seg.content, {
+            data: message.data,
+            duration: message.duration
+          });
+          updateInfo(); // Refresh to show actual duration
+          playAudio(message.data, document.getElementById('playVoiceBtn'));
         }
-
-        playAudio(message.data, playBtn);
       }
     });
 

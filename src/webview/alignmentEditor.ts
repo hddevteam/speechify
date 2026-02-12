@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { TimingSegment } from '../utils/videoAnalyzer';
+import { TimingSegment, VideoAnalyzer } from '../utils/videoAnalyzer';
 import { I18n } from '../i18n';
 import { AzureSpeechService } from '../utils/azure';
 import { ConfigManager } from '../utils/config';
@@ -15,6 +15,9 @@ interface AlignmentEditorLabels {
   segmentTitle: string;
   refine: string;
   preview: string;
+  reserved: string;
+  actual: string;
+  ok: string;
 }
 
 interface AlignmentEditorInitState {
@@ -64,7 +67,10 @@ export class AlignmentEditor {
         setToCurrent: I18n.t('alignment.setToCurrent'),
         segmentTitle: I18n.t('alignment.segmentTitle') || 'Title',
         refine: I18n.t('actions.refine'),
-        preview: I18n.t('actions.previewVoice')
+        preview: I18n.t('actions.previewVoice'),
+        reserved: I18n.t('alignment.reservedDuration'),
+        actual: I18n.t('alignment.actualDuration'),
+        ok: I18n.t('actions.ok')
       },
       voiceName
     };
@@ -101,6 +107,59 @@ export class AlignmentEditor {
           });
         }
 
+        if (message?.type === 'refine-segment') {
+          const { index, reservedDuration, actualDuration, content } = message;
+          
+          const analyzer = new VideoAnalyzer();
+          const visionConfig = ConfigManager.getVisionConfig();
+
+          if (!visionConfig.apiKey || !visionConfig.endpoint) {
+            vscode.window.showErrorMessage(I18n.t('errors.visionConfigurationIncomplete'));
+            return;
+          }
+
+          vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: I18n.t('progress.refiningScript'),
+            cancellable: false
+          }, async () => {
+            try {
+              // Calculate WPS
+              let wordsPerSecond = 2.5;
+              if (actualDuration > 0) {
+                const words = analyzer.countWords(content);
+                wordsPerSecond = words / actualDuration;
+              }
+
+              const segmentsToRefine: TimingSegment[] = [{
+                startTime: 0,
+                title: 'Segment',
+                content: content
+              }];
+
+              const refined = await analyzer.refineScript(
+                segmentsToRefine,
+                reservedDuration,
+                visionConfig.apiKey || '',
+                visionConfig.endpoint || '',
+                visionConfig.refinementDeployment || visionConfig.deployment,
+                wordsPerSecond
+              );
+
+              if (refined && refined[0]) {
+                panel.webview.postMessage({
+                  type: 'refined-text',
+                  index,
+                  text: refined[0].adjustedContent || refined[0].content
+                });
+              }
+            } catch (err) {
+              const errorMessage = err instanceof Error ? err.message : String(err);
+              vscode.window.showErrorMessage(`Refinement failed: ${errorMessage}`);
+            }
+          });
+        }
+
         if (message?.type === 'preview-voice') {
           const { text } = message;
           
@@ -108,9 +167,20 @@ export class AlignmentEditor {
           const voiceSettings = ConfigManager.getVoiceSettings();
           
           AzureSpeechService.synthesizeWithBoundaries(text, voiceSettings, azureConfig)
-            .then(({ audioBuffer }: { audioBuffer: Buffer }) => {
+            .then(({ audioBuffer, boundaries }: { audioBuffer: Buffer, boundaries: any[] }) => {
               const base64Audio = audioBuffer.toString('base64');
-              panel.webview.postMessage({ type: 'audio-data', data: base64Audio });
+              
+              let duration = 0;
+              if (boundaries && boundaries.length > 0) {
+                const lastB = boundaries[boundaries.length - 1];
+                duration = (lastB.audioOffset + (lastB.duration || 0)) / 1000;
+              }
+              
+              panel.webview.postMessage({ 
+                type: 'audio-data', 
+                data: base64Audio,
+                duration: duration
+              });
             })
             .catch((err: Error) => {
               vscode.window.showErrorMessage(`Preview failed: ${err.message}`);
@@ -184,14 +254,14 @@ export class AlignmentEditor {
 
     <!-- Controls & Info Area (Merged) -->
     <div class="controls-section">
-      <!-- Dynamic Header with Buttons -->
+      <!-- Dynamic Header -->
       <div class="timeline-header">
         <div class="flex items-center gap-3">
           <span class="section-title">${initState.labels.timeline}</span>
           <span id="currentSelection" class="selection-badge"></span>
         </div>
         <div class="footer-actions">
-           <button id="saveBtn" class="btn btn-primary">${initState.labels.refine}</button>
+           <button id="saveBtn" class="btn btn-primary">${initState.labels.ok}</button>
         </div>
       </div>
 

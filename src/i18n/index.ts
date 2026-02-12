@@ -153,6 +153,8 @@ export interface Messages {
   'alignment.currentTime': string;
   'alignment.setToCurrent': string;
   'alignment.segmentTitle': string;
+  'alignment.reservedDuration': string;
+  'alignment.actualDuration': string;
   
   // Synthesis Modes
   'modes.compact': string;
