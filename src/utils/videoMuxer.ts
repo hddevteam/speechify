@@ -130,9 +130,11 @@ export class VideoMuxer {
               let xNorm = (factor * segmentDuration - sourceReadDuration) / (factor - 1);
               xNorm = Math.max(0, Math.min(sourceReadDuration, xNorm));
               
-              // PTS expression: if input timestamp T < xNorm, stay at 1x. Else, speed up.
-              // T is relative to segment start because we use trim+setpts(PTS-STARTPTS)
-              ptsFilter = `if(lt(T,${xNorm.toFixed(4)}),T,${xNorm.toFixed(4)}+(T-${xNorm.toFixed(4)})/${factor})`;
+              // Use PTS-domain expression (setpts expects PTS units, not seconds).
+              // xNorm is in seconds, so convert to PTS via /TB.
+              const relPts = '(PTS-STARTPTS)';
+              const xPts = `(${xNorm.toFixed(4)}/TB)`;
+              ptsFilter = `if(lt(${relPts},${xPts}),${relPts},${xPts}+(${relPts}-${xPts})/${factor})`;
             } else if (strategy === 'freeze') {
               // Play fully: segment duration is the maximum of audio needs and visual reality
               segmentDuration = Math.max(totalNeeded, visualAvailable);
