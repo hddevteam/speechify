@@ -681,8 +681,8 @@ export class SpeechService {
 
     // If synthesis was requested, start it now
     if (action === 'synthesize') {
-        // Trigger synthesis silently (using Compact Mode by default)
-        await this.synthesizeVideoFromProject(timingPath, { silent: true, mode: 'compact' });
+        // Trigger synthesis silently with timing.json strategies
+        await this.synthesizeVideoFromProject(timingPath, { silent: true });
     } else {
         vscode.window.showInformationMessage(I18n.t('notifications.success.alignmentSaved'));
     }
@@ -692,7 +692,7 @@ export class SpeechService {
    * Synthesize video using an existing vision project (timing.json)
    * This skips analysis and refinement, directly generating audio and muxing.
    */
-  public static async synthesizeVideoFromProject(input: string | vscode.Uri, options: { silent?: boolean, mode?: 'compact' | 'original' } = {}): Promise<void> {
+  public static async synthesizeVideoFromProject(input: string | vscode.Uri, _options: { silent?: boolean } = {}): Promise<void> {
     let timingPath: string;
     let videoFilePath: string;
     const filePath = typeof input === 'string' ? input : input.fsPath;
@@ -736,40 +736,9 @@ export class SpeechService {
         }
     }
 
-    // --- NEW: Ask for Synthesis Mode ---
-    let modeSelection: any = null;
-    if (options.silent && options.mode) {
-        modeSelection = { mode: options.mode };
-    } else {
-        modeSelection = await vscode.window.showQuickPick([
-            { 
-                label: `$(zap) ${I18n.t('modes.compact') || 'Compact Mode'}`, 
-                description: I18n.t('modes.compactDesc') || 'Auto-trim video + Transitions (Best for Demos)',
-                mode: 'compact' 
-            },
-            { 
-                label: `$(history) ${I18n.t('modes.original') || 'Original Duration'}`, 
-                description: I18n.t('modes.originalDesc') || 'Keep original video length, no trimming',
-                mode: 'original' 
-            },
-            { 
-                label: `$(settings-gear) ${I18n.t('modes.custom') || 'Use Global Settings'}`, 
-                description: I18n.t('modes.customDesc') || 'Use preferences from VS Code settings',
-                mode: 'custom' 
-            }
-        ], {
-            placeHolder: I18n.t('prompts.selectSynthesisMode') || 'Select synthesis & rendering mode'
-        });
-    }
-
-    if (!modeSelection) return;
-
-    let overrides = {};
-    if (modeSelection.mode === 'compact') {
-        overrides = { autoTrimVideo: true, enableTransitions: true };
-    } else if (modeSelection.mode === 'original') {
-        overrides = { autoTrimVideo: false, enableTransitions: false };
-    }
+    // Always use timing.json segment strategies for synthesis.
+    // Missing strategy fields will fall back to default trim behavior.
+    const overrides = { autoTrimVideo: true };
 
     const result = await this.convertToVideoWithVision("", "", videoFilePath, {
         startStep: PipelineStep.SSML,
