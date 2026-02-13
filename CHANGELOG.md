@@ -5,10 +5,17 @@ All notable changes to the **Speechify** extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.0.0] - 2026-02-13
 
-### Added
-- Preparation for future enhancements
+### 🎬 Video Synthesis & Vision Integration
+- **Vision-Aware Alignment**: New capability to align speech with video/image content using Azure OpenAI Vision.
+- **Video Synthesis**: Convert scripts and assets into videos directly within VS Code.
+- **Alignment Editor**: Interactive webview editor for fine-tuning timing between audio and visual elements.
+- **Project-Based Synthesis**: Support for synthesizing complex video projects from project files.
+
+### 🔧 Configuration
+- **Vision API Support**: Added settings for Azure OpenAI Vision (API Key, Endpoint, Deployment).
+- **Refinement Services**: New settings for text refinement and paraphrasing using LLMs.
 
 ## [2.1] - 2025-09-18
 
