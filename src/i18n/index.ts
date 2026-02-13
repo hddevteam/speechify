@@ -165,6 +165,8 @@ export interface Messages {
   'alignment.strategy.speed_overflow': string;
   'alignment.strategy.freeze': string;
   'alignment.speedFactor': string;
+  'alignment.seeking': string;
+  'alignment.seekingDetail': string;
   
   // Synthesis Modes
   'modes.compact': string;

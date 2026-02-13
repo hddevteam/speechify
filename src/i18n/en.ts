@@ -162,6 +162,8 @@ const englishMessages: Messages = {
   'alignment.strategy.speed_overflow': 'Speed Overflow',
   'alignment.strategy.freeze': 'Wait / Freeze',
   'alignment.speedFactor': 'Speed Factor',
+  'alignment.seeking': 'Seeking frame...',
+  'alignment.seekingDetail': 'Large video or sparse keyframes may take a moment.',
 
   // Synthesis Modes
   'modes.compact': 'Compact Mode',

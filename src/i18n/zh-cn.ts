@@ -162,6 +162,8 @@ const chineseMessages: Messages = {
   'alignment.strategy.speed_overflow': '超出部分加速',
   'alignment.strategy.freeze': '静止等待',
   'alignment.speedFactor': '加速倍率',
+  'alignment.seeking': '正在定位画面...',
+  'alignment.seekingDetail': '大视频或关键帧稀疏时会稍慢，请稍候。',
 
   // Synthesis Modes
   'modes.compact': '紧凑模式',

@@ -25,6 +25,8 @@ interface AlignmentEditorLabels {
   strategySpeedOverflow: string;
   strategyFreeze: string;
   speedFactor: string;
+  seeking: string;
+  seekingDetail: string;
   ok: string;
   synthesize: string;
   synthesizing: string;
@@ -92,6 +94,8 @@ export class AlignmentEditor {
         strategySpeedOverflow: I18n.t('alignment.strategy.speed_overflow'),
         strategyFreeze: I18n.t('alignment.strategy.freeze'),
         speedFactor: I18n.t('alignment.speedFactor'),
+        seeking: I18n.t('alignment.seeking'),
+        seekingDetail: I18n.t('alignment.seekingDetail'),
         ok: I18n.t('actions.ok'),
         synthesize: I18n.t('commands.synthesizeVideoFromProject.title'),
         synthesizing: I18n.t('progress.startingSynthesis')
@@ -323,6 +327,13 @@ export class AlignmentEditor {
     <!-- Video Area -->
     <div class="video-section" id="videoSection">
       <video id="video" controls preload="auto" class="video-shadow"></video>
+      <div id="seekOverlay" class="seek-overlay hide" aria-live="polite" aria-atomic="true">
+        <div class="seek-spinner"></div>
+        <div class="seek-content">
+          <div id="seekTitle" class="seek-title">${initState.labels.seeking}</div>
+          <div id="seekDetail" class="seek-detail">${initState.labels.seekingDetail}</div>
+        </div>
+      </div>
       <div class="narrator-overlay" id="narratorBtn" title="Click to change narrator">
         <svg class="narrator-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>

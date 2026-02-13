@@ -13,6 +13,7 @@
     const narratorBtn = document.getElementById('narratorBtn');
     const resizer = document.getElementById('resizer');
     const videoSection = document.getElementById('videoSection');
+    const seekOverlay = document.getElementById('seekOverlay');
 
     let segments = initialState.segments.map(seg => ({ 
       ...seg, 
@@ -53,6 +54,9 @@
     let playheadFramePending = false;
     let autoSaveTimer = null;
     const AUTO_SAVE_DEBOUNCE_MS = 300;
+    let pendingSeekTime = null;
+    let seekHintTimer = null;
+    let seekFallbackTimer = null;
 
     const formatTime = (value) => {
       const m = Math.floor(value / 60);
@@ -94,6 +98,60 @@
         playhead.style.transform = `translateX(${video.currentTime * scale}px)`;
         playheadFramePending = false;
       });
+    };
+
+    const setSeekingOverlay = (visible) => {
+      if (!seekOverlay) return;
+      if (visible) seekOverlay.classList.remove('hide');
+      else seekOverlay.classList.add('hide');
+    };
+
+    const clearSeekState = () => {
+      pendingSeekTime = null;
+      if (seekHintTimer) {
+        clearTimeout(seekHintTimer);
+        seekHintTimer = null;
+      }
+      if (seekFallbackTimer) {
+        clearTimeout(seekFallbackTimer);
+        seekFallbackTimer = null;
+      }
+      setSeekingOverlay(false);
+    };
+
+    const seekTo = (time, options = {}) => {
+      if (!Number.isFinite(time)) return;
+      const target = clamp(time, 0, Math.max(duration, 0));
+      const tolerance = options.tolerance ?? 0.08;
+      if (Math.abs(video.currentTime - target) <= tolerance) {
+        updatePlayhead();
+        return;
+      }
+
+      pendingSeekTime = target;
+      if (seekHintTimer) clearTimeout(seekHintTimer);
+      seekHintTimer = setTimeout(() => {
+        if (pendingSeekTime !== null) setSeekingOverlay(true);
+      }, 140);
+
+      if (seekFallbackTimer) clearTimeout(seekFallbackTimer);
+      seekFallbackTimer = setTimeout(() => {
+        if (pendingSeekTime !== null && Math.abs(video.currentTime - target) > 0.15) {
+          video.currentTime = target;
+        }
+      }, 260);
+
+      const useFast = options.fast !== false && typeof video.fastSeek === 'function';
+      if (useFast) {
+        try {
+          video.fastSeek(target);
+        } catch {
+          video.currentTime = target;
+        }
+      } else {
+        video.currentTime = target;
+      }
+      updatePlayhead();
     };
 
     const normalizeSegments = (segs, dur) => {
@@ -170,7 +228,7 @@
           
           if (selectedIndex !== index) {
               selectedIndex = index;
-              video.currentTime = seg.startTime;
+              seekTo(seg.startTime, { fast: true });
               updatePlayhead();
               rebuildSegments();
               updateInfo();
@@ -196,15 +254,15 @@
               segmentEl.style.left = (seg.startTime * scale) + 'px';
               
               const now = Date.now();
-              if (now - lastSeekTime > 60) { 
-                video.currentTime = seg.startTime;
+              if (now - lastSeekTime > 90) {
+                seekTo(seg.startTime, { fast: true, tolerance: 0.12 });
                 lastSeekTime = now;
               } else if (!seekPending) {
                 seekPending = true;
                 setTimeout(() => {
-                  if (activeIndex === index) video.currentTime = seg.startTime;
+                  if (activeIndex === index) seekTo(seg.startTime, { fast: true, tolerance: 0.12 });
                   seekPending = false;
-                }, 70);
+                }, 110);
               }
               updatePlayhead();
             }
@@ -224,7 +282,7 @@
 
         segmentEl.addEventListener('click', () => {
           selectedIndex = index;
-          video.currentTime = seg.startTime;
+          seekTo(seg.startTime, { fast: true });
           updatePlayhead();
           rebuildSegments();
           updateInfo();
@@ -438,10 +496,36 @@
       normalizeSegments(segments, duration);
       recomputeScale();
       if (selectedIndex === 0 && segments.length > 0) {
-        video.currentTime = segments[0].startTime;
+        seekTo(segments[0].startTime, { fast: true });
       }
       rebuildSegments();
       updateInfo();
+    });
+
+    video.addEventListener('seeking', () => {
+      if (pendingSeekTime !== null) {
+        setSeekingOverlay(true);
+      }
+    });
+
+    const tryFinishSeek = () => {
+      if (pendingSeekTime === null) {
+        setSeekingOverlay(false);
+        return;
+      }
+      if (Math.abs(video.currentTime - pendingSeekTime) <= 0.12) {
+        clearSeekState();
+      }
+    };
+
+    video.addEventListener('seeked', () => {
+      tryFinishSeek();
+    });
+
+    video.addEventListener('timeupdate', tryFinishSeek);
+
+    video.addEventListener('error', () => {
+      clearSeekState();
     });
 
     video.addEventListener('timeupdate', updatePlayhead);
@@ -458,7 +542,7 @@
       if (event.target !== timeline) return;
       const rect = timeline.getBoundingClientRect();
       const scale = computeScale();
-      video.currentTime = clamp((event.clientX - rect.left) / scale, 0, duration);
+      seekTo((event.clientX - rect.left) / scale, { fast: true });
     });
 
     if (synthesizeBtn) {
