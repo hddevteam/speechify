@@ -18,6 +18,12 @@ interface AlignmentEditorLabels {
   reserved: string;
   actual: string;
   restore: string;
+  alignmentStrategy: string;
+  strategyTrim: string;
+  strategySpeedTotal: string;
+  strategySpeedOverflow: string;
+  strategyFreeze: string;
+  speedFactor: string;
   ok: string;
   synthesize: string;
   synthesizing: string;
@@ -79,6 +85,12 @@ export class AlignmentEditor {
         reserved: I18n.t('alignment.reservedDuration'),
         actual: I18n.t('alignment.actualDuration'),
         restore: I18n.t('actions.restoreOriginal'),
+        alignmentStrategy: I18n.t('alignment.strategy'),
+        strategyTrim: I18n.t('alignment.strategy.trim'),
+        strategySpeedTotal: I18n.t('alignment.strategy.speed_total'),
+        strategySpeedOverflow: I18n.t('alignment.strategy.speed_overflow'),
+        strategyFreeze: I18n.t('alignment.strategy.freeze'),
+        speedFactor: I18n.t('alignment.speedFactor'),
         ok: I18n.t('actions.ok'),
         synthesize: I18n.t('commands.synthesizeVideoFromProject.title'),
         synthesizing: I18n.t('progress.startingSynthesis')

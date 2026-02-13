@@ -94,47 +94,83 @@ export class VideoMuxer {
         
         // Build segment filters with normalization to avoid xfade mismatches
         let segmentFilters = '';
+        let xfadeOffsetCumulative = 0;
+        
         for (let i = 0; i < segments.length; i++) {
             const seg = segments[i];
+            const strategy = seg.strategy || 'trim'; // Default to trim
             const start = seg.startTime;
-            // Add padding plus transition for non-last segments
-            const duration = (seg.audioDuration || 5) + paddingDuration + (i < segments.length - 1 ? transitionDuration : 0);
+            const nextStart = segments[i + 1]?.startTime;
+            
+            const audioNeeded = (seg.audioDuration || 5) + paddingDuration;
+            const tailNeeded = (i < segments.length - 1) ? transitionDuration : 0;
+            const totalNeeded = audioNeeded + tailNeeded;
 
-            if (i < segments.length - 1) {
-              const nextStart = segments[i + 1]?.startTime;
-
-              // Never read visual content from the next segment.
-              // We only consume up to the frame right before the next segment start,
-              // then freeze the current segment's last frame to fill the remaining time.
-              let sourceDuration = duration;
-              if (typeof nextStart === 'number' && Number.isFinite(nextStart)) {
-                const maxBeforeNext = Math.max(frameDuration, nextStart - start - frameDuration);
-                sourceDuration = Math.max(frameDuration, Math.min(duration, maxBeforeNext));
-              }
-              const freezePadDuration = Math.max(0, duration - sourceDuration);
-              const freezePadFrames = Math.max(0, Math.ceil(freezePadDuration * targetFps));
-
-              // Normalize to CFR first, then pad by frame count.
-              // Using stop=<frames> is more reliable than stop_duration in this chain.
-              segmentFilters += `[0:v]trim=start=${start}:duration=${sourceDuration},setpts=PTS-STARTPTS,fps=${targetFps}`;
-              if (freezePadFrames > 0) {
-                segmentFilters += `,tpad=stop_mode=clone:stop=${freezePadFrames},trim=duration=${duration}`;
-              }
-              segmentFilters += `,scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[seg${i}]; `;
-            } else {
-              segmentFilters += `[0:v]trim=start=${start}:duration=${duration},setpts=PTS-STARTPTS,fps=${targetFps},scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[seg${i}]; `;
+            let visualAvailable = audioNeeded; // Default if no next segment
+            if (typeof nextStart === 'number' && Number.isFinite(nextStart)) {
+              visualAvailable = Math.max(frameDuration, nextStart - start);
             }
+
+            let segmentDuration = totalNeeded;
+            let sourceReadDuration = totalNeeded;
+            let ptsFilter = 'PTS-STARTPTS';
+
+            if (strategy === 'speed_total') {
+              segmentDuration = totalNeeded;
+              sourceReadDuration = visualAvailable;
+              const ratio = segmentDuration / sourceReadDuration;
+              ptsFilter = `(PTS-STARTPTS)*${ratio.toFixed(4)}`;
+            } else if (strategy === 'speed_overflow') {
+              const rawFactor = Number(seg.speedFactor);
+              const factor = Number.isFinite(rawFactor) ? Math.max(2, Math.floor(rawFactor)) : 2;
+              segmentDuration = totalNeeded;
+              sourceReadDuration = visualAvailable;
+              
+              // Solve: X + (V - X) / N = W  => X = (NW - V) / (N - 1)
+              let xNorm = (factor * segmentDuration - sourceReadDuration) / (factor - 1);
+              xNorm = Math.max(0, Math.min(sourceReadDuration, xNorm));
+              
+              // PTS expression: if input timestamp T < xNorm, stay at 1x. Else, speed up.
+              // T is relative to segment start because we use trim+setpts(PTS-STARTPTS)
+              ptsFilter = `if(lt(T,${xNorm.toFixed(4)}),T,${xNorm.toFixed(4)}+(T-${xNorm.toFixed(4)})/${factor})`;
+            } else if (strategy === 'freeze') {
+              // Play fully: segment duration is the maximum of audio needs and visual reality
+              segmentDuration = Math.max(totalNeeded, visualAvailable);
+              sourceReadDuration = visualAvailable;
+              ptsFilter = 'PTS-STARTPTS';
+            } else { // 'trim'
+              segmentDuration = totalNeeded;
+              sourceReadDuration = Math.min(totalNeeded, visualAvailable);
+              ptsFilter = 'PTS-STARTPTS';
+            }
+
+            // Record target timing for title/subtitle overlays
+            seg.targetStartTime = xfadeOffsetCumulative;
+            seg.targetDuration = segmentDuration;
+
+            const freezePadDuration = Math.max(0, segmentDuration - (strategy === 'speed_total' || strategy === 'speed_overflow' ? segmentDuration : sourceReadDuration));
+            const freezePadFrames = Math.max(0, Math.ceil(freezePadDuration * targetFps));
+
+            // Construct filter for this segment
+            segmentFilters += `[0:v]trim=start=${start}:duration=${sourceReadDuration},setpts=${ptsFilter},fps=${targetFps}`;
+            if (freezePadFrames > 0) {
+              segmentFilters += `,tpad=stop_mode=clone:stop=${freezePadFrames}`;
+            }
+            segmentFilters += `,trim=duration=${segmentDuration.toFixed(3)},scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[seg${i}]; `;
+
+            // Increment cumulative offset for next segment's xfade
+            xfadeOffsetCumulative += (segmentDuration - tailNeeded);
         }
         
         let lastV = 'seg0';
         if (options.enableTransitions && segments.length > 1) {
-            let offset = (segments[0].audioDuration || 5) + paddingDuration;
+            let currentXfadeOffset = segments[0].targetDuration - transitionDuration;
             for (let i = 1; i < segments.length; i++) {
                 const nextV = `vxfade${i}`;
                 const type = options.transitionType || 'fade';
-                segmentFilters += `[${lastV}][seg${i}]xfade=transition=${type}:duration=${transitionDuration}:offset=${offset}[${nextV}]; `;
+                segmentFilters += `[${lastV}][seg${i}]xfade=transition=${type}:duration=${transitionDuration}:offset=${currentXfadeOffset.toFixed(3)}[${nextV}]; `;
                 lastV = nextV;
-                offset += (segments[i].audioDuration || 5) + paddingDuration;
+                currentXfadeOffset += (segments[i].targetDuration - transitionDuration);
             }
         } else if (segments.length > 1) {
             // Simple concat

@@ -239,6 +239,22 @@
               
               <div class="action-divider"></div>
 
+              <div class="strategy-select-container">
+                <span class="strategy-label">${initialState.labels.alignmentStrategy}</span>
+                <select id="strategySelect" class="strategy-select">
+                  <option value="trim" ${(seg.strategy === 'trim' || !seg.strategy) ? 'selected' : ''}>${initialState.labels.strategyTrim}</option>
+                  <option value="speed_total" ${seg.strategy === 'speed_total' ? 'selected' : ''}>${initialState.labels.strategySpeedTotal}</option>
+                  <option value="speed_overflow" ${seg.strategy === 'speed_overflow' ? 'selected' : ''}>${initialState.labels.strategySpeedOverflow}</option>
+                  <option value="freeze" ${seg.strategy === 'freeze' ? 'selected' : ''}>${initialState.labels.strategyFreeze}</option>
+                </select>
+                <div id="factorContainer" class="factor-container ${seg.strategy === 'speed_overflow' ? '' : 'hide'}">
+                  <span class="strategy-label">x</span>
+                  <input type="number" id="factorInput" class="factor-input" value="${seg.speedFactor || 2}" min="2" max="20" step="1">
+                </div>
+              </div>
+
+              <div class="action-divider"></div>
+
               <button id="playVoiceBtn" class="play-voice-btn" title="${initialState.labels.preview}">
                 <svg viewBox="0 0 24 24" id="playIcon">
                   <path d="M8 5v14l11-7z"/>
@@ -284,6 +300,30 @@
           segments[selectedIndex].adjustedContent = e.target.value;
           vscode.postMessage({ type: 'auto-save', segments });
       });
+
+      const strategySelect = document.getElementById('strategySelect');
+      if (strategySelect) {
+        strategySelect.addEventListener('change', (e) => {
+          segments[selectedIndex].strategy = e.target.value;
+          const factorContainer = document.getElementById('factorContainer');
+          if (factorContainer) {
+            if (e.target.value === 'speed_overflow') factorContainer.classList.remove('hide');
+            else factorContainer.classList.add('hide');
+          }
+          vscode.postMessage({ type: 'auto-save', segments });
+        });
+      }
+
+      const factorInput = document.getElementById('factorInput');
+      if (factorInput) {
+        factorInput.addEventListener('change', (e) => {
+          const parsed = parseInt(e.target.value, 10);
+          const safeFactor = Number.isFinite(parsed) ? Math.max(2, Math.min(20, parsed)) : 2;
+          e.target.value = String(safeFactor);
+          segments[selectedIndex].speedFactor = safeFactor;
+          vscode.postMessage({ type: 'auto-save', segments });
+        });
+      }
 
       const refineSegBtn = document.getElementById('refineSegBtn');
       if (refineSegBtn) {

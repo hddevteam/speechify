@@ -156,6 +156,12 @@ const chineseMessages: Messages = {
   'alignment.segmentTitle': '分段标题',
   'alignment.reservedDuration': '预留',
   'alignment.actualDuration': '实际',
+  'alignment.strategy': '对齐策略',
+  'alignment.strategy.trim': '自动裁剪 (默认)',
+  'alignment.strategy.speed_total': '整体加速',
+  'alignment.strategy.speed_overflow': '超出部分加速',
+  'alignment.strategy.freeze': '静止等待',
+  'alignment.speedFactor': '加速倍率',
 
   // Synthesis Modes
   'modes.compact': '紧凑模式',

@@ -373,23 +373,45 @@ export class SpeechService {
           ? options.renderOverrides.transitionType
           : (config.transitionType ?? 'fade');
 
-        // If trimming is enabled, we need to recalculate offsets
-        let currentOffset = 0;
-        // const transitionDuration = enableTransitions ? 0.5 : 0;
+        // Precision calculation for audio-video sync across segments
+        const paddingDuration = 0.8;
+        const transitionDuration = enableTransitions ? 0.5 : 0;
+        let cumulativeVideoTime = 0;
         
-        const shiftedSegments = segments.map((seg) => {
-          const startTime = autoTrimVideo ? currentOffset : seg.startTime;
+        const shiftedSegments = segments.map((seg, i) => {
+          const strategy = seg.strategy || 'trim';
+          const start = seg.startTime;
+          const nextStart = segments[i + 1]?.startTime;
           
-          // Update offset for next segment
+          const audioNeeded = (seg.audioDuration || 5) + paddingDuration;
+          const tailNeeded = (i < segments.length - 1) ? transitionDuration : 0;
+          const totalNeeded = audioNeeded + tailNeeded;
+
+          let visualAvailable = audioNeeded;
+          if (typeof nextStart === 'number' && Number.isFinite(nextStart)) {
+              visualAvailable = Math.max(0.033, nextStart - start);
+          }
+
+          let segmentDuration = totalNeeded;
+          if (strategy === 'freeze') {
+              // In freeze (Normal) mode, the segment length is the max of audio and visual
+              segmentDuration = Math.max(totalNeeded, visualAvailable);
+          } else if (strategy === 'speed_total' || strategy === 'speed_overflow' || strategy === 'trim') {
+              // These strategies force fit into the audio-defined window (totalNeeded)
+              segmentDuration = totalNeeded;
+          }
+
+          const targetStartTime = autoTrimVideo ? cumulativeVideoTime : seg.startTime;
+          
           if (autoTrimVideo) {
-             const duration = (seg.audioDuration || 5); // Fallback to 5s if unknown
-             const padding = 0.8; // Buffer time to match Muxer
-             currentOffset += duration + padding; 
+              // Move offset by the active duration of this segment (excluding transition overlap)
+              cumulativeVideoTime += (segmentDuration - tailNeeded);
           }
 
           return {
             ...seg,
-            targetStartTime: startTime
+            targetStartTime: targetStartTime,
+            targetDuration: segmentDuration
           };
         });
 

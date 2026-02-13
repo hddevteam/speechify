@@ -159,6 +159,12 @@ export interface Messages {
   'alignment.segmentTitle': string;
   'alignment.reservedDuration': string;
   'alignment.actualDuration': string;
+  'alignment.strategy': string;
+  'alignment.strategy.trim': string;
+  'alignment.strategy.speed_total': string;
+  'alignment.strategy.speed_overflow': string;
+  'alignment.strategy.freeze': string;
+  'alignment.speedFactor': string;
   
   // Synthesis Modes
   'modes.compact': string;

@@ -156,6 +156,12 @@ const englishMessages: Messages = {
   'alignment.segmentTitle': 'Segment Title',
   'alignment.reservedDuration': 'Reserved',
   'alignment.actualDuration': 'Actual',
+  'alignment.strategy': 'Strategy',
+  'alignment.strategy.trim': 'Trim Video (Default)',
+  'alignment.strategy.speed_total': 'Speed Total',
+  'alignment.strategy.speed_overflow': 'Speed Overflow',
+  'alignment.strategy.freeze': 'Wait / Freeze',
+  'alignment.speedFactor': 'Speed Factor',
 
   // Synthesis Modes
   'modes.compact': 'Compact Mode',
