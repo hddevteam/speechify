@@ -7,6 +7,8 @@ import axios from 'axios';
 
 const execAsync = promisify(exec);
 
+export type AlignmentStrategy = 'trim' | 'speed_total' | 'speed_overflow' | 'freeze';
+
 export interface TimingSegment {
     startTime: number;
     title: string;
@@ -15,6 +17,8 @@ export interface TimingSegment {
     adjustedContent?: string;
     audioPath?: string;
     audioDuration?: number;
+    strategy?: AlignmentStrategy;
+    speedFactor?: number;
 }
 
 export interface TimingProject {
