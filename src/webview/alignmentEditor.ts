@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs/promises';
 import { TimingSegment, VideoAnalyzer } from '../utils/videoAnalyzer';
 import { I18n } from '../i18n';
 import { AzureSpeechService } from '../utils/azure';
@@ -102,10 +103,64 @@ export class AlignmentEditor {
 
     return new Promise((resolve) => {
       let resolved = false;
+      let autoSaveTimer: NodeJS.Timeout | undefined;
+      let pendingAutoSaveSegments: TimingSegment[] | null = null;
+      let isFlushingAutoSave = false;
+
+      const flushAutoSave = async (): Promise<void> => {
+        if (!options?.autoSavePath || !pendingAutoSaveSegments || isFlushingAutoSave) {
+          return;
+        }
+
+        isFlushingAutoSave = true;
+        const segmentsToSave = pendingAutoSaveSegments;
+        pendingAutoSaveSegments = null;
+
+        try {
+          try {
+            const content = await fs.readFile(options.autoSavePath, 'utf-8');
+            const currentData = JSON.parse(content);
+
+            if (currentData && !Array.isArray(currentData) && 'segments' in currentData) {
+              currentData.segments = segmentsToSave;
+              currentData.lastModified = new Date().toISOString();
+              await fs.writeFile(options.autoSavePath, JSON.stringify(currentData, null, 2));
+            } else {
+              await fs.writeFile(options.autoSavePath, JSON.stringify(segmentsToSave, null, 2));
+            }
+          } catch {
+            await fs.writeFile(options.autoSavePath, JSON.stringify(segmentsToSave, null, 2));
+          }
+          console.log(`[AutoSave] Saved segments to ${options.autoSavePath}`);
+        } catch (err) {
+          console.error('[AutoSave] Failed to save:', err);
+        } finally {
+          isFlushingAutoSave = false;
+          if (pendingAutoSaveSegments) {
+            void flushAutoSave();
+          }
+        }
+      };
+
+      const scheduleAutoSave = (segmentsToSave: TimingSegment[]): void => {
+        pendingAutoSaveSegments = segmentsToSave;
+        if (autoSaveTimer) {
+          clearTimeout(autoSaveTimer);
+        }
+
+        autoSaveTimer = setTimeout(() => {
+          autoSaveTimer = undefined;
+          void flushAutoSave();
+        }, 300);
+      };
 
       const finalize = (segments: TimingSegment[] | null, action: 'save' | 'synthesize' = 'save'): void => {
         if (resolved) return;
         resolved = true;
+        if (autoSaveTimer) {
+          clearTimeout(autoSaveTimer);
+          autoSaveTimer = undefined;
+        }
         if (segments) {
             resolve({ segments, action });
         } else {
@@ -115,6 +170,10 @@ export class AlignmentEditor {
       };
 
       const disposeListener = panel.onDidDispose(() => {
+        if (autoSaveTimer) {
+          clearTimeout(autoSaveTimer);
+          autoSaveTimer = undefined;
+        }
         if (!resolved) {
           resolve(null);
         }
@@ -220,21 +279,7 @@ export class AlignmentEditor {
         }
 
         if (message?.type === 'auto-save' && Array.isArray(message.segments) && options?.autoSavePath) {
-          try {
-            const fs = require('fs');
-            const content = fs.readFileSync(options.autoSavePath, 'utf-8');
-            const currentData = JSON.parse(content);
-            if (currentData && !Array.isArray(currentData) && 'segments' in currentData) {
-                currentData.segments = message.segments;
-                currentData.lastModified = new Date().toISOString();
-                fs.writeFileSync(options.autoSavePath, JSON.stringify(currentData, null, 2));
-            } else {
-                fs.writeFileSync(options.autoSavePath, JSON.stringify(message.segments, null, 2));
-            }
-            console.log(`[AutoSave] Saved segments to ${options.autoSavePath}`);
-          } catch (err) {
-            console.error('[AutoSave] Failed to save:', err);
-          }
+          scheduleAutoSave(message.segments as TimingSegment[]);
         }
 
         if (message?.type === 'cancel') {

@@ -30,12 +30,12 @@
           const deltaY = moveEvent.clientY - startY;
           const newHeight = Math.max(100, Math.min(window.innerHeight - 250, startHeight + deltaY));
           videoSection.style.flex = `0 0 ${newHeight}px`;
-          rebuildSegments(); // Ensure timeline scale is updated if width changed (though height shouldn't affect width)
         };
 
         const onMouseUp = () => {
           window.removeEventListener('mousemove', onMouseMove);
           window.removeEventListener('mouseup', onMouseUp);
+          rebuildSegments();
         };
 
         window.addEventListener('mousemove', onMouseMove);
@@ -49,6 +49,10 @@
     let seekPending = false;
     let currentAudio = null;
     const audioCache = new Map();
+    let cachedScale = 1;
+    let playheadFramePending = false;
+    let autoSaveTimer = null;
+    const AUTO_SAVE_DEBOUNCE_MS = 300;
 
     const formatTime = (value) => {
       const m = Math.floor(value / 60);
@@ -57,14 +61,39 @@
     };
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
-    const computeScale = () => {
+    const recomputeScale = () => {
       const width = timeline.clientWidth || 1;
-      return width / Math.max(duration, 1);
+      cachedScale = width / Math.max(duration, 1);
+      return cachedScale;
+    };
+
+    const computeScale = () => cachedScale;
+
+    const postAutoSave = (immediate = false) => {
+      if (immediate) {
+        if (autoSaveTimer) {
+          clearTimeout(autoSaveTimer);
+          autoSaveTimer = null;
+        }
+        vscode.postMessage({ type: 'auto-save', segments });
+        return;
+      }
+
+      if (autoSaveTimer) clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(() => {
+        autoSaveTimer = null;
+        vscode.postMessage({ type: 'auto-save', segments });
+      }, AUTO_SAVE_DEBOUNCE_MS);
     };
 
     const updatePlayhead = () => {
-      const scale = computeScale();
-      playhead.style.left = (video.currentTime * scale) + 'px';
+      if (playheadFramePending) return;
+      playheadFramePending = true;
+      requestAnimationFrame(() => {
+        const scale = computeScale();
+        playhead.style.transform = `translateX(${video.currentTime * scale}px)`;
+        playheadFramePending = false;
+      });
     };
 
     const normalizeSegments = (segs, dur) => {
@@ -97,7 +126,7 @@
 
     const rebuildSegments = () => {
       timeline.querySelectorAll('.segment').forEach(el => el.remove());
-      const scale = computeScale();
+      const scale = recomputeScale();
       rebuildRuler();
 
       // Update Current Selection Title
@@ -186,7 +215,7 @@
             window.removeEventListener('pointerup', onUp);
             activeIndex = -1;
             rebuildSegments();
-            vscode.postMessage({ type: 'auto-save', segments });
+            postAutoSave(true);
           };
 
           window.addEventListener('pointermove', onMove);
@@ -292,13 +321,13 @@
           if (segmentEls[selectedIndex]) {
               segmentEls[selectedIndex].querySelector('.segment-title-text').textContent = e.target.value || segments[selectedIndex].content.substring(0, 30);
           }
-          vscode.postMessage({ type: 'auto-save', segments });
+          postAutoSave();
       });
 
       const contentInput = document.getElementById('contentInput');
       contentInput.addEventListener('input', (e) => {
           segments[selectedIndex].adjustedContent = e.target.value;
-          vscode.postMessage({ type: 'auto-save', segments });
+          postAutoSave();
       });
 
       const strategySelect = document.getElementById('strategySelect');
@@ -310,7 +339,7 @@
             if (e.target.value === 'speed_overflow') factorContainer.classList.remove('hide');
             else factorContainer.classList.add('hide');
           }
-          vscode.postMessage({ type: 'auto-save', segments });
+          postAutoSave();
         });
       }
 
@@ -321,7 +350,7 @@
           const safeFactor = Number.isFinite(parsed) ? Math.max(2, Math.min(20, parsed)) : 2;
           e.target.value = String(safeFactor);
           segments[selectedIndex].speedFactor = safeFactor;
-          vscode.postMessage({ type: 'auto-save', segments });
+          postAutoSave();
         });
       }
 
@@ -347,7 +376,7 @@
           segments[selectedIndex].adjustedContent = segments[selectedIndex].content;
           rebuildSegments();
           updateInfo();
-          vscode.postMessage({ type: 'auto-save', segments });
+          postAutoSave(true);
         });
       }
 
@@ -407,6 +436,7 @@
     video.addEventListener('loadedmetadata', () => {
       duration = video.duration || 0;
       normalizeSegments(segments, duration);
+      recomputeScale();
       if (selectedIndex === 0 && segments.length > 0) {
         video.currentTime = segments[0].startTime;
       }
@@ -415,7 +445,14 @@
     });
 
     video.addEventListener('timeupdate', updatePlayhead);
-    window.addEventListener('resize', rebuildSegments);
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        resizeTimer = null;
+        rebuildSegments();
+      }, 120);
+    });
 
     timeline.addEventListener('click', (event) => {
       if (event.target !== timeline) return;
@@ -457,7 +494,7 @@
           if (selectedIndex === index) {
             updateInfo();
           }
-          vscode.postMessage({ type: 'auto-save', segments });
+          postAutoSave();
         }
       }
       
@@ -485,56 +522,22 @@
       }
     });
 
-    (async function preloadVideo() {
-      console.log('[Webview] Starting video preload:', initialState.videoSrc);
-      try {
-        const response = await fetch(initialState.videoSrc);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
-        const reader = response.body.getReader();
-        const contentLength = +response.headers.get('Content-Length');
-        
-        // If file is too small or size unknown, just set src directly to avoid overhead
-        if (!contentLength || contentLength < 1024 * 1024) { 
-           console.log('[Webview] Video is small or unknown size, skipping manual buffer');
-           throw new Error('Skip manual buffer');
-        }
+    (function initializeVideo() {
+      console.log('[Webview] Loading video with direct streaming:', initialState.videoSrc);
+      loadingText.textContent = 'Loading video stream...';
+      video.src = initialState.videoSrc;
 
-        let receivedLength = 0;
-        let chunks = [];
-        while(true) {
-          const {done, value} = await reader.read();
-          if (done) break;
-          chunks.push(value);
-          receivedLength += value.length;
-          if (contentLength) {
-            const percent = Math.round((receivedLength / contentLength) * 100);
-            loadingText.textContent = `Buffering: ${percent}%`;
-          }
-        }
-
-        const blob = new Blob(chunks, { type: 'video/mp4' });
-        video.src = URL.createObjectURL(blob);
-        console.log('[Webview] Video buffered successfully');
+      video.addEventListener('canplay', () => {
         loadingOverlay.classList.add('hide');
         setTimeout(() => loadingOverlay.remove(), 600);
-      } catch (err) {
-        console.warn('[Webview] Preload failed, falling back to direct stream:', err);
-        video.src = initialState.videoSrc;
-        // Ensure overlay is removed even on failure
-        video.addEventListener('canplay', () => {
-            loadingOverlay.classList.add('hide');
-            setTimeout(() => loadingOverlay.remove(), 600);
-        }, { once: true });
-        
-        // Fail-safe: remove after 3 seconds anyway if video doesn't report canplay
-        setTimeout(() => {
-            if (loadingOverlay.parentNode) {
-                console.error('[Webview] Load timeout, forcing overlay removal');
-                loadingOverlay.classList.add('hide');
-                setTimeout(() => loadingOverlay.remove(), 600);
-            }
-        }, 3000);
-      }
+      }, { once: true });
+
+      setTimeout(() => {
+        if (loadingOverlay.parentNode) {
+          console.warn('[Webview] Load timeout, forcing overlay removal');
+          loadingOverlay.classList.add('hide');
+          setTimeout(() => loadingOverlay.remove(), 600);
+        }
+      }, 3000);
     })();
 })();

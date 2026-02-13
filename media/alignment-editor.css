@@ -258,6 +258,7 @@ video {
 
 .playhead {
   position: absolute;
+  left: 0;
   top: 0;
   bottom: 0;
   width: 2px;
@@ -265,6 +266,7 @@ video {
   z-index: 50;
   pointer-events: none;
   box-shadow: 0 0 15px rgba(255,255,255,0.8);
+  will-change: transform;
 }
 
 .segment {
