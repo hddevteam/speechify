@@ -89,6 +89,8 @@ export class VideoMuxer {
         // We need to cut the video into segments and then concat/xfade them
         const transitionDuration = options.enableTransitions ? 0.5 : 0;
         const paddingDuration = 0.8; // Buffer time after voice ends
+        const targetFps = 30;
+        const frameDuration = 1 / targetFps;
         
         // Build segment filters with normalization to avoid xfade mismatches
         let segmentFilters = '';
@@ -98,13 +100,29 @@ export class VideoMuxer {
             // Add padding plus transition for non-last segments
             const duration = (seg.audioDuration || 5) + paddingDuration + (i < segments.length - 1 ? transitionDuration : 0);
 
-            // We force scale, fps and format to ensure all segments are identical for xfade.
-            // For non-last segments, add tpad+trim so the segment can hold frame until its audio window ends.
-            // This avoids mid-segment audio overlap causing an early visual cut.
             if (i < segments.length - 1) {
-              segmentFilters += `[0:v]trim=start=${start}:duration=${duration},setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration=${duration},trim=duration=${duration},fps=30,scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[seg${i}]; `;
+              const nextStart = segments[i + 1]?.startTime;
+
+              // Never read visual content from the next segment.
+              // We only consume up to the frame right before the next segment start,
+              // then freeze the current segment's last frame to fill the remaining time.
+              let sourceDuration = duration;
+              if (typeof nextStart === 'number' && Number.isFinite(nextStart)) {
+                const maxBeforeNext = Math.max(frameDuration, nextStart - start - frameDuration);
+                sourceDuration = Math.max(frameDuration, Math.min(duration, maxBeforeNext));
+              }
+              const freezePadDuration = Math.max(0, duration - sourceDuration);
+              const freezePadFrames = Math.max(0, Math.ceil(freezePadDuration * targetFps));
+
+              // Normalize to CFR first, then pad by frame count.
+              // Using stop=<frames> is more reliable than stop_duration in this chain.
+              segmentFilters += `[0:v]trim=start=${start}:duration=${sourceDuration},setpts=PTS-STARTPTS,fps=${targetFps}`;
+              if (freezePadFrames > 0) {
+                segmentFilters += `,tpad=stop_mode=clone:stop=${freezePadFrames},trim=duration=${duration}`;
+              }
+              segmentFilters += `,scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[seg${i}]; `;
             } else {
-              segmentFilters += `[0:v]trim=start=${start}:duration=${duration},setpts=PTS-STARTPTS,fps=30,scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[seg${i}]; `;
+              segmentFilters += `[0:v]trim=start=${start}:duration=${duration},setpts=PTS-STARTPTS,fps=${targetFps},scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[seg${i}]; `;
             }
         }
         
