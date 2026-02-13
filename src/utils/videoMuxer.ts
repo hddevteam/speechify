@@ -152,7 +152,7 @@ export class VideoMuxer {
             const freezePadFrames = Math.max(0, Math.ceil(freezePadDuration * targetFps));
 
             // Construct filter for this segment
-            segmentFilters += `[0:v]trim=start=${start}:duration=${sourceReadDuration},setpts=${ptsFilter},fps=${targetFps}`;
+            segmentFilters += `[0:v]trim=start=${start}:duration=${sourceReadDuration},setpts='${ptsFilter}',fps=${targetFps}`;
             if (freezePadFrames > 0) {
               segmentFilters += `,tpad=stop_mode=clone:stop=${freezePadFrames}`;
             }
