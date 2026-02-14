@@ -79,6 +79,7 @@
             </a>
             <div class="nav-links">
                 <a href="#features" class="nav-link">功能特色</a>
+                <a href="#voices" class="nav-link">语音预览</a>
                 <a href="#use-cases" class="nav-link">应用场景</a>
                 <a href="#installation" class="nav-link">安装指南</a>
                 <a href="#support" class="nav-link">支持</a>
@@ -134,12 +135,30 @@
                 </div>
             </div>
             <div class="hero-visual">
-                <div class="audio-demo-container">
+                <div class="video-preview-wrapper" style="width: 100%; max-width: 600px; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.1); background: #000;">
+                    <video id="hero-hero-video" width="100%" height="auto" controls>
+                        <source src="https://demoforgithub.blob.core.windows.net/videos/speechify_3_cn.mp4" type="video/mp4">
+                        您的浏览器不支持视频标签。
+                    </video>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Voices Section (Moved from Hero) -->
+    <section id="voices" class="voices" style="padding: 60px 0; background: var(--bg-paper);">
+        <div class="container">
+            <div class="section-header" style="margin-bottom: 2rem;">
+                <h2 class="section-title" style="font-size: 2rem;">世界级的多语言支持</h2>
+                <p class="section-description">体验由 Azure 提供的 200+ 神经语音</p>
+            </div>
+            <div class="audio-demo-wrapper" style="display: flex; justify-content: center;">
+                <div class="audio-demo-container" style="width: 100%; max-width: 800px; background: var(--hero-gradient); color: white;">
                     <div class="demo-title">
                         <i class="fas fa-volume-up"></i>
-                        体验多语言 Speechify 演示
+                        Speechify 语音演示
                     </div>
-                    <div class="language-audio-grid">
+                    <div class="language-audio-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
                         <div class="audio-item" data-lang="en">
                             <div class="audio-flag">🇺🇸</div>
                             <div class="audio-info">
@@ -184,7 +203,7 @@
                             </button>
                         </div>
                         
-                        <div class="audio-item" data-lang="ja">
+                        <div class="audio-item" data-lang="ja" style="grid-column: unset; max-width: unset; margin: unset;">
                             <div class="audio-flag">🇯🇵</div>
                             <div class="audio-info">
                                 <div class="audio-lang">日本語</div>

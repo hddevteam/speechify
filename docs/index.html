@@ -79,6 +79,7 @@
             </a>
             <div class="nav-links">
                 <a href="#features" class="nav-link">Features</a>
+                <a href="#voices" class="nav-link">Voices</a>
                 <a href="#use-cases" class="nav-link">Use Cases</a>
                 <a href="#installation" class="nav-link">Installation</a>
                 <a href="#support" class="nav-link">Support</a>
@@ -135,12 +136,30 @@
                 </div>
             </div>
             <div class="hero-visual">
-                <div class="audio-demo-container">
+                <div class="video-preview-wrapper" style="width: 100%; max-width: 600px; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.1); background: #000;">
+                    <video id="hero-hero-video" width="100%" height="auto" controls>
+                        <source src="https://demoforgithub.blob.core.windows.net/videos/speechify_3_en.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Voices Section (Moved from Hero) -->
+    <section id="voices" class="voices" style="padding: 60px 0; background: var(--bg-paper);">
+        <div class="container">
+            <div class="section-header" style="margin-bottom: 2rem;">
+                <h2 class="section-title" style="font-size: 2rem;">World-Class Multi-language Support</h2>
+                <p class="section-description">Experience 200+ neural voices powered by Azure</p>
+            </div>
+            <div class="audio-demo-wrapper" style="display: flex; justify-content: center;">
+                <div class="audio-demo-container" style="width: 100%; max-width: 800px; background: var(--hero-gradient); color: white;">
                     <div class="demo-title">
                         <i class="fas fa-volume-up"></i>
-                        Experience Speechify in Multiple Languages
+                        Speechify Voice Demos
                     </div>
-                    <div class="language-audio-grid">
+                    <div class="language-audio-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
                         <div class="audio-item" data-lang="en">
                             <div class="audio-flag">🇺🇸</div>
                             <div class="audio-info">
@@ -185,11 +204,11 @@
                             </button>
                         </div>
                         
-                        <div class="audio-item" data-lang="ja">
+                        <div class="audio-item" data-lang="ja" style="grid-column: unset; max-width: unset; margin: unset;">
                             <div class="audio-flag">🇯🇵</div>
                             <div class="audio-info">
                                 <div class="audio-lang">日本語</div>
-                                <div class="audio-voice">Azure ニューラル音声</div>
+                                <div class="audio-voice">Azure ニューラル语音</div>
                             </div>
                             <button class="audio-play-btn" data-audio="ja" title="日本語デモを再生" aria-label="日本語でSpeechifyデモを再生">
                                 <i class="fas fa-play" aria-hidden="true"></i>
