@@ -79,6 +79,45 @@ export class VideoAnalyzer {
         return t;
     }
 
+    private fitTextToWordLimit(text: string, maxWords: number): string {
+        const clean = this.sanitizeRefinedText(text);
+        if (!clean) return '';
+        if (this.countWords(clean) <= maxWords) return clean;
+
+        const sentenceChunks = clean.match(/[^。！？.!?]+[。！？.!?]?/g) || [clean];
+        let assembled = '';
+
+        for (const chunk of sentenceChunks) {
+            const next = `${assembled}${chunk}`.trim();
+            if (next && this.countWords(next) <= maxWords) {
+                assembled = next;
+                continue;
+            }
+
+            if (!assembled) {
+                // Hard cap: keep only the first N countable units.
+                const unitPattern = /\p{Script=Han}|[A-Za-z0-9]+(?:'[A-Za-z]+)?/gu;
+                let cutIndex = 0;
+                let count = 0;
+                let match: RegExpExecArray | null;
+
+                while ((match = unitPattern.exec(clean)) !== null) {
+                    count += 1;
+                    cutIndex = match.index + match[0].length;
+                    if (count >= maxWords) {
+                        break;
+                    }
+                }
+
+                assembled = clean.slice(0, cutIndex).trim();
+            }
+
+            break;
+        }
+
+        return this.sanitizeRefinedText(assembled);
+    }
+
     /**
      * Get video duration in seconds
      */
@@ -544,8 +583,11 @@ JSON FORMAT:
             }
 
             if (!success) {
-                console.log(`Providing best attempt after ${MAX_RETRIES} tries: "${bestAttempt}" (${bestWordCount} words)`);
-                seg.adjustedContent = bestAttempt;
+                const fitted = this.fitTextToWordLimit(bestAttempt, maxWords);
+                const finalText = fitted || this.fitTextToWordLimit(seg.content, maxWords);
+                const finalWords = this.countWords(finalText);
+                console.log(`Providing best attempt after ${MAX_RETRIES} tries: "${finalText}" (${finalWords} words)`);
+                seg.adjustedContent = finalText || seg.content;
             }
             
             refinedSegments.push(seg);

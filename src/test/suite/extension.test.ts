@@ -4,6 +4,7 @@ import { hasTestConfig, createTempFile, cleanupTempFile, TEST_TEXTS } from '../t
 import { isRunningInCI, getTimeout } from '../ci-config';
 
 suite('Extension Integration Tests', () => {
+    const runInteractiveCommandTests = process.env.SPEECHIFY_RUN_INTERACTIVE_COMMAND_TESTS === 'true';
     
     vscode.window.showInformationMessage('Start all tests.');
 
@@ -86,6 +87,12 @@ suite('Extension Integration Tests', () => {
     });
 
     test('Voice settings command should be callable', async function() {
+        if (!runInteractiveCommandTests) {
+            console.warn('Skipping interactive command test: extension.showSpeechifyVoiceSettings');
+            this.skip();
+            return;
+        }
+
         this.timeout(10000);
         try {
             // Execute the voice settings command
@@ -100,6 +107,12 @@ suite('Extension Integration Tests', () => {
     });
 
     test('Configure voice settings command should be callable', async function() {
+        if (!runInteractiveCommandTests) {
+            console.warn('Skipping interactive command test: extension.configureSpeechifyVoiceSettings');
+            this.skip();
+            return;
+        }
+
         this.timeout(10000);
         try {
             // Execute the configure voice settings command
@@ -114,6 +127,12 @@ suite('Extension Integration Tests', () => {
     });
 
     test('Configure Azure settings command should be callable', async function() {
+        if (!runInteractiveCommandTests) {
+            console.warn('Skipping interactive command test: extension.configureSpeechifyAzureSettings');
+            this.skip();
+            return;
+        }
+
         this.timeout(10000);
         try {
             // Execute the configure Azure settings command

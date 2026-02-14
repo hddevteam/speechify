@@ -29,11 +29,18 @@ if (grepIndex !== -1 && rawArgs[grepIndex + 1]) {
     process.env.MOCHA_GREP = rawArgs[grepIndex + 1];
 }
 
+// Default to stable test profile to avoid environment-dependent suites.
+// Use --full or SPEECHIFY_TEST_PROFILE=full to run all tests.
+const isFullRun = rawArgs.includes('--full');
+process.env.SPEECHIFY_TEST_PROFILE = process.env.SPEECHIFY_TEST_PROFILE || (isFullRun ? 'full' : 'stable');
+
+const forwardedArgs = rawArgs.filter((arg) => arg !== '--full');
+
 // Build the test command
 const testScript = path.join(__dirname, '..', 'out', 'test', 'runTest.js');
 const testCommand = 'node';
 // Pass all CLI arguments to the test script
-const testArgs = [testScript, ...process.argv.slice(2)];
+const testArgs = [testScript, ...forwardedArgs];
 
 console.log(`Running: ${testCommand} ${testArgs.join(' ')}`);
 

@@ -235,6 +235,8 @@
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./scripts/test-runner.js",
+    "test:stable": "node ./scripts/test-runner.js",
+    "test:full": "SPEECHIFY_TEST_PROFILE=full node ./scripts/test-runner.js",
     "test:unit": "mocha out/test/suite/**/*.test.js",
     "test:integration": "node ./scripts/test-runner.js",
     "test:local": "node ./out/test/runTest.js"

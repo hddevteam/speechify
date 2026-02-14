@@ -25,7 +25,9 @@ suite('Full Vision Alignment Integration Test', () => {
             await config.update('voiceName', 'zh-CN-YunyangNeural', true);
             await config.update('voiceStyle', 'friendly', true);
             
-            const result = await SpeechService.convertToVideoWithVision(script, scriptPath, videoPath);
+            const result = await SpeechService.convertToVideoWithVision(script, scriptPath, videoPath, {
+                openAlignmentEditor: false
+            });
             
             console.log('Conversion Result:', result.success);
             console.log('Video Output:', result.videoOutputPath);
