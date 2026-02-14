@@ -93,6 +93,7 @@ export class SpeechService {
       forceRefine?: boolean;
       openAlignmentEditor?: boolean;
       frameInterval?: number;
+      timingPath?: string;
       renderOverrides?: {
         autoTrimVideo?: boolean;
         enableTransitions?: boolean;

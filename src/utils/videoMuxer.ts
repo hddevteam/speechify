@@ -5,6 +5,16 @@ import * as fs from 'fs';
 
 const execAsync = promisify(exec);
 
+interface MuxSegment {
+  startTime: number;
+  title?: string;
+  strategy?: 'trim' | 'speed_total' | 'speed_overflow' | 'freeze' | string;
+  speedFactor?: number;
+  audioDuration?: number;
+  targetStartTime?: number;
+  targetDuration?: number;
+}
+
 export class VideoMuxer {
   /**
    * Mux video with segments, supporting transitions, trimming and titles
@@ -14,7 +24,7 @@ export class VideoMuxer {
     audioSourcePath: string,
     srtPath: string,
     outputPath: string,
-    segments: any[],
+    segments: MuxSegment[],
     options: {
       enableTransitions?: boolean;
       transitionType?: string;
@@ -33,6 +43,8 @@ export class VideoMuxer {
       const vBase = path.basename(videoSourcePath);
       const sRel = path.relative(vDir, srtPath);
       const aRel = path.relative(vDir, audioSourcePath);
+      const videoWidth = await this.getVideoWidth(videoSourcePath);
+      const titleMaxWidthPx = Math.floor(videoWidth * (2 / 3));
 
       // Escape helper for drawtext text argument
       const escapeDrawText = (text: string): string => text
@@ -44,8 +56,47 @@ export class VideoMuxer {
         .replace(/\]/g, '\\]')
         .replace(/%/g, '\\%');
 
-      // Wrap long titles into 1-2 lines for better readability in short videos
-      const wrapTitleText = (input: string, maxCharsPerLine = 18): string[] => {
+      const getVisualUnits = (text: string): number => {
+        let units = 0;
+        for (const ch of text) {
+          if (/\s/.test(ch)) {
+            units += 0.35;
+          } else if (/[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]/.test(ch)) {
+            units += 1;
+          } else if (/[A-Z]/.test(ch)) {
+            units += 0.68;
+          } else if (/[a-z0-9]/.test(ch)) {
+            units += 0.56;
+          } else {
+            units += 0.42;
+          }
+        }
+        return units;
+      };
+
+      const splitByUnits = (input: string, maxUnitsPerLine: number): string[] => {
+        const chunks: string[] = [];
+        let current = '';
+
+        for (const ch of input) {
+          const candidate = `${current}${ch}`;
+          if (current && getVisualUnits(candidate) > maxUnitsPerLine) {
+            chunks.push(current);
+            current = ch;
+          } else {
+            current = candidate;
+          }
+        }
+
+        if (current) {
+          chunks.push(current);
+        }
+
+        return chunks.filter(Boolean);
+      };
+
+      // Wrap long titles into multiple lines while preserving full content
+      const wrapTitleText = (input: string, maxUnitsPerLine: number): string[] => {
         const trimmed = (input || '').trim();
         if (!trimmed) return [];
 
@@ -57,23 +108,28 @@ export class VideoMuxer {
 
           for (const word of words) {
             const candidate = currentLine ? `${currentLine} ${word}` : word;
-            if (candidate.length <= maxCharsPerLine) {
+            if (getVisualUnits(candidate) <= maxUnitsPerLine) {
               currentLine = candidate;
             } else {
               if (currentLine) lines.push(currentLine);
-              currentLine = word;
+              if (getVisualUnits(word) <= maxUnitsPerLine) {
+                currentLine = word;
+              } else {
+                const hardSplit = splitByUnits(word, maxUnitsPerLine);
+                if (hardSplit.length > 1) {
+                  lines.push(...hardSplit.slice(0, -1));
+                  currentLine = hardSplit[hardSplit.length - 1] || '';
+                } else {
+                  currentLine = word;
+                }
+              }
             }
           }
           if (currentLine) lines.push(currentLine);
-          return lines.slice(0, 2);
+          return lines;
         }
 
-        // For CJK-heavy text without spaces, wrap by character length.
-        const chunks: string[] = [];
-        for (let i = 0; i < trimmed.length; i += maxCharsPerLine) {
-          chunks.push(trimmed.slice(i, i + maxCharsPerLine));
-          if (chunks.length >= 2) break;
-        }
+        const chunks = splitByUnits(trimmed, maxUnitsPerLine);
 
         if (chunks.length === 2 && /^[，。！？；：,.!?;:]/.test(chunks[1] || '')) {
           const firstChar = chunks[1]?.charAt(0) || '';
@@ -85,6 +141,10 @@ export class VideoMuxer {
 
         return chunks.filter(Boolean);
       };
+
+      const containsCJK = (text: string): boolean => /[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]/.test(text);
+      const getUnitPxByFont = (fontSize: number, hasCJK: boolean): number =>
+        hasCJK ? fontSize * 0.95 : fontSize * 0.62;
       
       // Use Hiragino Sans GB for macOS as a reliable and elegant CJK font
       const isMac = process.platform === 'darwin';
@@ -109,6 +169,7 @@ export class VideoMuxer {
         
         for (let i = 0; i < segments.length; i++) {
             const seg = segments[i];
+          if (!seg) continue;
             const strategy = seg.strategy || 'trim'; // Default to trim
             const start = seg.startTime;
             const nextStart = segments[i + 1]?.startTime;
@@ -177,13 +238,19 @@ export class VideoMuxer {
         
         let lastV = 'seg0';
         if (options.enableTransitions && segments.length > 1) {
-            let currentXfadeOffset = segments[0].targetDuration - transitionDuration;
+          const firstSeg = segments[0];
+          if (!firstSeg) {
+            throw new Error('Invalid segment data for transition rendering.');
+          }
+          let currentXfadeOffset = (firstSeg.targetDuration || 0) - transitionDuration;
             for (let i = 1; i < segments.length; i++) {
+            const currentSeg = segments[i];
+            if (!currentSeg) continue;
                 const nextV = `vxfade${i}`;
                 const type = options.transitionType || 'fade';
                 segmentFilters += `[${lastV}][seg${i}]xfade=transition=${type}:duration=${transitionDuration}:offset=${currentXfadeOffset.toFixed(3)}[${nextV}]; `;
                 lastV = nextV;
-                currentXfadeOffset += (segments[i].targetDuration - transitionDuration);
+            currentXfadeOffset += ((currentSeg.targetDuration || 0) - transitionDuration);
             }
         } else if (segments.length > 1) {
             // Simple concat
@@ -208,17 +275,32 @@ export class VideoMuxer {
       let titleFilters = '';
       for (let i = 0; i < segments.length; i++) {
         const seg = segments[i];
+        if (!seg) continue;
         if (!seg.title) continue;
 
         const start = options.autoTrimVideo ? (seg.targetStartTime || 0) : seg.startTime;
-        const wrappedLines = wrapTitleText(seg.title, 18);
+        const hasCJK = containsCJK(seg.title);
+        const boxHorizontalPadding = 36;
+
+        // Pass 1: wrap with baseline font size to estimate line count.
+        const baselineFontSize = 52;
+        const baselineUnitPx = getUnitPxByFont(baselineFontSize, hasCJK);
+        const maxUnitsPass1 = Math.max(8, Math.floor((titleMaxWidthPx - boxHorizontalPadding * 2) / baselineUnitPx));
+        let wrappedLines = wrapTitleText(seg.title, maxUnitsPass1);
         if (wrappedLines.length === 0) continue;
 
-        const lineCount = wrappedLines.length;
-        const fontSize = lineCount > 1 ? 52 : 64;
+        let lineCount = wrappedLines.length;
+        let fontSize = lineCount <= 1 ? 64 : lineCount === 2 ? 52 : lineCount === 3 ? 44 : 38;
+
+        // Pass 2: re-wrap with final font size so 2/3 width constraint is respected.
+        const finalUnitPx = getUnitPxByFont(fontSize, hasCJK);
+        const maxUnitsPass2 = Math.max(8, Math.floor((titleMaxWidthPx - boxHorizontalPadding * 2) / finalUnitPx));
+        wrappedLines = wrapTitleText(seg.title, maxUnitsPass2);
+        lineCount = wrappedLines.length;
+        fontSize = lineCount <= 1 ? 64 : lineCount === 2 ? 52 : lineCount === 3 ? 44 : 38;
 
         const titleLength = seg.title.trim().length;
-        const maxTitleDuration = Math.min(4.2, Math.max(2.4, 1.8 + titleLength * 0.08));
+        const maxTitleDuration = Math.min(6.2, Math.max(2.8, 1.8 + titleLength * 0.085 + (lineCount - 1) * 0.35));
         const displayEnd = start + maxTitleDuration;
 
         // Elegant title card: centered, with fade in/out animation for a modern feel.
@@ -228,8 +310,8 @@ export class VideoMuxer {
 
         // Using fontfile for macOS to ensure the font is found.
         const fontParam = isMac ? `fontfile='${titleFont}'` : `font='${titleFont}'`;
-        const boxBorderW = lineCount > 1 ? 14 : 18;
-        const lineSpacing = lineCount > 1 ? 28 : 0;
+        const boxBorderW = lineCount <= 1 ? 18 : lineCount === 2 ? 14 : 12;
+        const lineSpacing = lineCount <= 1 ? 0 : lineCount === 2 ? 28 : 20;
         const lineStep = fontSize + (boxBorderW * 2) + lineSpacing;
         const totalBlockHeight = (lineCount * (fontSize + boxBorderW * 2)) + ((lineCount - 1) * lineSpacing);
 
@@ -293,10 +375,10 @@ export class VideoMuxer {
       await execAsync(command, { cwd: vDir });
 
       return outputPath;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Advanced Muxing error:', error);
-      if (error?.stderr) {
-        const stderrText = String(error.stderr);
+      if (error && typeof error === 'object' && 'stderr' in error) {
+        const stderrText = String((error as { stderr?: unknown }).stderr || '');
         const tail = stderrText.slice(-2500);
         console.error('[Muxer] FFmpeg stderr tail:\n', tail);
       }
@@ -381,12 +463,13 @@ export class VideoMuxer {
       console.log(`Output file created: ${outputPath} (${stats.size} bytes)`);
 
       return outputPath;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('FFmpeg error details:', error);
-      if (error.stderr) {
-        console.error('FFmpeg stderr output:', error.stderr);
+      if (error && typeof error === 'object' && 'stderr' in error) {
+        console.error('FFmpeg stderr output:', (error as { stderr?: unknown }).stderr);
       }
-      throw new Error(`Failed to mux video: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to mux video: ${message}`);
     }
   }
 
@@ -399,6 +482,21 @@ export class VideoMuxer {
       return true;
     } catch {
       return false;
+    }
+  }
+
+  private static async getVideoWidth(videoSourcePath: string): Promise<number> {
+    try {
+      const escapedPath = videoSourcePath.replace(/"/g, '\\"');
+      const command = `ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "${escapedPath}"`;
+      const { stdout } = await execAsync(command);
+      const parsed = Number.parseInt(stdout.trim(), 10);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return parsed;
+      }
+      return 1920;
+    } catch {
+      return 1920;
     }
   }
 }

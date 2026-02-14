@@ -37,6 +37,7 @@ export class VisionPipelineService {
       forceRefine?: boolean;
       openAlignmentEditor?: boolean;
       frameInterval?: number;
+      timingPath?: string;
       renderOverrides?: {
         autoTrimVideo?: boolean;
         enableTransitions?: boolean;
@@ -64,12 +65,14 @@ export class VisionPipelineService {
       const analyzer = new VideoAnalyzer();
       const outputDir = path.dirname(videoFilePath);
       const projectName = path.basename(videoFilePath, path.extname(videoFilePath));
-      const projectDir = path.join(outputDir, `${projectName}_vision_project`);
+      const projectDir = options.timingPath
+        ? path.dirname(options.timingPath)
+        : path.join(outputDir, `${projectName}_vision_project`);
       if (!fs.existsSync(projectDir)) {
         fs.mkdirSync(projectDir, { recursive: true });
       }
 
-      const timingPath = path.join(projectDir, 'timing.json');
+      const timingPath = options.timingPath || path.join(projectDir, 'timing.json');
       const ssmlDir = path.join(projectDir, 'ssml');
       const audioDir = path.join(projectDir, 'audio');
       const boundariesDir = path.join(projectDir, 'boundaries');
@@ -80,7 +83,7 @@ export class VisionPipelineService {
 
       let segments: TimingSegment[] = [];
 
-      const saveProject = (segs: TimingSegment[]) => {
+      const saveProject = (segs: TimingSegment[]): void => {
         const project: TimingProject = {
           version: '2.0',
           videoName: path.basename(videoFilePath),
@@ -362,7 +365,7 @@ export class VisionPipelineService {
     }
 
     const content = fs.readFileSync(timingPath, 'utf-8');
-    let data: any;
+    let data: unknown;
     try {
       data = JSON.parse(content);
     } catch (e) {
@@ -412,7 +415,9 @@ export class VisionPipelineService {
           title: I18n.t('config.prompts.selectVideoFile', `Pick video for project: ${project.videoName}`)
         });
         if (!selected || selected.length === 0) return;
-        videoFilePath = selected[0]!.fsPath;
+        const selectedFile = selected[0];
+        if (!selectedFile) return;
+        videoFilePath = selectedFile.fsPath;
         project.videoName = path.basename(videoFilePath);
         fs.writeFileSync(timingPath, JSON.stringify(project, null, 2));
       }
@@ -463,24 +468,28 @@ export class VisionPipelineService {
     if (filePath.toLowerCase().endsWith('.json')) {
       timingPath = filePath;
       const content = fs.readFileSync(timingPath, 'utf-8');
-      let data: any;
+      let data: unknown;
       try {
         data = JSON.parse(content);
       } catch (e) {
         throw new Error('Invalid JSON format.');
       }
 
-      if (!data || Array.isArray(data) || !data.segments) {
+      if (!data || typeof data !== 'object' || Array.isArray(data) || !('segments' in data)) {
         throw new Error('This JSON file is not a valid Speechify timing project.');
+      }
+      const project = data as TimingProject;
+      if (!project.videoName) {
+        throw new Error('Invalid project file or missing video reference.');
       }
 
       const projectDir = path.dirname(timingPath);
       const parentDir = path.dirname(projectDir);
       
       // Try to find video relative to timing file
-      let candidateVideo = path.join(parentDir, data.videoName);
+      let candidateVideo = path.join(parentDir, project.videoName);
       if (!fs.existsSync(candidateVideo)) {
-        candidateVideo = path.join(projectDir, data.videoName || '');
+        candidateVideo = path.join(projectDir, project.videoName);
       }
 
       if (fs.existsSync(candidateVideo)) {
@@ -491,13 +500,15 @@ export class VisionPipelineService {
           canSelectFolders: false,
           canSelectMany: false,
           filters: { Video: ['mp4', 'mov', 'avi', 'mkv'] },
-          title: I18n.t('config.prompts.selectVideoFile', `Pick video for project: ${data.videoName}`)
+          title: I18n.t('config.prompts.selectVideoFile', `Pick video for project: ${project.videoName}`)
         });
         if (!selected || selected.length === 0) return;
-        videoFilePath = selected[0]!.fsPath;
+        const selectedFile = selected[0];
+        if (!selectedFile) return;
+        videoFilePath = selectedFile.fsPath;
 
-        data.videoName = path.basename(videoFilePath);
-        fs.writeFileSync(timingPath, JSON.stringify(data, null, 2));
+        project.videoName = path.basename(videoFilePath);
+        fs.writeFileSync(timingPath, JSON.stringify(project, null, 2));
       }
     } else {
       videoFilePath = filePath;
@@ -512,6 +523,7 @@ export class VisionPipelineService {
       startStep: PipelineStep.SSML,
       forceRefine: false,
       openAlignmentEditor: false,
+      timingPath,
       renderOverrides: { autoTrimVideo: true }
     });
 
