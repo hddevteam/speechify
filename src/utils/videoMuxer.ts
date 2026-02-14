@@ -38,14 +38,16 @@ export class VideoMuxer {
       const escapeDrawText = (text: string): string => text
         .replace(/\\/g, '\\\\')
         .replace(/'/g, "'\\\\''")
+        .replace(/,/g, '\\,')
         .replace(/:/g, '\\:')
-        .replace(/%/g, '\\%')
-        .replace(/\n/g, '\\\\n');
+        .replace(/\[/g, '\\[')
+        .replace(/\]/g, '\\]')
+        .replace(/%/g, '\\%');
 
       // Wrap long titles into 1-2 lines for better readability in short videos
-      const wrapTitleText = (input: string, maxCharsPerLine = 18): string => {
+      const wrapTitleText = (input: string, maxCharsPerLine = 18): string[] => {
         const trimmed = (input || '').trim();
-        if (!trimmed) return '';
+        if (!trimmed) return [];
 
         const hasWhitespace = /\s/.test(trimmed);
         if (hasWhitespace) {
@@ -63,7 +65,7 @@ export class VideoMuxer {
             }
           }
           if (currentLine) lines.push(currentLine);
-          return lines.slice(0, 2).join('\n');
+          return lines.slice(0, 2);
         }
 
         // For CJK-heavy text without spaces, wrap by character length.
@@ -72,7 +74,16 @@ export class VideoMuxer {
           chunks.push(trimmed.slice(i, i + maxCharsPerLine));
           if (chunks.length >= 2) break;
         }
-        return chunks.join('\n');
+
+        if (chunks.length === 2 && /^[，。！？；：,.!?;:]/.test(chunks[1] || '')) {
+          const firstChar = chunks[1]?.charAt(0) || '';
+          if (firstChar) {
+            chunks[0] = `${chunks[0]}${firstChar}`;
+            chunks[1] = (chunks[1] || '').slice(1).trimStart();
+          }
+        }
+
+        return chunks.filter(Boolean);
       };
       
       // Use Hiragino Sans GB for macOS as a reliable and elegant CJK font
@@ -200,11 +211,10 @@ export class VideoMuxer {
         if (!seg.title) continue;
 
         const start = options.autoTrimVideo ? (seg.targetStartTime || 0) : seg.startTime;
-        const wrappedTitle = wrapTitleText(seg.title, 18);
-        if (!wrappedTitle) continue;
+        const wrappedLines = wrapTitleText(seg.title, 18);
+        if (wrappedLines.length === 0) continue;
 
-        const titleText = escapeDrawText(wrappedTitle);
-        const lineCount = wrappedTitle.split('\n').length;
+        const lineCount = wrappedLines.length;
         const fontSize = lineCount > 1 ? 52 : 64;
 
         const titleLength = seg.title.trim().length;
@@ -218,8 +228,23 @@ export class VideoMuxer {
 
         // Using fontfile for macOS to ensure the font is found.
         const fontParam = isMac ? `fontfile='${titleFont}'` : `font='${titleFont}'`;
-        titleFilters += (titleFilters ? `,` : ``) + 
-          `drawtext=${fontParam}:text='${titleText}':fontcolor=white:fontsize=${fontSize}:line_spacing=18:box=1:boxcolor=black@0.7:boxborderw=35:shadowcolor=black@0.8:shadowx=0:shadowy=4:x=(w-text_w)/2:y=(h-text_h)/2:alpha='${alpha}':enable='between(t,${start.toFixed(2)},${displayEnd.toFixed(2)})'`;
+        const boxBorderW = lineCount > 1 ? 14 : 18;
+        const lineSpacing = lineCount > 1 ? 28 : 0;
+        const lineStep = fontSize + (boxBorderW * 2) + lineSpacing;
+        const totalBlockHeight = (lineCount * (fontSize + boxBorderW * 2)) + ((lineCount - 1) * lineSpacing);
+
+        for (let lineIndex = 0; lineIndex < wrappedLines.length; lineIndex++) {
+          const lineText = wrappedLines[lineIndex] || '';
+          if (!lineText) continue;
+
+          const escapedLine = escapeDrawText(lineText);
+          const baselineOffset = (lineIndex * lineStep) - (totalBlockHeight / 2) + boxBorderW;
+          const offsetAbs = Math.abs(baselineOffset).toFixed(1);
+          const yExpr = baselineOffset >= 0 ? `(h/2)+${offsetAbs}` : `(h/2)-${offsetAbs}`;
+
+          titleFilters += (titleFilters ? `,` : ``) +
+            `drawtext=${fontParam}:text='${escapedLine}':fontcolor=white:fontsize=${fontSize}:box=1:boxcolor=black@0.62:boxborderw=${boxBorderW}:shadowcolor=black@0.8:shadowx=0:shadowy=4:x=(w-text_w)/2:y=${yExpr}:alpha='${alpha}':enable='between(t,${start.toFixed(2)},${displayEnd.toFixed(2)})'`;
+        }
       }
 
       // --- SUBTITLE LOGIC ---
@@ -270,6 +295,11 @@ export class VideoMuxer {
       return outputPath;
     } catch (error: any) {
       console.error('Advanced Muxing error:', error);
+      if (error?.stderr) {
+        const stderrText = String(error.stderr);
+        const tail = stderrText.slice(-2500);
+        console.error('[Muxer] FFmpeg stderr tail:\n', tail);
+      }
       throw error;
     }
   }

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { AzureConfig, ProcessingResult, VoiceListItem, VideoProcessingResult, VoiceSettings } from '../types';
+import { AzureConfig, ProcessingResult, VoiceListItem, VideoProcessingResult, VoiceSettings, WordBoundary } from '../types';
 import { ConfigManager } from '../utils/config';
 import { AzureSpeechService } from '../utils/azure';
 import { AudioUtils } from '../utils/audio';
@@ -424,18 +424,21 @@ export class SpeechService {
         await this.mergeAudioWithOffsets(mergeInput, mergedAudioPath);
 
         const srtOutputPath = path.join(projectDir, `final.srt`);
-        // Shift boundaries to targetStartTime
-        const shiftedBoundaries: any[] = [];
+        // Shift boundaries to targetStartTime and keep segment groups
+        const shiftedBoundaryGroups: WordBoundary[][] = [];
         for (let i = 0; i < segments.length; i++) {
             const ss = shiftedSegments[i];
             if (!ss) continue;
             const startTimeMs = (ss.targetStartTime) * 1000;
-            const boundaries = JSON.parse(fs.readFileSync(path.join(boundariesDir, `seg_${i}.json`), 'utf-8'));
-            shiftedBoundaries.push(...boundaries.map((b: any) => ({
+          const boundaries = JSON.parse(fs.readFileSync(path.join(boundariesDir, `seg_${i}.json`), 'utf-8')) as WordBoundary[];
+          const shifted = boundaries.map((b: WordBoundary) => ({
                 ...b,
                 audioOffset: b.audioOffset + startTimeMs
-            })));
+          }));
+          shiftedBoundaryGroups.push(shifted);
         }
+
+        const shiftedBoundaries = SubtitleUtils.mergeSegmentBoundariesForSrt(shiftedBoundaryGroups);
         
         const srtContent = SubtitleUtils.generateSRT(shiftedBoundaries);
         await SubtitleUtils.saveSRTFile(srtContent, srtOutputPath);
