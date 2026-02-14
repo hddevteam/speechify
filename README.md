@@ -19,7 +19,7 @@ Transform your VS Code into a powerful AI-driven video production station with *
 While there are many video editors (CapCut, Premiere Pro, etc.), Speechify is designed for the **Developer's Workflow**.
 
 1. **Zero Context Switching**: Why leave your sanctuary? Edit your code, write your documentation, and generate your demo video all within VS Code.
-2. **"Script-as-Code" Philosophy**: Stop fighting with complex timelines and keyframes. Your video is defined by your Markdown transcript. Need to update a feature? Just edit the text and re-generate.
+2. **"Script-as-Code" Philosophy**: Stop fighting with complex timelines and keyframes. Your video is defined by your JSON script. Need to update a feature? Just edit the text and re-generate.
 3. **AI Vision-Aware Sync**: Traditional editors require you to manually align speech to visual cues. Speechify uses **Vision AI** to "watch" your screen recording and automatically sync your narrative to UI interactions.
 4. **Maintenance-Free Demos**: Technical demos go stale fast. With Speechify, you maintain a transcript, not a multi-gigabyte project file. It's the "CI/CD" equivalent for video content.
 
