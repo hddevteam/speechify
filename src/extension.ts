@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { SpeechService } from './services/speechService';
 import { ConfigManager } from './utils/config';
 import { I18n } from './i18n';
@@ -18,9 +19,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('extension.showSpeechifyVoiceSettings', showVoiceSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyVoiceSettings', configureSpeechifyVoiceSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyAzureSettings', configureSpeechifyAzureSettings),
+        vscode.commands.registerCommand('extension.configureSpeechifyVisionSettings', configureSpeechifyVisionSettings),
         vscode.commands.registerCommand('extension.selectSpeechifyVoiceStyle', selectVoiceStyle),
         vscode.commands.registerCommand('extension.selectSpeechifyVoiceRole', selectVoiceRole),
-        vscode.commands.registerCommand('extension.convertToVideo', convertTextToVideo)
+        vscode.commands.registerCommand('extension.convertToVideo', convertTextToVideo),
+        vscode.commands.registerCommand('extension.openAlignmentEditor', openAlignmentEditor),
+        vscode.commands.registerCommand('extension.synthesizeVideoFromProject', synthesizeVideoFromProject)
     ];
 
     // Add commands to subscriptions
@@ -50,16 +54,31 @@ export function deactivate(): void {
 /**
  * Convert selected text to speech
  */
-async function convertTextToSpeech(): Promise<void> {
+async function convertTextToSpeech(uri?: vscode.Uri): Promise<void> {
     try {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            vscode.window.showErrorMessage(I18n.t('errors.noActiveEditor'));
-            return;
-        }
+        let selectedText = '';
+        let sourceFilePath = 'headless_conv.txt';
 
-        const selection = editor.selection;
-        const selectedText = editor.document.getText(selection);
+        if (uri && isTextLikeFile(uri)) {
+            const document = await vscode.workspace.openTextDocument(uri);
+            selectedText = document.getText();
+            sourceFilePath = uri.fsPath;
+        } else {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showErrorMessage(I18n.t('errors.noActiveEditor'));
+                return;
+            }
+
+            const selection = editor.selection;
+            selectedText = editor.document.getText(selection);
+
+            if (!selectedText.trim() && isTextLikeFile(editor.document.uri)) {
+                selectedText = editor.document.getText();
+            }
+
+            sourceFilePath = editor.document.uri.fsPath;
+        }
 
         if (!selectedText.trim()) {
             vscode.window.showErrorMessage(I18n.t('errors.noTextSelected'));
@@ -72,8 +91,6 @@ async function convertTextToSpeech(): Promise<void> {
             return;
         }
 
-        const sourceFilePath = editor.document.uri.fsPath;
-        
         // Convert text to speech
         const result = await SpeechService.convertTextToSpeech(selectedText, sourceFilePath);
         
@@ -112,6 +129,11 @@ async function convertTextToSpeech(): Promise<void> {
             I18n.t('errors.speechGenerationFailed', error instanceof Error ? error.message : 'Unknown error')
         );
     }
+}
+
+function isTextLikeFile(uri: vscode.Uri): boolean {
+    const ext = path.extname(uri.fsPath).toLowerCase();
+    return ext === '.txt' || ext === '.md' || ext === '.markdown';
 }
 
 /**
@@ -172,6 +194,20 @@ async function configureSpeechifyAzureSettings(): Promise<void> {
 }
 
 /**
+ * Configure Azure OpenAI Vision settings
+ */
+async function configureSpeechifyVisionSettings(): Promise<void> {
+    try {
+        await SpeechService.configureVisionSettings();
+    } catch (error) {
+        console.error('Failed to configure Vision settings:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVision')
+        );
+    }
+}
+
+/**
  * Quick select voice style for current voice
  */
 async function selectVoiceStyle(): Promise<void> {
@@ -198,10 +234,24 @@ async function selectVoiceRole(): Promise<void> {
 /**
  * Convert selected text to speech and merge with a video file
  */
-async function convertTextToVideo(args?: { text?: string, videoPath?: string }): Promise<void> {
+async function convertTextToVideo(args?: { text?: string, videoPath?: string } | vscode.Uri): Promise<void> {
     try {
-        let selectedText = args?.text;
-        let videoPath = args?.videoPath;
+        let selectedText: string | undefined;
+        let videoPath: string | undefined;
+        let sourceFilePath = 'headless_conv.txt';
+
+        if (args instanceof vscode.Uri) {
+            if (isTextLikeFile(args)) {
+                const document = await vscode.workspace.openTextDocument(args);
+                selectedText = document.getText();
+                sourceFilePath = args.fsPath;
+            } else {
+                videoPath = args.fsPath;
+            }
+        } else {
+            selectedText = args?.text;
+            videoPath = args?.videoPath;
+        }
 
         const editor = vscode.window.activeTextEditor;
 
@@ -213,6 +263,12 @@ async function convertTextToVideo(args?: { text?: string, videoPath?: string }):
             }
             const selection = editor.selection;
             selectedText = editor.document.getText(selection);
+
+            if (!selectedText.trim() && isTextLikeFile(editor.document.uri)) {
+                selectedText = editor.document.getText();
+            }
+
+            sourceFilePath = editor.document.uri.fsPath;
         }
 
         if (!selectedText || !selectedText.trim()) {
@@ -247,10 +303,20 @@ async function convertTextToVideo(args?: { text?: string, videoPath?: string }):
             return;
         }
 
-        const sourceFilePath = editor?.document.uri.fsPath || 'headless_conv.txt';
+        // 100% Vision mode now. Let user choose extraction interval.
+        const interval = await vscode.window.showQuickPick([
+            { label: I18n.t('vision.precision.high.label'), description: I18n.t('vision.precision.high.desc'), value: 5 },
+            { label: I18n.t('vision.precision.medium.label'), description: I18n.t('vision.precision.medium.desc'), value: 10 },
+            { label: I18n.t('vision.precision.low.label'), description: I18n.t('vision.precision.low.desc'), value: 20 }
+        ], {
+            placeHolder: I18n.t('config.prompts.selectAnalysisDepth', 'Select AI analysis depth (frame interval)')
+        });
 
-        // Convert text to video
-        const result = await SpeechService.convertToVideo(selectedText, sourceFilePath, videoPath);
+        if (!interval) return;
+
+        const result = await SpeechService.convertToVideoWithVision(selectedText, sourceFilePath, videoPath, {
+            frameInterval: interval.value
+        });
 
         if (result.success && result.outputPaths && result.outputPaths.length > 0) {
             const outPath = result.outputPaths[0];
@@ -276,6 +342,78 @@ async function convertTextToVideo(args?: { text?: string, videoPath?: string }):
         }
     } catch (error) {
         console.error('Text to video conversion failed:', error);
+        vscode.window.showErrorMessage(
+            I18n.t('errors.videoConversionFailed', error instanceof Error ? error.message : 'Unknown error')
+        );
+    }
+}
+
+/**
+ * Open visual alignment editor for an existing vision project
+ */
+async function openAlignmentEditor(uri?: vscode.Uri): Promise<void> {
+    try {
+        let filePath: string | undefined;
+
+        if (uri) {
+            filePath = uri.fsPath;
+        } else {
+            const videoFiles = await vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: false,
+                canSelectMany: false,
+                openLabel: I18n.t('config.prompts.selectVideoFile'),
+                filters: {
+                    'Videos': ['mp4', 'mov', 'avi', 'mkv'],
+                    'Timing': ['json']
+                }
+            });
+
+            if (!videoFiles || videoFiles.length === 0 || !videoFiles[0]) {
+                return;
+            }
+            filePath = videoFiles[0].fsPath;
+        }
+
+        await SpeechService.openAlignmentEditorForVideo(filePath);
+    } catch (error) {
+        console.error('Failed to open alignment editor:', error);
+        vscode.window.showErrorMessage(
+            I18n.t('errors.alignmentEditorFailed', error instanceof Error ? error.message : 'Unknown error')
+        );
+    }
+}
+
+/**
+ * Synthesize video using an existing vision project (timing.json)
+ */
+async function synthesizeVideoFromProject(uri?: vscode.Uri): Promise<void> {
+    try {
+        let filePath: string | undefined;
+
+        if (uri) {
+            filePath = uri.fsPath;
+        } else {
+            const files = await vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: false,
+                canSelectMany: false,
+                openLabel: I18n.t('actions.ok'),
+                filters: {
+                    'Project files': ['mp4', 'mov', 'avi', 'mkv', 'json']
+                }
+            });
+
+            if (files && files.length > 0 && files[0]) {
+                filePath = files[0].fsPath;
+            }
+        }
+
+        if (!filePath) return;
+
+        await SpeechService.synthesizeVideoFromProject(filePath);
+    } catch (error) {
+        console.error('Failed to synthesize video from project:', error);
         vscode.window.showErrorMessage(
             I18n.t('errors.videoConversionFailed', error instanceof Error ? error.message : 'Unknown error')
         );

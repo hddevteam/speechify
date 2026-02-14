@@ -3,12 +3,18 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { SpeechifyConfig, VoiceSettings, AzureConfig, TestConfig } from '../types';
 
+export interface VisionConfigValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
 /**
  * Configuration manager for Speechify extension
  */
 export class ConfigManager {
   private static readonly CONFIG_SECTION = 'speechify';
   private static readonly TEST_CONFIG_FILE = 'test-config.json';
+  private static readonly AZURE_OPENAI_HOST_SUFFIX = 'openai.azure.com';
 
   /**
    * Get VS Code workspace configuration
@@ -21,7 +27,15 @@ export class ConfigManager {
       speechServicesRegion: config.get<string>('speechServicesRegion', 'eastus'),
       voiceName: config.get<string>('voiceName', 'zh-CN-YunyangNeural'),
       voiceGender: config.get<string>('voiceGender', 'Male'),
-      voiceStyle: config.get<string>('voiceStyle', 'friendly')
+      voiceStyle: config.get<string>('voiceStyle', 'friendly'),
+      voiceRole: config.get<string>('voiceRole', ''),
+      visionApiKey: config.get<string>('visionApiKey', ''),
+      visionEndpoint: config.get<string>('visionEndpoint', ''),
+      visionDeployment: config.get<string>('visionDeployment', 'gpt-5.2'),
+      refinementDeployment: config.get<string>('refinementDeployment', 'gpt-5.2'),
+      enableTransitions: config.get<boolean>('enableTransitions', true),
+      transitionType: config.get<string>('transitionType', 'fade'),
+      autoTrimVideo: config.get<boolean>('autoTrimVideo', true)
     };
   }
 
@@ -68,6 +82,105 @@ export class ConfigManager {
   }
 
   /**
+   * Get Vision configuration
+   */
+  public static getVisionConfig() {
+    const config = this.getWorkspaceConfig();
+    
+    if (config.visionApiKey) {
+        return {
+          apiKey: config.visionApiKey,
+          endpoint: this.normalizeVisionEndpoint(config.visionEndpoint || ''),
+          deployment: config.visionDeployment || 'gpt-5.2',
+          refinementDeployment: config.refinementDeployment || 'gpt-5.2'
+        };
+    }
+
+    const testConfig = this.loadTestConfig();
+    if (testConfig?.vision) {
+        return {
+            ...testConfig.vision,
+        endpoint: this.normalizeVisionEndpoint(testConfig.vision.endpoint),
+            refinementDeployment: testConfig.vision.refinementDeployment || testConfig.vision.deployment
+        };
+    }
+
+    return {
+      apiKey: '',
+      endpoint: '',
+      deployment: 'gpt-5.2',
+      refinementDeployment: 'gpt-5.2'
+    };
+  }
+
+  /**
+   * Normalize Azure OpenAI endpoint to origin format.
+   * Example: https://my-resource.openai.azure.com/
+   */
+  public static normalizeVisionEndpoint(endpoint: string): string {
+    const trimmed = (endpoint || '').trim();
+    if (!trimmed) {
+      return '';
+    }
+
+    try {
+      const parsed = new URL(trimmed);
+      return parsed.origin;
+    } catch {
+      return trimmed.replace(/\/+$/, '');
+    }
+  }
+
+  /**
+   * Validate vision settings for Azure OpenAI based workflows.
+   */
+  public static validateVisionSettings(config: {
+    apiKey?: string;
+    endpoint?: string;
+    deployment?: string;
+    refinementDeployment?: string;
+  }): VisionConfigValidationResult {
+    const errors: string[] = [];
+    const endpoint = (config.endpoint || '').trim();
+    const deployment = (config.deployment || '').trim();
+    const refinementDeployment = (config.refinementDeployment || '').trim();
+
+    if (!(config.apiKey || '').trim()) {
+      errors.push('missingApiKey');
+    }
+
+    if (!endpoint) {
+      errors.push('missingEndpoint');
+    } else {
+      if (!/^https:\/\//i.test(endpoint)) {
+        errors.push('invalidEndpointProtocol');
+      }
+
+      try {
+        const parsed = new URL(endpoint);
+        if (!parsed.hostname.endsWith(this.AZURE_OPENAI_HOST_SUFFIX)) {
+          errors.push('invalidEndpointHost');
+        }
+      } catch {
+        errors.push('invalidEndpointFormat');
+      }
+    }
+
+    if (!deployment) {
+      errors.push('missingVisionDeployment');
+    }
+
+    if (!refinementDeployment) {
+      errors.push('missingRefinementDeployment');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  /**
    * Load test configuration for development
    */
   public static loadTestConfig(): TestConfig | null {
@@ -102,11 +215,24 @@ export class ConfigManager {
     // Otherwise, try to load test config
     const testConfig = this.loadTestConfig();
     if (testConfig) {
+      // Extract region from endpoint if not provided
+      let region = 'eastus';
+      if (testConfig.endpoint) {
+        // Handle both https://region.api.cognitive.microsoft.com and https://region.tts.speech.microsoft.com
+        const match = testConfig.endpoint.match(/https:\/\/([^.]+)\.(api|tts)\./);
+        if (match && match[1]) {
+          region = match[1];
+        }
+      }
+
       return {
         subscriptionKey: testConfig.subscriptionKey,
         endpoint: testConfig.endpoint.includes('/cognitiveservices/v1') 
           ? testConfig.endpoint 
-          : `${testConfig.endpoint}/cognitiveservices/v1`
+          : testConfig.endpoint.endsWith('/') 
+            ? `${testConfig.endpoint}cognitiveservices/v1`
+            : `${testConfig.endpoint}/cognitiveservices/v1`,
+        region: region
       };
     }
 

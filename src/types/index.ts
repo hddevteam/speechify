@@ -42,6 +42,13 @@ export interface SpeechifyConfig {
   voiceGender: string;
   voiceStyle: string;
   voiceRole?: string;  // Optional role for roleplay voices
+  enableTransitions?: boolean;
+  transitionType?: string;
+  autoTrimVideo?: boolean;
+  visionApiKey?: string;
+  visionEndpoint?: string;
+  visionDeployment?: string;
+  refinementDeployment?: string;
 }
 
 /**
@@ -50,6 +57,12 @@ export interface SpeechifyConfig {
 export interface TestConfig {
   subscriptionKey: string;
   endpoint: string;
+  vision?: {
+    apiKey: string;
+    endpoint: string;
+    deployment: string;
+    refinementDeployment?: string;
+  };
 }
 
 /**

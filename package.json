@@ -3,7 +3,7 @@
   "displayName": "%speechify.displayName%",
   "description": "%speechify.description%",
   "icon": "images/icon-128.png",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "engines": {
     "vscode": "^1.82.0"
   },
@@ -69,6 +69,10 @@
         "title": "%speechify.command.configureAzure%"
       },
       {
+        "command": "extension.configureSpeechifyVisionSettings",
+        "title": "%speechify.command.configureVision%"
+      },
+      {
         "command": "extension.selectSpeechifyVoiceStyle",
         "title": "%speechify.command.selectStyle%"
       },
@@ -79,33 +83,93 @@
       {
         "command": "extension.convertToVideo",
         "title": "%speechify.command.convertToVideo%"
+      },
+      {
+        "command": "extension.openAlignmentEditor",
+        "title": "%speechify.command.alignmentEditor%"
+      },
+      {
+        "command": "extension.synthesizeVideoFromProject",
+        "title": "%speechify.command.synthesizeVideoFromProject%"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "speechify.submenu",
+        "label": "Speechify"
       }
     ],
     "menus": {
+      "editor/title": [
+        {
+          "command": "extension.openAlignmentEditor",
+          "group": "navigation",
+          "when": "resourceExtname == .json"
+        },
+        {
+          "command": "extension.synthesizeVideoFromProject",
+          "group": "navigation",
+          "when": "resourceExtname == .json"
+        }
+      ],
       "editor/context": [
         {
+          "submenu": "speechify.submenu",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "submenu": "speechify.submenu",
+          "group": "navigation",
+          "when": "resourceExtname == .mp4 || resourceExtname == .mov || resourceExtname == .json || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
+        }
+      ],
+      "speechify.submenu": [
+        {
           "command": "extension.speechify",
-          "group": "navigation"
-        },
-        {
-          "command": "extension.showSpeechifyVoiceSettings",
-          "group": "navigation"
-        },
-        {
-          "command": "extension.configureSpeechifyVoiceSettings",
-          "group": "navigation"
-        },
-        {
-          "command": "extension.selectSpeechifyVoiceStyle",
-          "group": "navigation"
-        },
-        {
-          "command": "extension.selectSpeechifyVoiceRole",
-          "group": "navigation"
+          "group": "1_core@1",
+          "when": "editorTextFocus || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
         },
         {
           "command": "extension.convertToVideo",
-          "group": "navigation"
+          "group": "2_video@1",
+          "when": "editorTextFocus || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
+        },
+        {
+          "command": "extension.openAlignmentEditor",
+          "group": "2_video@2",
+          "when": "resourceExtname == .mp4 || resourceExtname == .mov || resourceExtname == .json"
+        },
+        {
+          "command": "extension.synthesizeVideoFromProject",
+          "group": "2_video@3",
+          "when": "resourceExtname == .mp4 || resourceExtname == .mov || resourceExtname == .json"
+        },
+        {
+          "command": "extension.selectSpeechifyVoiceStyle",
+          "group": "3_settings@1",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.configureSpeechifyVoiceSettings",
+          "group": "3_settings@2",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.configureSpeechifyVisionSettings",
+          "group": "3_settings@2.5",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.selectSpeechifyVoiceRole",
+          "group": "3_settings@3",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.showSpeechifyVoiceSettings",
+          "group": "3_settings@4",
+          "when": "editorTextFocus"
         }
       ]
     },
@@ -141,6 +205,42 @@
           "type": "string",
           "default": "",
           "description": "%speechify.configuration.voiceRole%"
+        },
+        "speechify.enableTransitions": {
+          "type": "boolean",
+          "default": true,
+          "description": "%speechify.configuration.enableTransitions%"
+        },
+        "speechify.transitionType": {
+          "type": "string",
+          "default": "fade",
+          "enum": ["fade", "wipeleft", "slideleft"],
+          "description": "%speechify.configuration.transitionType%"
+        },
+        "speechify.autoTrimVideo": {
+          "type": "boolean",
+          "default": true,
+          "description": "%speechify.configuration.autoTrimVideo%"
+        },
+        "speechify.visionApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "%speechify.configuration.visionApiKey%"
+        },
+        "speechify.visionEndpoint": {
+          "type": "string",
+          "default": "",
+          "description": "%speechify.configuration.visionEndpoint%"
+        },
+        "speechify.visionDeployment": {
+          "type": "string",
+          "default": "gpt-5.2",
+          "description": "%speechify.configuration.visionDeployment%"
+        },
+        "speechify.refinementDeployment": {
+          "type": "string",
+          "default": "gpt-5.2",
+          "description": "%speechify.configuration.refinementDeployment%"
         }
       }
     }
@@ -155,6 +255,8 @@
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./scripts/test-runner.js",
+    "test:stable": "node ./scripts/test-runner.js",
+    "test:full": "SPEECHIFY_TEST_PROFILE=full node ./scripts/test-runner.js",
     "test:unit": "mocha out/test/suite/**/*.test.js",
     "test:integration": "node ./scripts/test-runner.js",
     "test:local": "node ./out/test/runTest.js"

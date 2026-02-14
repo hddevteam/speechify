@@ -12,8 +12,11 @@ const englishMessages: Messages = {
   'commands.selectRole.description': 'Select voice roleplay character for neural voices',
   'commands.configureAzure.title': 'Speechify: Configure Azure Settings',
   'commands.configureAzure.description': 'Configure Azure Speech Services credentials and region',
-  'commands.convertToVideo.title': 'Speechify: Convert Text to Video',
+  'commands.convertToVideo.title': 'Speechify: AI Visual Alignment Synthesis',
   'commands.convertToVideo.description': 'Convert text to speech and merge with a video file with subtitles',
+  'commands.alignmentEditor.title': 'Speechify: Open Alignment Editor',
+  'commands.alignmentEditor.description': 'Fine-tune precision timing with a visual timeline editor',
+  'commands.synthesizeVideoFromProject.title': 'Synthesize Final Video Now',
   
   // Notifications
   'notifications.success.speechGenerated': 'Speech generated successfully! Audio saved to: {0}',
@@ -23,8 +26,10 @@ const englishMessages: Messages = {
   'notifications.success.voiceStyleUpdated': 'Voice style updated successfully.',
   'notifications.success.voiceStyleChanged': 'Voice style updated to: {0}',
   'notifications.success.voiceRoleChanged': 'Voice role updated to: {0}',
+  'notifications.success.visionSettingsUpdated': 'Azure OpenAI Vision settings updated.',
   'notifications.success.azureSettingsUpdated': 'Azure Speech Services configuration updated.',
   'notifications.success.videoGenerated': 'Video generated successfully! Saved to: {0}',
+  'notifications.success.alignmentSaved': 'Alignment saved and refinement completed.',
   'notifications.info.noStylesAvailable': 'Voice "{0}" does not support different styles.',
   'notifications.info.noRolesAvailable': 'Voice "{0}" does not support different roles.',
   
@@ -40,6 +45,7 @@ const englishMessages: Messages = {
   'errors.failedToLoadVoiceSettings': 'Failed to load voice settings.',
   'errors.failedToConfigureVoice': 'Failed to configure voice settings.',
   'errors.failedToConfigureAzure': 'Failed to configure Azure settings.',
+  'errors.failedToConfigureVision': 'Failed to configure Azure OpenAI Vision settings.',
   'errors.failedToSelectStyle': 'Failed to select voice style.',
   'errors.currentVoiceNotFound': 'Current voice not found in the voice list.',
   'errors.voiceNoStyles': 'Voice "{0}" does not support different styles.',
@@ -54,6 +60,18 @@ const englishMessages: Messages = {
   'errors.openError': 'Failed to open audio file.',
   'errors.ffmpegNotAvailable': 'FFmpeg is not installed or not in your PATH.',
   'errors.videoConversionFailed': 'Failed to generate video: {0}',
+  'errors.alignmentEditorFailed': 'Failed to open alignment editor: {0}',
+  'errors.alignmentEditorCanceled': 'Alignment editor was closed before saving.',
+  'errors.alignmentEditorUnavailable': 'Alignment editor is unavailable in the current session.',
+  'errors.alignmentTimingNotFound': 'No timing.json found for this video.',
+  'errors.visionConfigurationIncomplete': 'Vision API configuration is incomplete. Please set visionApiKey and visionEndpoint.',
+  'errors.visionMissingFields': 'Azure OpenAI Vision settings are incomplete. Missing: {0}. Configure them in VS Code Settings (Speechify). You can find API key and endpoint in Azure Portal → Keys and Endpoint, and deployment names in Azure AI Foundry/Studio → Deployments.',
+  'errors.visionEndpointProtocol': 'Invalid visionEndpoint. It must start with https://. Example: {0}',
+  'errors.visionEndpointHost': 'Invalid visionEndpoint host. It should be an Azure OpenAI endpoint ending with openai.azure.com. Example: {0}',
+  'errors.visionEndpointFormat': 'Invalid visionEndpoint format. Example: {0}',
+  'errors.visionHttp401': 'Vision request failed with 401 (Unauthorized). Check whether visionApiKey matches the visionEndpoint resource and has proper access permission.',
+  'errors.visionHttp404': 'Vision request failed with 404 (Not Found). Check visionDeployment/refinementDeployment names and confirm the model is deployed in Azure AI Foundry/Studio.',
+  'errors.visionHttp429': 'Vision request failed with 429 (Too Many Requests). Retry later, reduce request frequency, switch region, or increase quota.',
   
   // Configuration
   'config.prompts.subscriptionKey': 'Enter your Azure Speech Services subscription key',
@@ -67,14 +85,28 @@ const englishMessages: Messages = {
   'config.prompts.selectStyle': 'Select voice style',
   'config.prompts.selectRole': 'Select voice role',
   'config.prompts.selectVideoFile': 'Select the background video file',
+  'config.prompts.selectConversionMode': 'Select video conversion mode',
+  'config.prompts.selectAnalysisDepth': 'Select AI analysis depth (frame interval)',
+  'config.prompts.visionApiKey': 'Enter Azure OpenAI API key (Vision)',
+  'config.prompts.visionApiKeyPlaceholder': 'API key from Azure Portal → Keys and Endpoint',
+  'config.prompts.visionEndpoint': 'Enter Azure OpenAI endpoint (Vision)',
+  'config.prompts.visionEndpointPlaceholder': 'https://<resource>.openai.azure.com',
+  'config.prompts.visionDeployment': 'Enter deployment name for Vision timing analysis',
+  'config.prompts.visionDeploymentPlaceholder': 'Recommended: gpt-5-mini',
+  'config.prompts.refinementDeployment': 'Enter deployment name for script refinement',
+  'config.prompts.refinementDeploymentPlaceholder': 'Recommended: gpt-5.2',
   
   // Progress
   'progress.convertingToSpeech': 'Converting text to speech...',
+  'progress.convertingToVideo': 'Generating video with speech and subtitles...',
+  'progress.refiningScript': 'Refining script with AI...',
+  'progress.analyzingVideo': 'Analyzing video content...',
+  'progress.synthesizingAudio': 'Synthesizing audio segments...',
   'progress.processingChunk': 'Processing chunk {0} of {1}',
   'progress.loadingVoiceList': 'Loading voice list...',
   'progress.configuringSettings': 'Configuring settings...',
-  'progress.convertingToVideo': 'Generating video with speech and subtitles...',
   'progress.muxingVideo': 'Merging audio and subtitles into video...',
+  'progress.startingSynthesis': 'Starting Synthesis...',
   
   // Actions
   'actions.configureNow': 'Configure Now',
@@ -85,7 +117,13 @@ const englishMessages: Messages = {
   'actions.configureAzure': 'Configure Azure',
   'actions.cancel': 'Cancel',
   'actions.ok': 'OK',
-  'actions.retry': 'Retry',
+  'actions.retry': 'Retry',  'actions.previewVoice': 'Preview',  'actions.visionAlignment': 'AI Visual Alignment',
+  'actions.standardConversion': 'Standard',
+  'actions.refine': 'Refine',
+  'actions.saveAndRefine': 'Save & Refine',
+  'actions.resetToAi': 'Reset to AI Suggestion',
+  'actions.restoreOriginal': 'Restore Original',
+  'actions.restoring': 'Restoring...',
   
   // Settings
   'settings.voiceName': 'Voice Name',
@@ -122,7 +160,44 @@ const englishMessages: Messages = {
   'messages.processingComplete': 'Text to speech conversion completed.',
   'messages.audioFilesSaved': 'Audio files have been saved successfully.',
   'messages.extensionActivated': 'Speechify extension is now active!',
-  'messages.extensionDeactivated': 'Speechify extension is now deactivated!'
+  'messages.extensionDeactivated': 'Speechify extension is now deactivated!',
+  'messages.alignmentEditorCanceled': 'Alignment editor closed, changes auto-synced.',
+
+  // Alignment Editor
+  'alignment.editorTitle': 'Speechify Alignment Editor',
+  'alignment.timeline': 'Timeline',
+  'alignment.segments': 'Segment',
+  'alignment.startTime': 'Start Time',
+  'alignment.currentTime': 'Current Time',
+  'alignment.setToCurrent': 'Set to Current',
+  'alignment.segmentTitle': 'Segment Title',
+  'alignment.reservedDuration': 'Reserved',
+  'alignment.actualDuration': 'Actual',
+  'alignment.strategy': 'Strategy',
+  'alignment.strategy.trim': 'Trim Video (Default)',
+  'alignment.strategy.speed_total': 'Speed Total',
+  'alignment.strategy.speed_overflow': 'Speed Overflow',
+  'alignment.strategy.freeze': 'Wait / Freeze',
+  'alignment.speedFactor': 'Speed Factor',
+  'alignment.seeking': 'Seeking frame...',
+  'alignment.seekingDetail': 'Large video or sparse keyframes may take a moment.',
+
+  // Synthesis Modes
+  'modes.compact': 'Compact Mode',
+  'modes.compactDesc': 'Auto-trim video + Transitions (Best for Demos)',
+  'modes.original': 'Original Duration',
+  'modes.originalDesc': 'Keep original video length, no trimming',
+  'modes.custom': 'Use Global Settings',
+  'modes.customDesc': 'Use preferences from VS Code settings',
+  'prompts.selectSynthesisMode': 'Select synthesis & rendering mode',
+
+  // Vision Precision
+  'vision.precision.high.label': 'High Precision (1s)',
+  'vision.precision.high.desc': 'Frame-by-frame analysis for best sync',
+  'vision.precision.medium.label': 'Standard (2s)',
+  'vision.precision.medium.desc': 'Balanced speed and accuracy',
+  'vision.precision.low.label': 'Fast (5s)',
+  'vision.precision.low.desc': 'Quick analysis for rough scripts'
 };
 
 export default englishMessages;

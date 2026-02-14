@@ -12,8 +12,11 @@ const chineseMessages: Messages = {
   'commands.selectRole.description': '为神经语音选择角色扮演角色',
   'commands.configureAzure.title': 'Speechify: 配置 Azure 设置',
   'commands.configureAzure.description': '配置 Azure 语音服务凭据和区域',
-  'commands.convertToVideo.title': 'Speechify: 转换文字为视频',
+  'commands.convertToVideo.title': 'Speechify: AI 视觉对齐合成',
   'commands.convertToVideo.description': '将文字转换为语音，并与视频文件合并生成带字幕的视频',
+  'commands.alignmentEditor.title': 'Speechify: 打开对齐编辑器',
+  'commands.alignmentEditor.description': '通过可视化时间轴微调精准对齐',
+  'commands.synthesizeVideoFromProject.title': '立即合成最终视频',
   
   // Notifications
   'notifications.success.speechGenerated': '语音生成成功！音频已保存到：{0}',
@@ -23,8 +26,10 @@ const chineseMessages: Messages = {
   'notifications.success.voiceStyleUpdated': '语音风格更新成功。',
   'notifications.success.voiceStyleChanged': '语音风格已更新为：{0}',
   'notifications.success.voiceRoleChanged': '语音角色已更新为：{0}',
+  'notifications.success.visionSettingsUpdated': 'Azure OpenAI Vision 配置已更新。',
   'notifications.success.azureSettingsUpdated': 'Azure 语音服务配置已更新。',
   'notifications.success.videoGenerated': '视频生成成功！保存至: {0}',
+  'notifications.success.alignmentSaved': '对齐已保存并完成脚本精炼。',
   'notifications.info.noStylesAvailable': '语音 "{0}" 不支持不同的风格。',
   'notifications.info.noRolesAvailable': '语音 "{0}" 不支持不同的角色。',
   
@@ -40,6 +45,7 @@ const chineseMessages: Messages = {
   'errors.failedToLoadVoiceSettings': '加载语音设置失败。',
   'errors.failedToConfigureVoice': '配置语音设置失败。',
   'errors.failedToConfigureAzure': '配置 Azure 设置失败。',
+  'errors.failedToConfigureVision': '配置 Azure OpenAI Vision 设置失败。',
   'errors.failedToSelectStyle': '选择语音风格失败。',
   'errors.currentVoiceNotFound': '在语音列表中找不到当前语音。',
   'errors.voiceNoStyles': '语音 "{0}" 不支持不同的风格。',
@@ -54,6 +60,18 @@ const chineseMessages: Messages = {
   'errors.openError': '打开音频文件失败。',
   'errors.ffmpegNotAvailable': '未安装 FFmpeg 或未将其加入 PATH 环境变量。',
   'errors.videoConversionFailed': '生成视频失败: {0}',
+  'errors.alignmentEditorFailed': '打开对齐编辑器失败: {0}',
+  'errors.alignmentEditorCanceled': '对齐编辑器在保存前被关闭。',
+  'errors.alignmentEditorUnavailable': '当前会话无法打开对齐编辑器。',
+  'errors.alignmentTimingNotFound': '未找到 timing.json。',
+  'errors.visionConfigurationIncomplete': '视觉分析配置不完整，请设置 visionApiKey 和 visionEndpoint。',
+  'errors.visionMissingFields': 'Azure OpenAI Vision 配置不完整，缺少：{0}。请到 VS Code 设置（Speechify）中填写。API Key 和 Endpoint 可在 Azure 门户 Keys and Endpoint 获取，Deployment 名称在 Azure AI Foundry/Studio 的 Deployments 查看。',
+  'errors.visionEndpointProtocol': 'visionEndpoint 格式不正确，必须以 https:// 开头。示例：{0}',
+  'errors.visionEndpointHost': 'visionEndpoint 域名不正确，应为以 openai.azure.com 结尾的 Azure OpenAI 资源地址。示例：{0}',
+  'errors.visionEndpointFormat': 'visionEndpoint 不是有效 URL。示例：{0}',
+  'errors.visionHttp401': 'Vision 请求返回 401（未授权）。请检查 visionApiKey 是否与 visionEndpoint 对应同一资源，并确认权限有效。',
+  'errors.visionHttp404': 'Vision 请求返回 404（未找到）。请检查 visionDeployment/refinementDeployment 名称是否正确，并确认模型已在 Azure AI Foundry/Studio 部署。',
+  'errors.visionHttp429': 'Vision 请求返回 429（请求过多）。请稍后重试，或降低频率、切换区域、提升配额。',
   
   // Configuration
   'config.prompts.subscriptionKey': '请输入您的 Azure 语音服务订阅密钥',
@@ -67,14 +85,26 @@ const chineseMessages: Messages = {
   'config.prompts.selectStyle': '选择语音风格',
   'config.prompts.selectRole': '选择语音角色',
   'config.prompts.selectVideoFile': '选择背景视频文件',
-  
+  'config.prompts.selectConversionMode': '选择视频生成模式',  'config.prompts.selectAnalysisDepth': '选择 AI 分析精度 (扫描间隔)',  
+  'config.prompts.visionApiKey': '请输入 Azure OpenAI API Key（Vision）',
+  'config.prompts.visionApiKeyPlaceholder': '来源：Azure 门户 → Keys and Endpoint',
+  'config.prompts.visionEndpoint': '请输入 Azure OpenAI Endpoint（Vision）',
+  'config.prompts.visionEndpointPlaceholder': 'https://<resource>.openai.azure.com',
+  'config.prompts.visionDeployment': '请输入用于画面时序分析的 Deployment 名称',
+  'config.prompts.visionDeploymentPlaceholder': '推荐：gpt-5-mini',
+  'config.prompts.refinementDeployment': '请输入用于文案精炼的 Deployment 名称',
+  'config.prompts.refinementDeploymentPlaceholder': '推荐：gpt-5.2',
   // Progress
   'progress.convertingToSpeech': '正在转换文字为语音...',
+  'progress.convertingToVideo': '正在生成带语音和字幕的视频...',
+  'progress.refiningScript': '正在使用 AI 精炼脚本...',
+  'progress.analyzingVideo': '正在分析视频内容...',
+  'progress.synthesizingAudio': '正在合成音频分段...',
   'progress.processingChunk': '正在处理第 {0} 段，共 {1} 段',
   'progress.loadingVoiceList': '正在加载语音列表...',
   'progress.configuringSettings': '正在配置设置...',
-  'progress.convertingToVideo': '正在生成带语音和字幕的视频...',
   'progress.muxingVideo': '正在将音频和字幕合并进视频...',
+  'progress.startingSynthesis': '正在开始合成...',
   
   // Actions
   'actions.configureNow': '立即配置',
@@ -86,6 +116,14 @@ const chineseMessages: Messages = {
   'actions.cancel': '取消',
   'actions.ok': '确定',
   'actions.retry': '重试',
+  'actions.previewVoice': '试听',
+  'actions.visionAlignment': 'AI 视觉对齐',
+  'actions.standardConversion': '标准模式',
+  'actions.refine': '精炼',
+  'actions.saveAndRefine': '保存并精炼',
+  'actions.resetToAi': '恢复 AI 建议',
+  'actions.restoreOriginal': '还原原文',
+  'actions.restoring': '还原中...',
   
   // Settings
   'settings.voiceName': '语音名称',
@@ -122,7 +160,44 @@ const chineseMessages: Messages = {
   'messages.processingComplete': '文字转语音转换完成。',
   'messages.audioFilesSaved': '音频文件已成功保存。',
   'messages.extensionActivated': 'Speechify 扩展现已激活！',
-  'messages.extensionDeactivated': 'Speechify 扩展现已停用！'
+  'messages.extensionDeactivated': 'Speechify 扩展现已停用！',
+  'messages.alignmentEditorCanceled': '对齐编辑器已关闭，改动已自动同步。',
+
+  // Alignment Editor
+  'alignment.editorTitle': 'Speechify 对齐编辑器',
+  'alignment.timeline': '时间轴',
+  'alignment.segments': '分段',
+  'alignment.startTime': '开始时间',
+  'alignment.currentTime': '当前时间',
+  'alignment.setToCurrent': '设为当前时间',
+  'alignment.segmentTitle': '分段标题',
+  'alignment.reservedDuration': '预留',
+  'alignment.actualDuration': '实际',
+  'alignment.strategy': '对齐策略',
+  'alignment.strategy.trim': '自动裁剪 (默认)',
+  'alignment.strategy.speed_total': '整体加速',
+  'alignment.strategy.speed_overflow': '超出部分加速',
+  'alignment.strategy.freeze': '静止等待',
+  'alignment.speedFactor': '加速倍率',
+  'alignment.seeking': '正在定位画面...',
+  'alignment.seekingDetail': '大视频或关键帧稀疏时会稍慢，请稍候。',
+
+  // Synthesis Modes
+  'modes.compact': '紧凑模式',
+  'modes.compactDesc': '自动裁切空白 + 转场动画 (推荐 Demo 使用)',
+  'modes.original': '原始时长',
+  'modes.originalDesc': '保留视频原始时长，不进行裁切',
+  'modes.custom': '使用全局设置',
+  'modes.customDesc': '使用 VS Code 设置面板中的配置',
+  'prompts.selectSynthesisMode': '选择视频合成与渲染模式',
+
+  // Vision Precision
+  'vision.precision.high.label': '高精度 (1秒/帧)',
+  'vision.precision.high.desc': '逐帧分析以获得最佳同步效果',
+  'vision.precision.medium.label': '标准 (2秒/帧)',
+  'vision.precision.medium.desc': '速度与准确度的平衡点',
+  'vision.precision.low.label': '快速 (5秒/帧)',
+  'vision.precision.low.desc': '粗略脚本的快速分析模式'
 };
 
 export default chineseMessages;

@@ -1,0 +1,716 @@
+:root {
+  --vscode-bg: var(--vscode-editor-background, #1e1e1e);
+  --vscode-fg: var(--vscode-editor-foreground, #cccccc);
+  --vscode-border: var(--vscode-editorWidget-border, #444);
+  --vscode-accent: #f97316;
+  --vscode-accent-hover: #fb923c;
+  --segment-bg: rgba(255, 255, 255, 0.1); /* Muted default */
+  --segment-border: rgba(255, 255, 255, 0.2);
+  --segment-modified-bg: rgba(59, 130, 246, 0.4); /* Vibrant blue for modified */
+  --segment-modified-border: rgba(59, 130, 246, 0.9);
+  --segment-selected: rgba(249, 115, 22, 0.7);
+  --segment-selected-border: #f97316;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--vscode-bg);
+  color: var(--vscode-fg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--vscode-bg);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.loading-overlay.hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-text-pulse {
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0.8;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+
+.spinner {
+  width: 44px;
+  height: 44px;
+  border: 3px solid rgba(249, 115, 22, 0.1);
+  border-top-color: var(--vscode-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* Video Section */
+.video-section {
+  flex: 0 0 500px; /* Force a base height to allow resizing */
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  border-bottom: 2px solid var(--vscode-border);
+}
+
+.resizer {
+  height: 8px;
+  background: var(--vscode-bg);
+  border-top: 1px solid var(--vscode-border);
+  border-bottom: 1px solid var(--vscode-border);
+  cursor: ns-resize;
+  position: relative;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.resizer:hover {
+  background: var(--vscode-border);
+}
+
+.resizer-handle {
+  width: 32px;
+  height: 4px;
+  background: var(--vscode-border);
+  border-radius: 2px;
+}
+
+.resizer:hover .resizer-handle {
+  background: var(--vscode-accent);
+}
+
+.narrator-overlay {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #fff;
+  font-size: 11px;
+}
+
+.seek-overlay {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: opacity 0.18s ease;
+}
+
+.seek-overlay.hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.seek-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+.seek-content {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.seek-title {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.seek-detail {
+  font-size: 10px;
+  opacity: 0.82;
+}
+
+.narrator-overlay:hover {
+  background: rgba(0, 0, 0, 0.7);
+  border-color: var(--vscode-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.narrator-svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.9;
+}
+
+#narratorName {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.video-shadow {
+  box-shadow: 0 30px 60px -12px rgb(0 0 0 / 0.8);
+  max-width: 100%;
+  max-height: 100%;
+}
+
+video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Controls Section */
+.controls-section {
+  flex: 1; 
+  display: flex;
+  flex-direction: column;
+  background: var(--vscode-bg);
+  min-height: 200px;
+  box-shadow: 0 -10px 30px rgba(0,0,0,0.3);
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--vscode-border);
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.5;
+}
+
+.selection-badge {
+  font-size: 10px;
+  background: var(--vscode-accent);
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.timeline-container {
+  padding: 0.4rem 1.5rem 0.6rem 1.5rem;
+  background: transparent;
+}
+
+.ruler {
+  position: relative;
+  height: 28px; /* Slightly increased for label space */
+  margin-bottom: 2px;
+}
+
+.marker {
+  position: absolute;
+  top: 18px; /* Offset line further down from labels */
+  bottom: 0;
+  width: 1px;
+  background: var(--vscode-border);
+  transition: all 0.2s;
+}
+
+.marker.selected {
+  background: var(--vscode-accent);
+  width: 2px;
+  z-index: 10;
+  top: 12px; /* Selected line still stands out but won't hit text */
+}
+
+.marker-label {
+  position: absolute;
+  top: -16px; /* Moved further up to avoid overlap */
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 800;
+  opacity: 0.7;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  /* Add text shadow as a halo to stay readable over the marker line */
+  text-shadow: 0 0 4px var(--vscode-bg), 0 0 2px var(--vscode-bg);
+}
+
+.marker.selected .marker-label {
+  opacity: 1;
+  color: var(--vscode-accent);
+  font-size: 11px;
+}
+
+.timeline-track {
+  position: relative;
+  height: 60px; /* More compact */
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  border: 1px solid var(--vscode-border);
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.playhead {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #fff;
+  z-index: 50;
+  pointer-events: none;
+  box-shadow: 0 0 15px rgba(255,255,255,0.8);
+  will-change: transform;
+}
+
+.segment {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 3px;
+  background: var(--segment-bg);
+  border: 1px solid var(--segment-border);
+  cursor: pointer;
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  transition: all 0.2s;
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+.segment:hover {
+  background: rgba(59, 130, 246, 0.45);
+}
+
+.segment.selected {
+  background: var(--segment-selected);
+  border-color: var(--segment-selected-border);
+  border-width: 2px;
+  z-index: 20;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.segment.modified {
+  background: var(--segment-modified-bg);
+  border-color: var(--segment-modified-border);
+}
+
+.segment.modified::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #60a5fa;
+  box-shadow: 0 0 5px rgba(96, 165, 250, 0.8);
+}
+
+.segment.active {
+  cursor: grabbing;
+  opacity: 0.95;
+  transform: scaleY(1.05);
+}
+
+.segment-title-text {
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  color: #fff;
+}
+
+.segment-time {
+  font-size: 9px;
+  font-weight: 700;
+  opacity: 0.9;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Info Section */
+.info-section {
+  flex: 1;
+  padding: 0 1.5rem 1rem 1.5rem;
+  overflow-y: auto;
+}
+
+.segment-card {
+  max-width: 850px;
+  margin: 0 auto;
+}
+
+.card-header-flex {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.title-input-pro {
+  flex: 1;
+  background-color: var(--vscode-bg);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--vscode-fg);
+  transition: all 0.2s;
+}
+
+.title-input-pro:focus {
+  outline: none;
+  border-color: var(--vscode-accent);
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.2);
+}
+
+.time-badge-pro {
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--vscode-border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.time-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.time-label {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+}
+
+.time-value {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--vscode-accent);
+}
+
+.warning-text {
+  color: #ef4444 !important; /* Red for warning */
+}
+
+.success-text {
+  color: #22c55e !important; /* Green for okay */
+}
+
+.pulse-warn {
+  animation: pulse-warn-frame 2s infinite;
+}
+
+@keyframes pulse-warn-frame {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.time-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--vscode-border);
+}
+
+.action-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--vscode-border);
+  margin: 0 4px;
+}
+
+.play-voice-btn {
+  background: var(--vscode-accent);
+  border: none;
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.play-voice-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+}
+
+.play-voice-btn.synthesizing {
+  background: var(--vscode-border);
+  cursor: wait;
+}
+
+.play-voice-btn.playing {
+  background: #22c55e; /* Green when playing */
+  animation: pulse-ring 1.25s infinite;
+}
+
+.play-voice-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+.icon-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.content-body-pro-input {
+  width: 100%;
+  min-height: 120px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid transparent;
+  border-left: 3px solid var(--vscode-accent);
+  border-radius: 0 4px 4px 0;
+  color: var(--vscode-fg);
+  line-height: 1.6;
+  font-size: 15px;
+  padding: 0.75rem 1.25rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.content-body-pro-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.07);
+  border-left-width: 5px;
+}
+
+.border-modified {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.15); /* Increased background visibility */
+  border-left: 5px solid #3b82f6; /* Even stronger indicator */
+  box-shadow: inset 4px 0 10px rgba(59, 130, 246, 0.1);
+}
+
+.editor-container {
+  position: relative;
+}
+
+.content-body-pro {
+  color: var(--vscode-fg); /* Fixed contrast: use VS Code foreground */
+  line-height: 1.6;
+  font-size: 15px;
+  font-style: normal; /* Removed italic */
+  border-left: 3px solid var(--vscode-accent);
+  padding: 0.4rem 0 0.4rem 1.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 0 4px 4px 0;
+  opacity: 0.9;
+}
+
+/* Footer & Buttons */
+.footer-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn {
+  padding: 0.35rem 1rem;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-ghost {
+  border: none;
+  background: transparent;
+  color: var(--vscode-fg);
+  opacity: 0.6;
+}
+
+.btn-ghost:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-primary {
+  background: var(--vscode-accent);
+  color: #fff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--vscode-accent-hover);
+  transform: scale(1.05);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-warn {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.btn-warn:hover:not(:disabled) {
+  background: #dc2626;
+  transform: scale(1.05);
+}
+
+.btn-sm {
+  padding: 0.2rem 0.6rem;
+  font-size: 11px;
+}
+
+.strategy-select-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--vscode-border);
+}
+
+.strategy-label {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+}
+
+.strategy-select {
+  background: transparent;
+  border: none;
+  color: var(--vscode-fg);
+  font-size: 11px;
+  font-weight: 800;
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.strategy-select option {
+  background: var(--vscode-bg);
+  color: var(--vscode-fg);
+}
+
+.factor-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+  background: rgba(249, 115, 22, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.factor-container.hide {
+  display: none;
+}
+
+.factor-x {
+  font-size: 10px;
+  font-weight: bold;
+  color: var(--vscode-accent);
+}
+
+.factor-input {
+  width: 32px;
+  background: transparent;
+  border: none;
+  color: var(--vscode-fg);
+  font-size: 11px;
+  font-weight: bold;
+  padding: 0;
+  outline: none;
+  text-align: center;
+}
+
+/* Remove arrows from number input */
+.factor-input::-webkit-inner-spin-button,
+.factor-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

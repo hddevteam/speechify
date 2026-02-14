@@ -15,6 +15,9 @@ export interface Messages {
   'commands.configureAzure.description': string;
   'commands.convertToVideo.title': string;
   'commands.convertToVideo.description': string;
+  'commands.alignmentEditor.title': string;
+  'commands.alignmentEditor.description': string;
+  'commands.synthesizeVideoFromProject.title': string;
   
   // Notifications
   'notifications.success.speechGenerated': string;
@@ -25,7 +28,9 @@ export interface Messages {
   'notifications.success.voiceStyleUpdated': string;
   'notifications.success.voiceStyleChanged': string;
   'notifications.success.voiceRoleChanged': string;
+  'notifications.success.visionSettingsUpdated': string;
   'notifications.success.videoGenerated': string;
+  'notifications.success.alignmentSaved': string;
   'notifications.info.noStylesAvailable': string;
   'notifications.info.noRolesAvailable': string;
   
@@ -41,6 +46,7 @@ export interface Messages {
   'errors.failedToLoadVoiceSettings': string;
   'errors.failedToConfigureVoice': string;
   'errors.failedToConfigureAzure': string;
+  'errors.failedToConfigureVision': string;
   'errors.failedToSelectStyle': string;
   'errors.currentVoiceNotFound': string;
   'errors.voiceNoStyles': string;
@@ -55,6 +61,18 @@ export interface Messages {
   'errors.openError': string;
   'errors.ffmpegNotAvailable': string;
   'errors.videoConversionFailed': string;
+  'errors.alignmentEditorFailed': string;
+  'errors.alignmentEditorCanceled': string;
+  'errors.alignmentEditorUnavailable': string;
+  'errors.alignmentTimingNotFound': string;
+  'errors.visionConfigurationIncomplete': string;
+  'errors.visionMissingFields': string;
+  'errors.visionEndpointProtocol': string;
+  'errors.visionEndpointHost': string;
+  'errors.visionEndpointFormat': string;
+  'errors.visionHttp401': string;
+  'errors.visionHttp404': string;
+  'errors.visionHttp429': string;
   
   // Configuration
   'config.prompts.subscriptionKey': string;
@@ -68,14 +86,28 @@ export interface Messages {
   'config.prompts.selectStyle': string;
   'config.prompts.selectRole': string;
   'config.prompts.selectVideoFile': string;
+  'config.prompts.selectConversionMode': string;
+  'config.prompts.selectAnalysisDepth': string;
+  'config.prompts.visionApiKey': string;
+  'config.prompts.visionApiKeyPlaceholder': string;
+  'config.prompts.visionEndpoint': string;
+  'config.prompts.visionEndpointPlaceholder': string;
+  'config.prompts.visionDeployment': string;
+  'config.prompts.visionDeploymentPlaceholder': string;
+  'config.prompts.refinementDeployment': string;
+  'config.prompts.refinementDeploymentPlaceholder': string;
   
   // Progress
   'progress.convertingToSpeech': string;
   'progress.convertingToVideo': string;
+  'progress.refiningScript': string;
+  'progress.analyzingVideo': string;
+  'progress.synthesizingAudio': string;
   'progress.processingChunk': string;
   'progress.loadingVoiceList': string;
   'progress.configuringSettings': string;
   'progress.muxingVideo': string;
+  'progress.startingSynthesis': string;
   
   // Actions
   'actions.later': string;
@@ -87,6 +119,14 @@ export interface Messages {
   'actions.cancel': string;
   'actions.ok': string;
   'actions.retry': string;
+  'actions.previewVoice': string;
+  'actions.visionAlignment': string;
+  'actions.standardConversion': string;
+  'actions.refine': string;
+  'actions.saveAndRefine': string;
+  'actions.resetToAi': string;
+  'actions.restoreOriginal': string;
+  'actions.restoring': string;
   
   // Settings
   'settings.voiceName': string;
@@ -124,6 +164,43 @@ export interface Messages {
   'messages.audioFilesSaved': string;
   'messages.extensionActivated': string;
   'messages.extensionDeactivated': string;
+  'messages.alignmentEditorCanceled': string;
+  
+  // Alignment Editor
+  'alignment.editorTitle': string;
+  'alignment.timeline': string;
+  'alignment.segments': string;
+  'alignment.startTime': string;
+  'alignment.currentTime': string;
+  'alignment.setToCurrent': string;
+  'alignment.segmentTitle': string;
+  'alignment.reservedDuration': string;
+  'alignment.actualDuration': string;
+  'alignment.strategy': string;
+  'alignment.strategy.trim': string;
+  'alignment.strategy.speed_total': string;
+  'alignment.strategy.speed_overflow': string;
+  'alignment.strategy.freeze': string;
+  'alignment.speedFactor': string;
+  'alignment.seeking': string;
+  'alignment.seekingDetail': string;
+  
+  // Synthesis Modes
+  'modes.compact': string;
+  'modes.compactDesc': string;
+  'modes.original': string;
+  'modes.originalDesc': string;
+  'modes.custom': string;
+  'modes.customDesc': string;
+  'prompts.selectSynthesisMode': string;
+  
+  // Vision Precision
+  'vision.precision.high.label': string;
+  'vision.precision.high.desc': string;
+  'vision.precision.medium.label': string;
+  'vision.precision.medium.desc': string;
+  'vision.precision.low.label': string;
+  'vision.precision.low.desc': string;
 }
 
 /**

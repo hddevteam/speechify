@@ -16,9 +16,14 @@ export class AzureSpeechService {
   public static createSSML(text: string, voice: VoiceSettings): string {
     const locale = voice.locale || this.getLocaleFromVoiceName(voice.name);
     
+    // Fix common pronunciation issues
+    // 1. Fix "AI" read as "爱" (ài) in Chinese locales by adding a space between letters
+    // We use word boundaries (\b) to ensure we only catch standalone "AI" and not "MAIN", "AID", etc.
+    const processedText = text.replace(/\bAI\b/g, 'A I');
+
     return `<speak version='1.0' xml:lang='${locale}'>
                 <voice xml:lang='${locale}' xml:gender='${voice.gender}' name='${voice.name}' style='${voice.style}'>
-                    ${this.escapeXml(text)}
+                    ${this.escapeXml(processedText)}
                 </voice>
             </speak>`;
   }
@@ -76,7 +81,7 @@ export class AzureSpeechService {
     voice: VoiceSettings,
     config: AzureConfig
   ): Promise<Buffer> {
-    let lastError: any;
+    let lastError: unknown;
 
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
@@ -149,14 +154,25 @@ export class AzureSpeechService {
     voice: VoiceSettings,
     config: AzureConfig
   ): Promise<{ audioBuffer: Buffer; boundaries: WordBoundary[] }> {
-    const speechConfig = sdk.SpeechConfig.fromSubscription(config.subscriptionKey, config.region || 'eastus');
+    console.log(`Starting synthesis with boundaries for text: "${text.substring(0, 50)}"`);
+    const region = config.region || 'eastus';
+    
+    // Get token first for more robust auth
+    const token = await this.getAuthToken(config);
+    console.log(`Got auth token for region: ${region}`);
+    
+    const speechConfig = sdk.SpeechConfig.fromAuthorizationToken(token, region);
     speechConfig.speechSynthesisVoiceName = voice.name;
     speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio16Khz128KBitRateMonoMp3;
 
-    const synthesizer = new sdk.SpeechSynthesizer(speechConfig, undefined);
+    // Use pull stream to avoid audio device issues
+    const pcmStream = sdk.AudioOutputStream.createPullStream();
+    const audioConfig = sdk.AudioConfig.fromStreamOutput(pcmStream);
+    
+    const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
     const boundaries: WordBoundary[] = [];
 
-    synthesizer.wordBoundary = (_s, e) => {
+    synthesizer.wordBoundary = (_s, e): void => {
       boundaries.push({
         text: e.text,
         audioOffset: e.audioOffset / 10000, // Convert ticks to milliseconds
@@ -167,20 +183,31 @@ export class AzureSpeechService {
     const ssml = this.createSSML(text, voice);
 
     return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        synthesizer.close();
+        reject(new Error('Speech synthesis timed out after 60 seconds'));
+      }, 60000);
+
+      console.log('Calling speakSsmlAsync...');
       synthesizer.speakSsmlAsync(
         ssml,
         result => {
+          clearTimeout(timeout);
           if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
+            console.log(`Synthesis completed. Got ${result.audioData.byteLength} bytes and ${boundaries.length} boundaries.`);
             resolve({
               audioBuffer: Buffer.from(result.audioData),
               boundaries: boundaries
             });
           } else {
+            console.error('Synthesis failed:', result.errorDetails);
             reject(new Error(`Synthesis failed: ${result.errorDetails}`));
           }
           synthesizer.close();
         },
         err => {
+          clearTimeout(timeout);
+          console.error('Speech SDK error:', err);
           reject(err);
           synthesizer.close();
         }
@@ -257,7 +284,7 @@ export class AzureSpeechService {
   /**
    * Create structured error
    */
-  private static createError(code: string, message: string, details?: any): SpeechifyError {
+  private static createError(code: string, message: string, details?: unknown): SpeechifyError {
     return {
       code,
       message,

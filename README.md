@@ -140,6 +140,28 @@ Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/item
 - The `test-config.json` file is automatically ignored by Git for security
 - Our CI pipeline includes automated security checks to prevent accidental key exposure
 
+### 2.1 Azure OpenAI Configuration (Vision)
+
+Speechify's AI Vision alignment requires Azure OpenAI settings in VS Code (`speechify.visionApiKey`, `speechify.visionEndpoint`, `speechify.visionDeployment`, `speechify.refinementDeployment`).
+
+Fastest setup path:
+1. Create or open an **Azure OpenAI** resource.
+2. In Azure Portal, open **Keys and Endpoint** and copy:
+  - Key → `speechify.visionApiKey`
+  - Endpoint (example: `https://<resource>.openai.azure.com`) → `speechify.visionEndpoint`
+3. In Azure AI Foundry/Studio, open **Deployments** and copy deployment names:
+  - Vision analysis model → `speechify.visionDeployment`
+  - Script refinement model → `speechify.refinementDeployment`
+4. Paste values into VS Code Settings (`Speechify`).
+
+Recommended model strategies:
+
+| Strategy | visionDeployment | refinementDeployment | When to use |
+|---|---|---|---|
+| Quality first | `gpt-5.2` | `gpt-5.2` | Best alignment quality, higher cost/latency |
+| Cost/speed first | `gpt-5-mini` | `gpt-5-mini` | Faster and cheaper runs |
+| Hybrid (recommended) | `gpt-5-mini` | `gpt-5.2` | Balanced cost + better rewrite quality |
+
 ### 3. Voice Configuration
 1. Open Command Palette
 2. Run "Speechify: Configure Voice Settings"
