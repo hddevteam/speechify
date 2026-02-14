@@ -105,6 +105,9 @@
         init() {
             this.setupScrollAnimations();
             this.setupInteractiveElements();
+            this.setupNavbarScrollState();
+            this.setupCardSpotlight();
+            this.setupButtonRipples();
         },
         
         setupScrollAnimations() {
@@ -116,14 +119,19 @@
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
-                        entry.target.classList.add('fade-in-up');
+                        entry.target.classList.add('is-visible');
                     }
                 });
             }, observerOptions);
             
             // Observe elements for animation
-            const animatableElements = document.querySelectorAll('.feature-card, .install-step, .demo-video');
-            animatableElements.forEach(el => observer.observe(el));
+            const animatableElements = document.querySelectorAll(
+                '.feature-card, .use-case-card, .support-card, .comparison-card, .step, .audio-item, .video-preview-wrapper'
+            );
+            animatableElements.forEach(el => {
+                el.classList.add('reveal');
+                observer.observe(el);
+            });
         },
         
         setupInteractiveElements() {
@@ -131,24 +139,58 @@
             document.querySelectorAll('a[href^="#"]').forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
-                    const target = document.querySelector(link.getAttribute('href'));
+                    const targetSelector = link.getAttribute('href');
+                    const target = targetSelector ? document.querySelector(targetSelector) : null;
                     if (target) {
-                        target.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
+                        const navbar = document.querySelector('.navbar');
+                        const navHeight = navbar ? navbar.getBoundingClientRect().height : 0;
+                        const targetY = target.getBoundingClientRect().top + window.pageYOffset - navHeight - 12;
+                        window.scrollTo({ top: targetY, behavior: 'smooth' });
                     }
                 });
             });
-            
-            // Button hover effects
-            document.querySelectorAll('.btn').forEach(btn => {
-                btn.addEventListener('mouseenter', () => {
-                    btn.style.transform = 'translateY(-2px)';
+        },
+
+        setupNavbarScrollState() {
+            const navbar = document.querySelector('.navbar');
+            if (!navbar) return;
+
+            const updateNavbar = () => {
+                navbar.classList.toggle('scrolled', window.scrollY > 8);
+            };
+
+            updateNavbar();
+            window.addEventListener('scroll', Utils.throttle(updateNavbar, 80));
+        },
+
+        setupCardSpotlight() {
+            const cards = document.querySelectorAll('.feature-card, .use-case-card, .support-card, .comparison-card');
+            cards.forEach(card => {
+                card.addEventListener('pointermove', (event) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = ((event.clientX - rect.left) / rect.width) * 100;
+                    const y = ((event.clientY - rect.top) / rect.height) * 100;
+                    card.style.setProperty('--mx', `${x}%`);
+                    card.style.setProperty('--my', `${y}%`);
                 });
-                
-                btn.addEventListener('mouseleave', () => {
-                    btn.style.transform = 'translateY(0)';
+            });
+        },
+
+        setupButtonRipples() {
+            const buttons = document.querySelectorAll('.btn, .audio-play-btn');
+            buttons.forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const rect = button.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    const ripple = document.createElement('span');
+                    ripple.className = 'btn-ripple';
+                    ripple.style.width = `${size}px`;
+                    ripple.style.height = `${size}px`;
+                    ripple.style.left = `${event.clientX - rect.left - size / 2}px`;
+                    ripple.style.top = `${event.clientY - rect.top - size / 2}px`;
+
+                    button.appendChild(ripple);
+                    ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
                 });
             });
         }

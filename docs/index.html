@@ -175,7 +175,7 @@
                             <div class="audio-flag">🇨🇳</div>
                             <div class="audio-info">
                                 <div class="audio-lang">中文</div>
-                                <div class="audio-voice">Azure Neural Network Voice</div>
+                                <div class="audio-voice">Azure AI 语音</div>
                             </div>
                             <button class="audio-play-btn" data-audio="zh" title="播放中文演示" aria-label="播放中文 Speechify 演示">
                                 <i class="fas fa-play" aria-hidden="true"></i>
@@ -322,7 +322,8 @@
         </div>
     </section>
 
-    <section class="why-speechify">
+    <!-- Why Speechify Section -->
+    <section class="why-speechify" style="background-color: var(--bg-secondary); padding: 80px 0;">
         <div class="container">
             <div class="section-header">
                 <h2 class="section-title">Why Speechify?</h2>
@@ -330,21 +331,21 @@
                     How we compare to traditional video editors
                 </p>
             </div>
-            <div class="comparison-grid">
-                <div class="comparison-card">
-                    <h3><i class="fas fa-code-merge"></i> Script-as-Code</h3>
+            <div class="comparison-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 40px;">
+                <div class="comparison-card" style="background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow-sm);">
+                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-code-merge"></i> Script-as-Code</h3>
                     <p>Stop fighting with timelines and keyframes. Your video is defined by your JSON script. Update the text, and the entire video updates. Perfect for agile technical content.</p>
                 </div>
-                <div class="comparison-card">
-                    <h3><i class="fas fa-brain"></i> AI-Native Workflow</h3>
+                <div class="comparison-card" style="background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow-sm);">
+                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-brain"></i> AI-Native Workflow</h3>
                     <p>Instead of manual drag-and-drop, our Vision AI "watches" your recording to automatically align your narrative with visual changes. It's automated precision.</p>
                 </div>
-                <div class="comparison-card">
-                    <h3><i class="fas fa-terminal"></i> Zero Context Switching</h3>
+                <div class="comparison-card" style="background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow-sm);">
+                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-terminal"></i> Zero Context Switching</h3>
                     <p>Stay in the tool you love. From writing documentation to producing the final demo video, everything happens within VS Code. No heavy video editors required.</p>
                 </div>
-                <div class="comparison-card">
-                    <h3><i class="fas fa-globe"></i> Copilot Multilingual</h3>
+                <div class="comparison-card" style="background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow-sm);">
+                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-globe"></i> Copilot Multilingual</h3>
                     <p>Seamlessly integrate with GitHub Copilot to translate scripts. Generate localized versions of the same video content for global markets in minutes.</p>
                 </div>
             </div>

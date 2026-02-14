@@ -48,6 +48,14 @@ body {
     right: 0;
     z-index: 1000;
     padding: 1rem 0;
+    transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, padding 0.25s ease;
+}
+
+.navbar.scrolled {
+    background: rgba(253, 252, 240, 0.88);
+    border-bottom-color: rgba(45, 106, 79, 0.22);
+    box-shadow: 0 8px 30px rgba(27, 67, 50, 0.12);
+    padding: 0.75rem 0;
 }
 
 .nav-container {
@@ -95,10 +103,30 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    position: relative;
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -6px;
+    width: 100%;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(135deg, var(--primary-green), var(--secondary-navy));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.25s ease;
 }
 
 .nav-link:hover {
     color: var(--primary-green);
+}
+
+.nav-link:hover::after,
+.nav-link:focus-visible::after {
+    transform: scaleX(1);
 }
 
 /* Hero Section */
@@ -189,6 +217,43 @@ body {
     transition: all 0.3s ease;
     border: none;
     cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -120%;
+    width: 70%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+    transform: skewX(-20deg);
+    transition: left 0.6s ease;
+    pointer-events: none;
+}
+
+.btn:hover::after {
+    left: 140%;
+}
+
+.btn-ripple {
+    position: absolute;
+    border-radius: 999px;
+    transform: scale(0);
+    animation: ripple 0.55s ease-out;
+    background: rgba(255, 255, 255, 0.35);
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes ripple {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
 }
 
 .btn-primary {
@@ -580,6 +645,9 @@ body {
     font-size: 1rem;
     transition: all 0.3s ease;
     box-shadow: 0 4px 12px rgba(45, 106, 79, 0.3);
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
 }
 
 .audio-play-btn:hover {
@@ -770,6 +838,28 @@ body {
     border: 1px solid var(--border-color);
     transition: all 0.3s ease;
     text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.feature-card::before,
+.use-case-card::before,
+.support-card::before,
+.comparison-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(280px circle at var(--mx, 50%) var(--my, 50%), rgba(45, 106, 79, 0.10), transparent 65%);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+}
+
+.feature-card:hover::before,
+.use-case-card:hover::before,
+.support-card:hover::before,
+.comparison-card:hover::before {
+    opacity: 1;
 }
 
 .feature-card:hover {
@@ -886,6 +976,8 @@ kbd {
     border: 1px solid var(--border-color);
     transition: all 0.3s ease;
     text-align: center;
+    position: relative;
+    overflow: hidden;
 }
 
 .use-case-card:hover {
@@ -938,6 +1030,20 @@ kbd {
     border: 1px solid var(--border-color);
     text-align: center;
     transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Scroll reveal */
+.reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .support-card:hover {
@@ -1201,48 +1307,132 @@ kbd {
     }
 }
 
-/* --- Modern UI Enhancements --- */
-.comparison-card {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(10px);
-    padding: 32px;
-    border-radius: 20px;
-    border: 1px solid rgba(45, 106, 79, 0.1);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+
+    .reveal,
+    .reveal.is-visible {
+        opacity: 1 !important;
+        transform: none !important;
+    }
 }
 
-.comparison-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 40px rgba(45, 106, 79, 0.08);
-    background: white;
+/* --- Modern UI Enhancements --- */
+.hero-visual {
+    padding: 24px;
+    background: radial-gradient(circle at center, rgba(45, 106, 79, 0.1) 0%, transparent 70%);
 }
 
 .video-preview-wrapper {
     background: #000;
-    border-radius: 24px;
-    padding: 10px;
+    border-radius: 28px;
+    padding: 12px;
     box-shadow: 0 40px 80px rgba(0,0,0,0.5);
     border: 1px solid rgba(255,255,255,0.1);
+    transform: perspective(1000px) rotateX(2deg);
+    transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.video-preview-wrapper:hover {
+    transform: perspective(1000px) rotateX(0deg) translateY(-10px) scale(1.02);
+    box-shadow: 0 60px 100px rgba(0,0,0,0.6);
 }
 
 .video-preview-wrapper video {
-    border-radius: 16px;
+    border-radius: 20px;
     display: block;
+    width: 100%;
 }
 
-.hero-title {
-    letter-spacing: -0.02em;
+.comparison-card {
+    background: #ffffff;
+    padding: 32px;
+    border-radius: 24px;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02);
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    margin-bottom: 28px !important; /* 增加卡片间距 */
+    position: relative;
+    overflow: hidden;
 }
 
-.audio-demo-wrapper {
-    perspective: 1000px;
+.comparison-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+    background: #2d6a4f;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.comparison-card:hover {
+    transform: translateX(12px);
+    box-shadow: 12px 12px 40px rgba(0, 0, 0, 0.04);
+}
+
+.comparison-card:hover::after {
+    opacity: 1;
 }
 
 .audio-demo-container {
-    transition: transform 0.5s ease;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px; /* 增加磁贴间距 */
 }
 
-.audio-demo-container:hover {
-    transform: translateY(-5px);
+.audio-item {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 18px;
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    cursor: pointer;
 }
+
+.audio-item:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateY(-8px) scale(1.02);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.audio-play {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0; /* 彻底修复拉伸问题 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.audio-item:hover .audio-play {
+    background: #fff;
+    transform: scale(1.1);
+}
+
+.audio-play img {
+    width: 16px;
+    height: 16px;
+    object-fit: contain; /* 修复图标比例 */
+    transition: all 0.3s ease;
+}
+
+.audio-item:hover .audio-play img {
+    filter: invert(1);
+}
+
