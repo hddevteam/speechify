@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Speechify - Transform your text into high-quality speech with Azure Speech Services. A powerful VS Code extension with 200+ voices in 60+ languages.">
-    <meta name="keywords" content="VS Code extension, text-to-speech, Azure Speech Services, TTS, accessibility, voice synthesis, content creation, audio generation">
+    <meta name="description" content="Speechify 3.0 - AI Video Creation & Text-to-Speech extension for VS Code. Automate demo videos with Vision-Aware Alignment and Azure Speech.">
+    <meta name="keywords" content="VS Code extension, AI video creation, text-to-speech, Vision AI, video alignment, Azure Speech Services, demo video automation, content creation">
     <meta name="author" content="Speechify Extension Team">
     <meta name="robots" content="index, follow">
     
     <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="Speechify - VS Code Text-to-Speech Extension">
-    <meta property="og:description" content="Transform your text into high-quality speech with Azure Speech Services. 200+ voices in 60+ languages for content creators, accessibility users, and language learners.">
+    <meta property="og:title" content="Speechify 3.0 - AI Video Creation & TTS VS Code Extension">
+    <meta property="og:description" content="Transform scripts into professional demo videos directly in VS Code. Featuring Vision-Aware Alignment, interactive timeline editing, and automatic video generation.">
     <meta property="og:image" content="./assets/images/icon-256.png">
     <meta property="og:url" content="https://hddevteam.github.io/speechify/">
     <meta property="og:type" content="website">
@@ -32,8 +32,8 @@
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "Speechify",
-      "version": "2.1",
-      "description": "Text-to-speech extension for VS Code with Azure Speech Services integration",
+      "version": "3.0",
+      "description": "AI-powered video creation and text-to-speech extension for VS Code with Vision-Aware Alignment",
       "url": "https://hddevteam.github.io/speechify/",
       "downloadUrl": "https://marketplace.visualstudio.com/items?itemName=luckyXmobile.speechify",
       "applicationCategory": "DeveloperApplication",
@@ -52,7 +52,7 @@
     }
     </script>
     
-    <title>Speechify - VS Code Text-to-Speech Extension</title>
+    <title>Speechify - AI Video Creation & Text-to-Speech VS Code Extension</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="./assets/images/icon.svg">
@@ -98,24 +98,25 @@
         <div class="hero-container">
             <div class="hero-content">
                 <div class="hero-badge">
-                    <i class="fas fa-microphone"></i>
-                    Latest v2.1 - Voice Packaging Fix & 14 New Azure 2025 Voices!
+                    <i class="fas fa-video"></i>
+                    New v3.0 - AI Vision-Aware Video Alignment & Generation!
                 </div>
                 <h1 class="hero-title">
-                    Transform Text into <span class="highlight">High-Quality Speech</span>
+                    From Script to Video: <span class="highlight">Integrated AI Video Creation</span>
                 </h1>
                 <p class="hero-description">
-                    Speechify brings powerful text-to-speech capabilities directly to VS Code. Convert selected text or 
-                    entire documents into natural-sounding audio with 200+ voices in 60+ languages using Azure Speech Services.
+                    Stay in VS Code and transform your transcripts into professional demo videos. 
+                    Speechify 3.0 combines Azure Speech and Vision AI to automate alignment, 
+                    edit timing, and generate synced audio-visual content in one workflow.
                 </p>
                 <div class="hero-buttons">
                     <a href="vscode:extension/luckyXmobile.speechify" class="btn btn-primary">
                         <i class="fas fa-download"></i>
                         Install Extension
                     </a>
-                    <a href="https://github.com/hddevteam/speechify" class="btn btn-secondary" target="_blank" rel="noopener">
-                        <i class="fab fa-github"></i>
-                        View Source
+                    <a href="https://demoforgithub.blob.core.windows.net/videos/speechify_3_en.mp4" class="btn btn-secondary" target="_blank" rel="noopener">
+                        <i class="fas fa-circle-play"></i>
+                        Watch 3.0 Demo
                     </a>
                 </div>
                 <div class="hero-stats">
@@ -226,76 +227,76 @@
     <section id="features" class="features">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">Powerful Text-to-Speech Features</h2>
+                <h2 class="section-title">Next-Gen Video & Speech Features</h2>
                 <p class="section-description">
-                    Everything you need for professional audio content creation and accessibility
+                    The complete toolkit for AI-driven demo video production and high-quality synthesis
                 </p>
             </div>
             
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="fas fa-cloud"></i>
+                        <i class="fas fa-eye"></i>
                     </div>
-                    <h3 class="feature-title">Azure Speech Services</h3>
+                    <h3 class="feature-title">Vision-Aware Alignment</h3>
                     <p class="feature-description">
-                        Access 200+ high-quality voices in 60+ languages with advanced neural speech synthesis 
-                        and enterprise-grade reliability.
+                        AI automatically analyzes your screen recordings to identify key moments and 
+                        perfectly syncs your voiceover with visual changes.
                     </p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="fas fa-palette"></i>
+                        <i class="fas fa-sliders-h"></i>
                     </div>
-                    <h3 class="feature-title">Voice Customization</h3>
+                    <h3 class="feature-title">Interactive Timeline Editor</h3>
                     <p class="feature-description">
-                        Choose speaking styles, adjust speed, pitch, and volume. Select roleplay characters 
-                        for enhanced speech output and creative content.
+                        Fine-tune your audio-visual sync with a built-in drag-and-drop editor. 
+                        Achieve millisecond precision without leaving VS Code.
                     </p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="fas fa-code"></i>
+                        <i class="fas fa-film"></i>
                     </div>
-                    <h3 class="feature-title">VS Code Integration</h3>
+                    <h3 class="feature-title">One-Click Video Muxing</h3>
                     <p class="feature-description">
-                        Seamlessly convert selected text or entire documents with simple keyboard shortcuts 
-                        and right-click context menu integration.
+                        Automatically combine processed video, AI speech, and pixel-perfect subtitles 
+                        (SRT) into a ready-to-share MP4 file.
                     </p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="fas fa-globe"></i>
+                        <i class="fas fa-magic"></i>
                     </div>
-                    <h3 class="feature-title">Multi-language Support</h3>
+                    <h3 class="feature-title">Smart Script Refinement</h3>
                     <p class="feature-description">
-                        Full interface localization in English and Chinese with extensible i18n architecture 
-                        and automatic language detection.
+                        AI helps adjust your script's length and pacing based on the actual video clip duration 
+                        for a natural-sounding narration.
                     </p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="fas fa-bolt"></i>
+                        <i class="fas fa-microphone-alt"></i>
                     </div>
-                    <h3 class="feature-title">Real-time Processing</h3>
+                    <h3 class="feature-title">Enterprise Azure TTS</h3>
                     <p class="feature-description">
-                        Live progress feedback and intelligent chunking for large document processing 
-                        with optimized performance and memory management.
+                        Access 200+ neural voices with adjustable styles, roles, and emotional ranges 
+                        via high-fidelity Azure Speech Services.
                     </p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="fas fa-folder-open"></i>
+                        <i class="fas fa-language"></i>
                     </div>
-                    <h3 class="feature-title">Smart Audio Management</h3>
+                    <h3 class="feature-title">Native i18n Workflow</h3>
                     <p class="feature-description">
-                        Automatic file naming, format selection (MP3, WAV), and organized audio output 
-                        handling with intelligent chunk management.
+                        Optimized for multilingual creators with built-in English/Chinese UI and 
+                        intelligent language detection for scripts.
                     </p>
                 </div>
             </div>
@@ -306,21 +307,43 @@
     <section id="use-cases" class="use-cases">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">Perfect For</h2>
+                <h2 class="section-title">Designed For Efficiency</h2>
                 <p class="section-description">
-                    Speechify enhances various content creation and accessibility scenarios
+                    Speechify 3.0 scales from simple audio conversion to complex video production
                 </p>
             </div>
             
             <div class="use-cases-grid">
                 <div class="use-case-card">
                     <div class="use-case-icon">
-                        <i class="fas fa-video"></i>
+                        <i class="fas fa-desktop"></i>
                     </div>
-                    <h3 class="use-case-title">Content Creation</h3>
+                    <h3 class="use-case-title">App Demo Production</h3>
                     <p class="use-case-description">
-                        Create professional voiceovers for videos, podcasts, and multimedia content 
-                        with high-quality AI-generated speech.
+                        Record your app, write a script, and let AI handle the heavy lifting of 
+                        syncing your explanation with UI interactions.
+                    </p>
+                </div>
+                
+                <div class="use-case-card">
+                    <div class="use-case-icon">
+                        <i class="fas fa-file-video"></i>
+                    </div>
+                    <h3 class="use-case-title">Tutorial Creation</h3>
+                    <p class="use-case-description">
+                        Generate high-quality video tutorials with precise subtitles and professional 
+                        voiceovers directly from your documentation.
+                    </p>
+                </div>
+                
+                <div class="use-case-card">
+                    <div class="use-case-icon">
+                        <i class="fab fa-youtube"></i>
+                    </div>
+                    <h3 class="use-case-title">Social Content</h3>
+                    <p class="use-case-description">
+                        Fast-track your social media presence by generating voiced-over clips 
+                        and product demos with diverse AI personas.
                     </p>
                 </div>
                 
@@ -328,54 +351,32 @@
                     <div class="use-case-icon">
                         <i class="fas fa-universal-access"></i>
                     </div>
-                    <h3 class="use-case-title">Accessibility</h3>
+                    <h3 class="use-case-title">Accessible Docs</h3>
                     <p class="use-case-description">
-                        Support visually impaired users and those with reading difficulties by 
-                        converting documentation and code into clear audio.
+                        Convert complex technical documentation into audio-visual guides that 
+                        make learning more inclusive and engaging.
                     </p>
                 </div>
                 
                 <div class="use-case-card">
                     <div class="use-case-icon">
-                        <i class="fas fa-graduation-cap"></i>
+                        <i class="fas fa-code"></i>
                     </div>
-                    <h3 class="use-case-title">Language Learning</h3>
+                    <h3 class="use-case-title">Code Walkthroughs</h3>
                     <p class="use-case-description">
-                        Improve pronunciation and listening skills with native speaker voices 
-                        in multiple languages and regional accents.
+                        Explain your architecture or new features through voiced demos that 
+                        highlight specific code blocks as you speak.
                     </p>
                 </div>
                 
                 <div class="use-case-card">
                     <div class="use-case-icon">
-                        <i class="fas fa-chalkboard-teacher"></i>
+                        <i class="fas fa-sync"></i>
                     </div>
-                    <h3 class="use-case-title">Educational Content</h3>
+                    <h3 class="use-case-title">Script-Driven Workflows</h3>
                     <p class="use-case-description">
-                        Transform written tutorials, documentation, and learning materials 
-                        into engaging audio content for diverse learning styles.
-                    </p>
-                </div>
-                
-                <div class="use-case-card">
-                    <div class="use-case-icon">
-                        <i class="fas fa-book-reader"></i>
-                    </div>
-                    <h3 class="use-case-title">Documentation Review</h3>
-                    <p class="use-case-description">
-                        Listen to documentation, README files, and code comments while 
-                        multitasking or during code reviews and planning sessions.
-                    </p>
-                </div>
-                
-                <div class="use-case-card">
-                    <div class="use-case-icon">
-                        <i class="fas fa-microphone-alt"></i>
-                    </div>
-                    <h3 class="use-case-title">Voice Prototyping</h3>
-                    <p class="use-case-description">
-                        Quickly prototype voice interfaces, chatbots, and audio applications 
-                        with realistic speech synthesis for rapid development.
+                        Build transcript-based video production pipelines that allow you to 
+                        iterate on your content as fast as you write your documentation.
                     </p>
                 </div>
             </div>

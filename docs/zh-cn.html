@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Speechify - 使用 Azure 语音服务将您的文本转换为高质量语音。强大的 VS Code 扩展，支持60多种语言的200多个语音。">
-    <meta name="keywords" content="VS Code 扩展, 文本转语音, Azure 语音服务, TTS, 辅助功能, 语音合成, 内容创作, 音频生成">
+    <meta name="description" content="Speechify 3.0 - 集 AI 视频创作与文本转语音于一体的 VS Code 扩展。利用视觉感知对齐与 Azure 语音自动生成演示视频。">
+    <meta name="keywords" content="VS Code 扩展, AI 视频制作, 文本转语音, 视觉 AI, 演示视频自动化, Azure 语音服务, 内容创作, 视频对齐">
     <meta name="author" content="Speechify 扩展团队">
     <meta name="robots" content="index, follow">
     
     <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="Speechify - VS Code 文本转语音扩展">
-    <meta property="og:description" content="使用 Azure 语音服务将您的文本转换为高质量语音。支持60多种语言的200多个语音，适用于内容创作者、无障碍用户和语言学习者。">
+    <meta property="og:title" content="Speechify 3.0 - AI 视频创作与 TTS VS Code 扩展">
+    <meta property="og:description" content="在 VS Code 中直接将脚本转换为专业演示视频。支持视觉感知对齐、交互式时间轴编辑与自动化视频生成。">
     <meta property="og:image" content="./assets/images/icon-256.png">
     <meta property="og:url" content="https://hddevteam.github.io/speechify/zh-cn.html">
     <meta property="og:type" content="website">
@@ -26,7 +26,33 @@
     <link rel="canonical" href="https://hddevteam.github.io/speechify/zh-cn.html">
     <meta name="theme-color" content="#2D6A4F">
     
-    <title>Speechify - VS Code 文本转语音扩展</title>
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Speechify",
+      "version": "3.0",
+      "description": "集 AI 视频创作与文本转语音于一体的 VS Code 扩展，支持视觉感知对齐",
+      "url": "https://hddevteam.github.io/speechify/zh-cn.html",
+      "downloadUrl": "https://marketplace.visualstudio.com/items?itemName=luckyXmobile.speechify",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": ["Windows", "macOS", "Linux"],
+      "programmingLanguage": "TypeScript",
+      "author": {
+        "@type": "Organization",
+        "name": "HDDev Team",
+        "url": "https://github.com/hddevteam"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
+    
+    <title>Speechify - AI 视频创作与文本转语音 VS Code 扩展</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="./assets/images/icon.svg">
@@ -72,23 +98,24 @@
         <div class="hero-container">
             <div class="hero-content">
                 <div class="hero-badge">
-                    <i class="fas fa-microphone"></i>
-                    最新版本 v2.1 - 语音打包修复与14个新增Azure 2025语音！
+                    <i class="fas fa-video"></i>
+                    新版本 v3.0 - AI 视觉感知对齐与视频自动生成！
                 </div>
                 <h1 class="hero-title">
-                    将文本转换为<span class="highlight">高质量语音</span>
+                    从脚本到视频：<span class="highlight">集成式 AI 视频创作</span>
                 </h1>
                 <p class="hero-description">
-                    Speechify 为 VS Code 带来强大的文本转语音功能。使用 Azure 语音服务，将选定文本或整个文档转换为自然流畅的音频，支持60多种语言的200多个语音。
+                    无需离开 VS Code，即可将脚本转换为专业的 Demo 演示视频。
+                    Speechify 3.0 融合 Azure 语音与视觉 AI，实现自动对齐、时间轴编辑与音画同步生成。
                 </p>
                 <div class="hero-buttons">
                     <a href="vscode:extension/luckyXmobile.speechify" class="btn btn-primary">
                         <i class="fas fa-download"></i>
                         安装扩展
                     </a>
-                    <a href="https://github.com/hddevteam/speechify" class="btn btn-secondary" target="_blank" rel="noopener">
-                        <i class="fab fa-github"></i>
-                        查看源码
+                    <a href="https://demoforgithub.blob.core.windows.net/videos/speechify_3_cn.mp4" class="btn btn-secondary" target="_blank" rel="noopener">
+                        <i class="fas fa-circle-play"></i>
+                        观看 3.0 演示
                     </a>
                 </div>
                 <div class="hero-stats">
@@ -199,70 +226,70 @@
     <section id="features" class="features">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">强大的文本转语音功能</h2>
+                <h2 class="section-title">新一代视频与语音功能</h2>
                 <p class="section-description">
-                    专业音频内容创作和无障碍访问所需的一切功能
+                    AI 驱动的 Demo 视频制作与高质量语音合成的完整工具包
                 </p>
             </div>
             
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="fas fa-cloud"></i>
+                        <i class="fas fa-eye"></i>
                     </div>
-                    <h3 class="feature-title">Azure 语音服务</h3>
+                    <h3 class="feature-title">视觉感知对齐</h3>
                     <p class="feature-description">
-                        访问60多种语言的200多个高质量语音，支持先进的神经语音合成技术和企业级可靠性。
+                        AI 自动分析录屏视频，识别画面变化关键点，并将语音脚本与视觉操作完美同步。
                     </p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="fas fa-palette"></i>
+                        <i class="fas fa-sliders-h"></i>
                     </div>
-                    <h3 class="feature-title">语音定制</h3>
+                    <h3 class="feature-title">交互式对齐编辑器</h3>
                     <p class="feature-description">
-                        选择说话风格、调整语速、音调和音量。为增强语音输出和创意内容选择角色扮演字符。
+                        在内置的拖拽编辑器中微调音画同步，无需离开 VS Code 即可实现毫秒级精准控制。
                     </p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="fas fa-code"></i>
+                        <i class="fas fa-film"></i>
                     </div>
-                    <h3 class="feature-title">VS Code 集成</h3>
+                    <h3 class="feature-title">一键视频混流</h3>
                     <p class="feature-description">
-                        通过简单的键盘快捷键和右键菜单集成，无缝转换选定文本或整个文档。
+                        自动将处理后的视频、AI 配音和精确到词的 SRT 字幕合成，直接输出可分享的 MP4。
                     </p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="fas fa-globe"></i>
+                        <i class="fas fa-magic"></i>
                     </div>
-                    <h3 class="feature-title">多语言支持</h3>
+                    <h3 class="feature-title">智能脚本调优</h3>
                     <p class="feature-description">
-                        英文和中文界面完全本地化，具有可扩展的国际化架构和自动语言检测。
+                        AI 根据视频片段的实际时长，自动优化文案长度与语速，确保旁白听感自然。
                     </p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="fas fa-bolt"></i>
+                        <i class="fas fa-microphone-alt"></i>
                     </div>
-                    <h3 class="feature-title">实时处理</h3>
+                    <h3 class="feature-title">企业级 Azure TTS</h3>
                     <p class="feature-description">
-                        实时进度反馈和大文档处理的智能分块功能，优化性能和内存管理。
+                        访问 200+ 神经语音，支持调节风格、情感与角色扮演，带来极具生命力的朗读体验。
                     </p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="fas fa-folder-open"></i>
+                        <i class="fas fa-language"></i>
                     </div>
-                    <h3 class="feature-title">智能音频管理</h3>
+                    <h3 class="feature-title">原生 i18n 工作流</h3>
                     <p class="feature-description">
-                        自动文件命名、格式选择（MP3、WAV）和有序的音频输出处理，智能分块管理。
+                        针对多语言创作者优化，内置中英文 UI 并支持脚本语言自动识别与对应。
                     </p>
                 </div>
             </div>
@@ -273,20 +300,40 @@
     <section id="use-cases" class="use-cases">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">应用场景</h2>
+                <h2 class="section-title">专为效率而生</h2>
                 <p class="section-description">
-                    Speechify 增强各种内容创作和无障碍访问场景
+                    Speechify 3.0 从简单的音频转换扩展到复杂的视频生产场景
                 </p>
             </div>
             
             <div class="use-cases-grid">
                 <div class="use-case-card">
                     <div class="use-case-icon">
-                        <i class="fas fa-video"></i>
+                        <i class="fas fa-desktop"></i>
                     </div>
-                    <h3 class="use-case-title">内容创作</h3>
+                    <h3 class="use-case-title">App Demo 制作</h3>
                     <p class="use-case-description">
-                        为视频、播客和多媒体内容创建专业旁白，使用高质量 AI 生成的语音。
+                        录制应用操作，编写描述脚本，让 AI 自动处理解说与 UI 操作的同步对齐。
+                    </p>
+                </div>
+                
+                <div class="use-case-card">
+                    <div class="use-case-icon">
+                        <i class="fas fa-file-video"></i>
+                    </div>
+                    <h3 class="use-case-title">视频教程创作</h3>
+                    <p class="use-case-description">
+                        直接基于文档生成带精准字幕和专业配音的高质量视频教程，提升制作效率。
+                    </p>
+                </div>
+                
+                <div class="use-case-card">
+                    <div class="use-case-icon">
+                        <i class="fab fa-youtube"></i>
+                    </div>
+                    <h3 class="use-case-title">社交媒体内容</h3>
+                    <p class="use-case-description">
+                        利用多样化的 AI 人设快速生成带配音的产品演示短片，加速社交影响力建设。
                     </p>
                 </div>
                 
@@ -294,49 +341,29 @@
                     <div class="use-case-icon">
                         <i class="fas fa-universal-access"></i>
                     </div>
-                    <h3 class="use-case-title">无障碍访问</h3>
+                    <h3 class="use-case-title">无障碍文档</h3>
                     <p class="use-case-description">
-                        支持视力障碍用户和阅读困难人群，将文档和代码转换为清晰的音频。
+                        将复杂的架构图或技术文档转换为音画导读，让学习过程更具包容性、更易交互。
                     </p>
                 </div>
                 
                 <div class="use-case-card">
                     <div class="use-case-icon">
-                        <i class="fas fa-graduation-cap"></i>
+                        <i class="fas fa-code"></i>
                     </div>
-                    <h3 class="use-case-title">语言学习</h3>
+                    <h3 class="use-case-title">代码走读录屏</h3>
                     <p class="use-case-description">
-                        通过多种语言和地区口音的母语级语音提高发音和听力技能。
+                        在讲解系统架构或新特性时，通过语音控制自动高亮代码块，实现沉浸式技术演示。
                     </p>
                 </div>
                 
                 <div class="use-case-card">
                     <div class="use-case-icon">
-                        <i class="fas fa-chalkboard-teacher"></i>
+                        <i class="fas fa-sync"></i>
                     </div>
-                    <h3 class="use-case-title">教育内容</h3>
+                    <h3 class="use-case-title">自动化生产线</h3>
                     <p class="use-case-description">
-                        将书面教程、文档和学习材料转换为引人入胜的音频内容，适应不同学习风格。
-                    </p>
-                </div>
-                
-                <div class="use-case-card">
-                    <div class="use-case-icon">
-                        <i class="fas fa-book-reader"></i>
-                    </div>
-                    <h3 class="use-case-title">文档审阅</h3>
-                    <p class="use-case-description">
-                        在多任务处理或代码审查和规划会议期间收听文档、README 文件和代码注释。
-                    </p>
-                </div>
-                
-                <div class="use-case-card">
-                    <div class="use-case-icon">
-                        <i class="fas fa-microphone-alt"></i>
-                    </div>
-                    <h3 class="use-case-title">语音原型</h3>
-                    <p class="use-case-description">
-                        使用逼真的语音合成快速原型化语音界面、聊天机器人和音频应用程序，实现快速开发。
+                        构建“脚本即视频”的生产管线，像写代码一样快速迭代和发布视频内容。
                     </p>
                 </div>
             </div>
