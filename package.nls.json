@@ -5,6 +5,7 @@
   "speechify.command.voiceSettings": "View Configuration",
   "speechify.command.configureVoice": "Set Voice & Language",
   "speechify.command.configureAzure": "Set Azure Credentials",
+  "speechify.command.configureVision": "Set Azure OpenAI (Vision)",
   "speechify.command.selectStyle": "Switch Voice Style",
   "speechify.command.selectRole": "Switch Voice Role",
   "speechify.command.convertToVideo": "Generate Video Narration (AI Vision)",
@@ -19,5 +20,9 @@
   "speechify.configuration.voiceRole": "Voice role for roleplay-enabled voices",
   "speechify.configuration.enableTransitions": "Enable transition animations between video segments",
   "speechify.configuration.transitionType": "Type of transition animation",
-  "speechify.configuration.autoTrimVideo": "Automatically trim video to match audio duration"
+  "speechify.configuration.autoTrimVideo": "Automatically trim video to match audio duration",
+  "speechify.configuration.visionApiKey": "Azure OpenAI API key for Vision analysis. Get it from Azure Portal → your Azure OpenAI resource → Keys and Endpoint.",
+  "speechify.configuration.visionEndpoint": "Azure OpenAI endpoint for Vision analysis. Example: https://<resource-name>.openai.azure.com (from Keys and Endpoint).",
+  "speechify.configuration.visionDeployment": "Deployment name used for Vision timing analysis (from Azure AI Foundry/Studio → Deployments). Recommended: gpt-5-mini for speed/cost, gpt-5.2 for quality.",
+  "speechify.configuration.refinementDeployment": "Deployment name used for script refinement/paraphrase (Azure AI Foundry/Studio → Deployments). Recommended default mix: visionDeployment=gpt-5-mini + refinementDeployment=gpt-5.2."
 }

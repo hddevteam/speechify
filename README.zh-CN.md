@@ -133,6 +133,28 @@
 3. 运行 "Speechify: 配置 Azure 设置"
 4. 输入您的订阅密钥和区域
 
+### 2.1 Azure OpenAI 配置（Vision）
+
+Speechify 的 AI 视觉对齐功能依赖以下 VS Code 配置项：`speechify.visionApiKey`、`speechify.visionEndpoint`、`speechify.visionDeployment`、`speechify.refinementDeployment`。
+
+最短配置路径：
+1. 创建或打开 **Azure OpenAI** 资源。
+2. 在 Azure 门户进入 **Keys and Endpoint**，复制：
+  - Key → `speechify.visionApiKey`
+  - Endpoint（示例：`https://<resource>.openai.azure.com`）→ `speechify.visionEndpoint`
+3. 在 Azure AI Foundry/Studio 进入 **Deployments**，复制部署名：
+  - 视觉分析模型 → `speechify.visionDeployment`
+  - 文案精炼模型 → `speechify.refinementDeployment`
+4. 在 VS Code 设置（Speechify）中填入以上值。
+
+推荐填写策略：
+
+| 策略 | visionDeployment | refinementDeployment | 适用场景 |
+|---|---|---|---|
+| 质量优先 | `gpt-5.2` | `gpt-5.2` | 对齐质量最佳，成本/时延较高 |
+| 成本/速度优先 | `gpt-5-mini` | `gpt-5-mini` | 速度更快，成本更低 |
+| 混合方案（推荐） | `gpt-5-mini` | `gpt-5.2` | 兼顾成本与精炼质量 |
+
 ### 3. 语音配置
 1. 打开命令面板
 2. 运行 "Speechify: 配置语音设置"

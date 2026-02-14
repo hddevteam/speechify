@@ -82,4 +82,37 @@ suite('Configuration Manager Tests', () => {
         assert.strictEqual(typeof voiceSettings.gender, 'string', 'Voice gender should be string');
         assert.strictEqual(typeof voiceSettings.locale, 'string', 'Voice locale should be string');
     });
+
+    test('should normalize vision endpoint to origin', () => {
+        const normalized = ConfigManager.normalizeVisionEndpoint('https://demo-resource.openai.azure.com/');
+        assert.strictEqual(normalized, 'https://demo-resource.openai.azure.com', 'Endpoint should be normalized to origin without trailing slash');
+    });
+
+    test('should validate complete vision settings', () => {
+        const validation = ConfigManager.validateVisionSettings({
+            apiKey: 'test-key',
+            endpoint: 'https://demo-resource.openai.azure.com',
+            deployment: 'gpt-5-mini',
+            refinementDeployment: 'gpt-5.2'
+        });
+
+        assert.strictEqual(validation.isValid, true, 'Complete vision settings should pass validation');
+        assert.strictEqual(validation.errors.length, 0, 'Validation errors should be empty for valid settings');
+    });
+
+    test('should detect invalid vision endpoint and missing fields', () => {
+        const validation = ConfigManager.validateVisionSettings({
+            apiKey: '',
+            endpoint: 'http://example.com',
+            deployment: '',
+            refinementDeployment: ''
+        });
+
+        assert.strictEqual(validation.isValid, false, 'Invalid vision settings should fail validation');
+        assert.ok(validation.errors.includes('missingApiKey'), 'Should detect missing API key');
+        assert.ok(validation.errors.includes('invalidEndpointProtocol'), 'Should enforce HTTPS endpoint');
+        assert.ok(validation.errors.includes('invalidEndpointHost'), 'Should enforce Azure OpenAI endpoint host');
+        assert.ok(validation.errors.includes('missingVisionDeployment'), 'Should detect missing vision deployment');
+        assert.ok(validation.errors.includes('missingRefinementDeployment'), 'Should detect missing refinement deployment');
+    });
 });

@@ -5,6 +5,7 @@
   "speechify.command.voiceSettings": "查看当前配音配置",
   "speechify.command.configureVoice": "切换配音/语言", 
   "speechify.command.configureAzure": "设置 Azure 密钥",
+  "speechify.command.configureVision": "设置 Azure OpenAI（Vision）",
   "speechify.command.selectStyle": "切换语音风格",
   "speechify.command.selectRole": "切换解说员/角色",
   "speechify.command.convertToVideo": "AI 视觉对齐合成",
@@ -19,5 +20,9 @@
   "speechify.configuration.voiceRole": "支持角色扮演的语音角色",
   "speechify.configuration.enableTransitions": "启用段落间的转场动画",
   "speechify.configuration.transitionType": "转场动画类型",
-  "speechify.configuration.autoTrimVideo": "根据音频时长自动裁切视频空白部分"
+  "speechify.configuration.autoTrimVideo": "根据音频时长自动裁切视频空白部分",
+  "speechify.configuration.visionApiKey": "用于 Vision 分析的 Azure OpenAI API Key。获取路径：Azure 门户 → Azure OpenAI 资源 → Keys and Endpoint。",
+  "speechify.configuration.visionEndpoint": "用于 Vision 分析的 Azure OpenAI Endpoint。示例：https://<resource-name>.openai.azure.com（来源同 Keys and Endpoint）。",
+  "speechify.configuration.visionDeployment": "用于画面时序分析的 Deployment 名称（Azure AI Foundry/Studio → Deployments）。推荐：gpt-5-mini（速度/成本），gpt-5.2（质量）。",
+  "speechify.configuration.refinementDeployment": "用于文案精炼/改写的 Deployment 名称（Azure AI Foundry/Studio → Deployments）。推荐默认混合：visionDeployment=gpt-5-mini，refinementDeployment=gpt-5.2。"
 }

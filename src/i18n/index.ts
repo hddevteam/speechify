@@ -28,6 +28,7 @@ export interface Messages {
   'notifications.success.voiceStyleUpdated': string;
   'notifications.success.voiceStyleChanged': string;
   'notifications.success.voiceRoleChanged': string;
+  'notifications.success.visionSettingsUpdated': string;
   'notifications.success.videoGenerated': string;
   'notifications.success.alignmentSaved': string;
   'notifications.info.noStylesAvailable': string;
@@ -45,6 +46,7 @@ export interface Messages {
   'errors.failedToLoadVoiceSettings': string;
   'errors.failedToConfigureVoice': string;
   'errors.failedToConfigureAzure': string;
+  'errors.failedToConfigureVision': string;
   'errors.failedToSelectStyle': string;
   'errors.currentVoiceNotFound': string;
   'errors.voiceNoStyles': string;
@@ -64,6 +66,13 @@ export interface Messages {
   'errors.alignmentEditorUnavailable': string;
   'errors.alignmentTimingNotFound': string;
   'errors.visionConfigurationIncomplete': string;
+  'errors.visionMissingFields': string;
+  'errors.visionEndpointProtocol': string;
+  'errors.visionEndpointHost': string;
+  'errors.visionEndpointFormat': string;
+  'errors.visionHttp401': string;
+  'errors.visionHttp404': string;
+  'errors.visionHttp429': string;
   
   // Configuration
   'config.prompts.subscriptionKey': string;
@@ -79,6 +88,14 @@ export interface Messages {
   'config.prompts.selectVideoFile': string;
   'config.prompts.selectConversionMode': string;
   'config.prompts.selectAnalysisDepth': string;
+  'config.prompts.visionApiKey': string;
+  'config.prompts.visionApiKeyPlaceholder': string;
+  'config.prompts.visionEndpoint': string;
+  'config.prompts.visionEndpointPlaceholder': string;
+  'config.prompts.visionDeployment': string;
+  'config.prompts.visionDeploymentPlaceholder': string;
+  'config.prompts.refinementDeployment': string;
+  'config.prompts.refinementDeploymentPlaceholder': string;
   
   // Progress
   'progress.convertingToSpeech': string;

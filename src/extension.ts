@@ -18,6 +18,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('extension.showSpeechifyVoiceSettings', showVoiceSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyVoiceSettings', configureSpeechifyVoiceSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyAzureSettings', configureSpeechifyAzureSettings),
+        vscode.commands.registerCommand('extension.configureSpeechifyVisionSettings', configureSpeechifyVisionSettings),
         vscode.commands.registerCommand('extension.selectSpeechifyVoiceStyle', selectVoiceStyle),
         vscode.commands.registerCommand('extension.selectSpeechifyVoiceRole', selectVoiceRole),
         vscode.commands.registerCommand('extension.convertToVideo', convertTextToVideo),
@@ -170,6 +171,20 @@ async function configureSpeechifyAzureSettings(): Promise<void> {
     } catch (error) {
         console.error('Failed to configure Azure settings:', error);
         vscode.window.showErrorMessage(I18n.t('errors.failedToConfigureAzure'));
+    }
+}
+
+/**
+ * Configure Azure OpenAI Vision settings
+ */
+async function configureSpeechifyVisionSettings(): Promise<void> {
+    try {
+        await SpeechService.configureVisionSettings();
+    } catch (error) {
+        console.error('Failed to configure Vision settings:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVision')
+        );
     }
 }
 

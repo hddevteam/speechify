@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { AzureConfig, ProcessingResult, VoiceListItem, VideoProcessingResult, VoiceSettings, WordBoundary } from '../types';
-import { ConfigManager } from '../utils/config';
+import { ConfigManager, VisionConfigValidationResult } from '../utils/config';
 import { AzureSpeechService } from '../utils/azure';
 import { AudioUtils } from '../utils/audio';
 import { SubtitleUtils } from '../utils/subtitle';
@@ -137,14 +137,17 @@ export class SpeechService {
       };
     } = {}
   ): Promise<VideoProcessingResult> {
+    let visionValidation: VisionConfigValidationResult | null = null;
+
     try {
       if (!ConfigManager.isConfigurationComplete()) {
         throw new Error(I18n.t('errors.configurationIncomplete'));
       }
 
       const visionConfig = ConfigManager.getVisionConfig();
-      if (!visionConfig.apiKey || !visionConfig.endpoint) {
-        throw new Error('Vision API configuration incomplete. Please set visionApiKey and visionEndpoint in settings.');
+      visionValidation = ConfigManager.validateVisionSettings(visionConfig);
+      if (!visionValidation.isValid) {
+        throw new Error(this.buildVisionConfigGuidance(visionValidation));
       }
 
       const azureConfig = ConfigManager.getAzureConfigForTesting();
@@ -471,8 +474,64 @@ export class SpeechService {
       });
     } catch (error) {
       console.error('Video conversion with vision failed:', error);
+
+      const guidedMessage = this.buildVisionRuntimeGuidance(error, visionValidation);
+      if (guidedMessage) {
+        throw new Error(guidedMessage);
+      }
+
       throw error;
     }
+  }
+
+  private static buildVisionConfigGuidance(validation: VisionConfigValidationResult): string {
+    const errors = new Set(validation.errors);
+    const missingFields: string[] = [];
+
+    if (errors.has('missingApiKey')) missingFields.push('visionApiKey');
+    if (errors.has('missingEndpoint')) missingFields.push('visionEndpoint');
+    if (errors.has('missingVisionDeployment')) missingFields.push('visionDeployment');
+    if (errors.has('missingRefinementDeployment')) missingFields.push('refinementDeployment');
+
+    if (missingFields.length > 0) {
+      return I18n.t('errors.visionMissingFields', missingFields.join(', '));
+    }
+
+    if (errors.has('invalidEndpointProtocol')) {
+      return I18n.t('errors.visionEndpointProtocol', 'https://<resource>.openai.azure.com');
+    }
+
+    if (errors.has('invalidEndpointHost')) {
+      return I18n.t('errors.visionEndpointHost', 'https://<resource>.openai.azure.com');
+    }
+
+    if (errors.has('invalidEndpointFormat')) {
+      return I18n.t('errors.visionEndpointFormat', 'https://<resource>.openai.azure.com');
+    }
+
+    return I18n.t('errors.visionConfigurationIncomplete');
+  }
+
+  private static buildVisionRuntimeGuidance(error: unknown, validation: VisionConfigValidationResult | null): string | null {
+    if (validation && !validation.isValid) {
+      return this.buildVisionConfigGuidance(validation);
+    }
+
+    const status = (error as any)?.response?.status;
+
+    if (status === 401) {
+      return I18n.t('errors.visionHttp401');
+    }
+
+    if (status === 404) {
+      return I18n.t('errors.visionHttp404');
+    }
+
+    if (status === 429) {
+      return I18n.t('errors.visionHttp429');
+    }
+
+    return null;
   }
 
   /**
@@ -685,7 +744,7 @@ export class SpeechService {
     // If synthesis was requested, start it now
     if (action === 'synthesize') {
         // Trigger synthesis silently with timing.json strategies
-        await this.synthesizeVideoFromProject(timingPath, { silent: true });
+        await this.synthesizeVideoFromProject(timingPath);
     } else {
         vscode.window.showInformationMessage(I18n.t('notifications.success.alignmentSaved'));
     }
@@ -695,7 +754,7 @@ export class SpeechService {
    * Synthesize video using an existing vision project (timing.json)
    * This skips analysis and refinement, directly generating audio and muxing.
    */
-  public static async synthesizeVideoFromProject(input: string | vscode.Uri, _options: { silent?: boolean } = {}): Promise<void> {
+  public static async synthesizeVideoFromProject(input: string | vscode.Uri): Promise<void> {
     let timingPath: string;
     let videoFilePath: string;
     const filePath = typeof input === 'string' ? input : input.fsPath;
@@ -974,6 +1033,73 @@ export class SpeechService {
     }
 
     vscode.window.showInformationMessage(I18n.t('notifications.success.azureSettingsUpdated'));
+  }
+
+  /**
+   * Configure Azure OpenAI Vision settings
+   */
+  public static async configureVisionSettings(): Promise<void> {
+    const current = ConfigManager.getVisionConfig();
+
+    const apiKey = await vscode.window.showInputBox({
+      prompt: I18n.t('config.prompts.visionApiKey'),
+      password: true,
+      value: current.apiKey || '',
+      placeHolder: I18n.t('config.prompts.visionApiKeyPlaceholder')
+    });
+
+    if (apiKey === undefined) {
+      return;
+    }
+
+    const endpointInput = await vscode.window.showInputBox({
+      prompt: I18n.t('config.prompts.visionEndpoint'),
+      value: current.endpoint || 'https://<resource>.openai.azure.com',
+      placeHolder: I18n.t('config.prompts.visionEndpointPlaceholder')
+    });
+
+    if (endpointInput === undefined) {
+      return;
+    }
+
+    const visionDeployment = await vscode.window.showInputBox({
+      prompt: I18n.t('config.prompts.visionDeployment'),
+      value: current.deployment || 'gpt-5-mini',
+      placeHolder: I18n.t('config.prompts.visionDeploymentPlaceholder')
+    });
+
+    if (visionDeployment === undefined) {
+      return;
+    }
+
+    const refinementDeployment = await vscode.window.showInputBox({
+      prompt: I18n.t('config.prompts.refinementDeployment'),
+      value: current.refinementDeployment || 'gpt-5.2',
+      placeHolder: I18n.t('config.prompts.refinementDeploymentPlaceholder')
+    });
+
+    if (refinementDeployment === undefined) {
+      return;
+    }
+
+    const normalizedEndpoint = ConfigManager.normalizeVisionEndpoint(endpointInput);
+    const validation = ConfigManager.validateVisionSettings({
+      apiKey,
+      endpoint: normalizedEndpoint,
+      deployment: visionDeployment,
+      refinementDeployment
+    });
+
+    if (!validation.isValid) {
+      throw new Error(this.buildVisionConfigGuidance(validation));
+    }
+
+    await ConfigManager.updateWorkspaceConfig('visionApiKey', apiKey);
+    await ConfigManager.updateWorkspaceConfig('visionEndpoint', normalizedEndpoint);
+    await ConfigManager.updateWorkspaceConfig('visionDeployment', visionDeployment.trim());
+    await ConfigManager.updateWorkspaceConfig('refinementDeployment', refinementDeployment.trim());
+
+    vscode.window.showInformationMessage(I18n.t('notifications.success.visionSettingsUpdated'));
   }
 
   /**

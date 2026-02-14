@@ -69,6 +69,10 @@
         "title": "%speechify.command.configureAzure%"
       },
       {
+        "command": "extension.configureSpeechifyVisionSettings",
+        "title": "%speechify.command.configureVision%"
+      },
+      {
         "command": "extension.selectSpeechifyVoiceStyle",
         "title": "%speechify.command.selectStyle%"
       },
@@ -136,6 +140,10 @@
           "group": "3_settings@2"
         },
         {
+          "command": "extension.configureSpeechifyVisionSettings",
+          "group": "3_settings@2.5"
+        },
+        {
           "command": "extension.selectSpeechifyVoiceRole",
           "group": "3_settings@3"
         },
@@ -197,22 +205,22 @@
         "speechify.visionApiKey": {
           "type": "string",
           "default": "",
-          "description": "Azure OpenAI API Key for Vision analysis"
+          "description": "%speechify.configuration.visionApiKey%"
         },
         "speechify.visionEndpoint": {
           "type": "string",
           "default": "",
-          "description": "Azure OpenAI Endpoint for Vision analysis"
+          "description": "%speechify.configuration.visionEndpoint%"
         },
         "speechify.visionDeployment": {
           "type": "string",
           "default": "gpt-5.2",
-          "description": "Azure OpenAI Deployment name for Vision analysis"
+          "description": "%speechify.configuration.visionDeployment%"
         },
         "speechify.refinementDeployment": {
           "type": "string",
           "default": "gpt-5.2",
-          "description": "Azure OpenAI Deployment name for text refinement and paraphrase"
+          "description": "%speechify.configuration.refinementDeployment%"
         }
       }
     }
