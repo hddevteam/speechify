@@ -151,20 +151,20 @@
         <div class="container">
             <div class="section-header" style="margin-bottom: 2rem;">
                 <h2 class="section-title" style="font-size: 2rem;">World-Class Multi-language Support</h2>
-                <p class="section-description">Experience 200+ neural voices powered by Azure</p>
+                <p class="section-description">Experience 200+ natural voices powered by Azure</p>
             </div>
             <div class="audio-demo-wrapper" style="display: flex; justify-content: center;">
-                <div class="audio-demo-container" style="width: 100%; max-width: 800px; background: var(--hero-gradient); color: white;">
-                    <div class="demo-title">
+                <div class="audio-demo-container" style="width: 100%; max-width: 800px; background: var(--hero-gradient); color: white; display: block;">
+                    <div class="demo-title" style="margin-bottom: 2rem;">
                         <i class="fas fa-volume-up"></i>
                         Speechify Voice Demos
                     </div>
-                    <div class="language-audio-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="language-audio-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
                         <div class="audio-item" data-lang="en">
                             <div class="audio-flag">🇺🇸</div>
                             <div class="audio-info">
                                 <div class="audio-lang">English</div>
-                                <div class="audio-voice">Azure Neural Voice</div>
+                                <div class="audio-voice">Azure AI Voice</div>
                             </div>
                             <button class="audio-play-btn" data-audio="en" title="Play English Demo" aria-label="Play Speechify demo in English">
                                 <i class="fas fa-play" aria-hidden="true"></i>
@@ -174,10 +174,21 @@
                         <div class="audio-item" data-lang="zh">
                             <div class="audio-flag">🇨🇳</div>
                             <div class="audio-info">
-                                <div class="audio-lang">中文</div>
-                                <div class="audio-voice">Azure AI 语音</div>
+                                <div class="audio-lang">Chinese</div>
+                                <div class="audio-voice">Azure AI Voice</div>
                             </div>
-                            <button class="audio-play-btn" data-audio="zh" title="播放中文演示" aria-label="播放中文 Speechify 演示">
+                            <button class="audio-play-btn" data-audio="zh" title="Play Chinese Demo" aria-label="Play Speechify demo in Chinese">
+                                <i class="fas fa-play" aria-hidden="true"></i>
+                            </button>
+                        </div>
+
+                        <div class="audio-item" data-lang="ja">
+                            <div class="audio-flag">🇯🇵</div>
+                            <div class="audio-info">
+                                <div class="audio-lang">Japanese</div>
+                                <div class="audio-voice">Azure AI Voice</div>
+                            </div>
+                            <button class="audio-play-btn" data-audio="ja" title="Play Japanese Demo" aria-label="Play Speechify demo in Japanese">
                                 <i class="fas fa-play" aria-hidden="true"></i>
                             </button>
                         </div>
@@ -185,10 +196,10 @@
                         <div class="audio-item" data-lang="es">
                             <div class="audio-flag">🇪🇸</div>
                             <div class="audio-info">
-                                <div class="audio-lang">Español</div>
-                                <div class="audio-voice">Voz Neural Azure</div>
+                                <div class="audio-lang">Spanish</div>
+                                <div class="audio-voice">Azure AI Voice</div>
                             </div>
-                            <button class="audio-play-btn" data-audio="es" title="Reproducir demo en español" aria-label="Reproducir demo de Speechify en español">
+                            <button class="audio-play-btn" data-audio="es" title="Play Spanish Demo" aria-label="Play Speechify demo in Spanish">
                                 <i class="fas fa-play" aria-hidden="true"></i>
                             </button>
                         </div>
@@ -196,27 +207,16 @@
                         <div class="audio-item" data-lang="fr">
                             <div class="audio-flag">🇫🇷</div>
                             <div class="audio-info">
-                                <div class="audio-lang">Français</div>
-                                <div class="audio-voice">Voix Neurale Azure</div>
+                                <div class="audio-lang">French</div>
+                                <div class="audio-voice">Azure AI Voice</div>
                             </div>
-                            <button class="audio-play-btn" data-audio="fr" title="Lire la démo en français" aria-label="Lire la démo de Speechify en français">
-                                <i class="fas fa-play" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                        
-                        <div class="audio-item" data-lang="ja" style="grid-column: unset; max-width: unset; margin: unset;">
-                            <div class="audio-flag">🇯🇵</div>
-                            <div class="audio-info">
-                                <div class="audio-lang">日本語</div>
-                                <div class="audio-voice">Azure ニューラル语音</div>
-                            </div>
-                            <button class="audio-play-btn" data-audio="ja" title="日本語デモを再生" aria-label="日本語でSpeechifyデモを再生">
+                            <button class="audio-play-btn" data-audio="fr" title="Play French Demo" aria-label="Play Speechify demo in French">
                                 <i class="fas fa-play" aria-hidden="true"></i>
                             </button>
                         </div>
                     </div>
                     
-                    <div class="audio-player-status">
+                    <div class="audio-player-status" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;">
                         <div class="currently-playing hidden">
                             <i class="fas fa-music" aria-hidden="true"></i>
                             <span class="playing-text">Now Playing: </span>

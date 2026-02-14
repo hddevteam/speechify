@@ -153,12 +153,12 @@
                 <p class="section-description">体验由 Azure 提供的 200+ 自然语音</p>
             </div>
             <div class="audio-demo-wrapper" style="display: flex; justify-content: center;">
-                <div class="audio-demo-container" style="width: 100%; max-width: 800px; background: var(--hero-gradient); color: white;">
-                    <div class="demo-title">
+                <div class="audio-demo-container" style="width: 100%; max-width: 800px; background: var(--hero-gradient); color: white; display: block;">
+                    <div class="demo-title" style="margin-bottom: 2rem;">
                         <i class="fas fa-volume-up"></i>
                         Speechify 语音演示
                     </div>
-                    <div class="language-audio-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="language-audio-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
                         <div class="audio-item" data-lang="en">
                             <div class="audio-flag">🇺🇸</div>
                             <div class="audio-info">
@@ -181,11 +181,22 @@
                             </button>
                         </div>
                         
+                        <div class="audio-item" data-lang="ja">
+                            <div class="audio-flag">🇯🇵</div>
+                            <div class="audio-info">
+                                <div class="audio-lang">日本語</div>
+                                <div class="audio-voice">Azure AI 语音</div>
+                            </div>
+                            <button class="audio-play-btn" data-audio="ja" title="播放日语演示" aria-label="播放日语 Speechify 演示">
+                                <i class="fas fa-play" aria-hidden="true"></i>
+                            </button>
+                        </div>
+
                         <div class="audio-item" data-lang="es">
                             <div class="audio-flag">🇪🇸</div>
                             <div class="audio-info">
                                 <div class="audio-lang">Español</div>
-                                <div class="audio-voice">Voz Neural Azure</div>
+                                <div class="audio-voice">Azure AI 语音</div>
                             </div>
                             <button class="audio-play-btn" data-audio="es" title="播放西班牙语演示" aria-label="播放西班牙语 Speechify 演示">
                                 <i class="fas fa-play" aria-hidden="true"></i>
@@ -196,26 +207,15 @@
                             <div class="audio-flag">🇫🇷</div>
                             <div class="audio-info">
                                 <div class="audio-lang">Français</div>
-                                <div class="audio-voice">Voix Neurale Azure</div>
+                                <div class="audio-voice">Azure AI 语音</div>
                             </div>
                             <button class="audio-play-btn" data-audio="fr" title="播放法语演示" aria-label="播放法语 Speechify 演示">
                                 <i class="fas fa-play" aria-hidden="true"></i>
                             </button>
                         </div>
-                        
-                        <div class="audio-item" data-lang="ja" style="grid-column: unset; max-width: unset; margin: unset;">
-                            <div class="audio-flag">🇯🇵</div>
-                            <div class="audio-info">
-                                <div class="audio-lang">日本語</div>
-                                <div class="audio-voice">Azure ニューラル音声</div>
-                            </div>
-                            <button class="audio-play-btn" data-audio="ja" title="播放日语演示" aria-label="播放日语 Speechify 演示">
-                                <i class="fas fa-play" aria-hidden="true"></i>
-                            </button>
-                        </div>
                     </div>
                     
-                    <div class="audio-player-status">
+                    <div class="audio-player-status" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;">
                         <div class="currently-playing hidden">
                             <i class="fas fa-music" aria-hidden="true"></i>
                             <span class="playing-text">正在播放: </span>

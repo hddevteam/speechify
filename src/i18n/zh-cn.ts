@@ -9,7 +9,7 @@ const chineseMessages: Messages = {
   'commands.configureVoice.title': 'Speechify: 配置语音设置',
   'commands.configureVoice.description': '配置语音名称、性别和风格偏好',
   'commands.selectRole.title': 'Speechify: 选择语音角色',
-  'commands.selectRole.description': '为神经网络语音选择角色扮演角色',
+  'commands.selectRole.description': '为神经语音选择角色扮演角色',
   'commands.configureAzure.title': 'Speechify: 配置 Azure 设置',
   'commands.configureAzure.description': '配置 Azure 语音服务凭据和区域',
   'commands.convertToVideo.title': 'Speechify: AI 视觉对齐合成',

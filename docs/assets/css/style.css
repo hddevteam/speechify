@@ -587,14 +587,6 @@ body {
     min-height: 60px;
 }
 
-/* Handle 5th item in desktop layout - center it and make it smaller */
-.audio-item:nth-child(5) {
-    grid-column: 1 / -1;
-    max-width: 60%;
-    margin: 0.4rem auto 0;
-    justify-self: center;
-}
-
 .audio-item:hover {
     background: rgba(255, 255, 255, 0.1);
     transform: translateY(-2px);
@@ -1382,9 +1374,8 @@ kbd {
 }
 
 .audio-demo-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 24px; /* 增加磁贴间距 */
+    width: 100%;
+    margin: 0 auto;
 }
 
 .audio-item {
