@@ -362,9 +362,17 @@ export class VisionPipelineService {
     }
 
     const content = fs.readFileSync(timingPath, 'utf-8');
-    let data = JSON.parse(content);
+    let data: any;
+    try {
+      data = JSON.parse(content);
+    } catch (e) {
+      vscode.window.showErrorMessage(I18n.t('errors.invalidRequest', 'Invalid JSON format'));
+      return;
+    }
+
     let segments: TimingSegment[];
 
+    // Auto-detect and upgrade legacy array format
     if (Array.isArray(data)) {
       const upgradedProject: TimingProject = {
         version: '2.0',
@@ -376,23 +384,32 @@ export class VisionPipelineService {
       data = upgradedProject;
     }
 
-    if (data && typeof data === 'object' && 'segments' in data) {
+    // Check if it's a valid timing project structure
+    if (data && typeof data === 'object' && 'segments' in data && Array.isArray(data.segments)) {
       const project = data as TimingProject;
       segments = project.segments;
 
       const projectDir = path.dirname(timingPath);
       const parentDir = path.dirname(projectDir);
-      const candidatePath = path.join(parentDir, project.videoName);
+      
+      // Try to find video relative to timing file
+      // Case 1: timing file is in a project folder, video is in parent folder
+      let candidatePath = path.join(parentDir, project.videoName);
+      
+      // Case 2: timing file and video are in the same folder
+      if (!fs.existsSync(candidatePath)) {
+        candidatePath = path.join(projectDir, project.videoName);
+      }
 
       if (fs.existsSync(candidatePath)) {
         videoFilePath = candidatePath;
-      } else if (!fs.existsSync(videoFilePath)) {
+      } else if (!videoFilePath || !fs.existsSync(videoFilePath)) {
         const selected = await vscode.window.showOpenDialog({
           canSelectFiles: true,
           canSelectFolders: false,
           canSelectMany: false,
           filters: { Video: ['mp4', 'mov', 'avi', 'mkv'] },
-          title: `Pick video for project: ${project.videoName}`
+          title: I18n.t('config.prompts.selectVideoFile', `Pick video for project: ${project.videoName}`)
         });
         if (!selected || selected.length === 0) return;
         videoFilePath = selected[0]!.fsPath;
@@ -400,7 +417,16 @@ export class VisionPipelineService {
         fs.writeFileSync(timingPath, JSON.stringify(project, null, 2));
       }
     } else {
-      segments = Array.isArray(data) ? data : [];
+      // If it doesn't look like a timing file, warn user but still allow if they insist? 
+      // Actually, if it doesn't have 'segments', it's likely not our file.
+      const result = await vscode.window.showWarningMessage(
+        I18n.t('errors.invalidRequest', 'This JSON file doesn\'t look like a Speechify timing project. Try opening it anyway?'),
+        I18n.t('actions.ok'),
+        I18n.t('actions.cancel')
+      );
+      if (result !== I18n.t('actions.ok')) return;
+      segments = [];
+      videoFilePath = videoFilePath || '';
     }
 
     const result = await this.openAlignmentEditor(videoFilePath, timingPath, segments);
@@ -436,14 +462,26 @@ export class VisionPipelineService {
 
     if (filePath.toLowerCase().endsWith('.json')) {
       timingPath = filePath;
-      const data = JSON.parse(fs.readFileSync(timingPath, 'utf-8'));
-      if (!data || Array.isArray(data) || !data.videoName) {
-        throw new Error('Invalid project file or missing video reference.');
+      const content = fs.readFileSync(timingPath, 'utf-8');
+      let data: any;
+      try {
+        data = JSON.parse(content);
+      } catch (e) {
+        throw new Error('Invalid JSON format.');
+      }
+
+      if (!data || Array.isArray(data) || !data.segments) {
+        throw new Error('This JSON file is not a valid Speechify timing project.');
       }
 
       const projectDir = path.dirname(timingPath);
       const parentDir = path.dirname(projectDir);
-      const candidateVideo = path.join(parentDir, data.videoName);
+      
+      // Try to find video relative to timing file
+      let candidateVideo = path.join(parentDir, data.videoName);
+      if (!fs.existsSync(candidateVideo)) {
+        candidateVideo = path.join(projectDir, data.videoName || '');
+      }
 
       if (fs.existsSync(candidateVideo)) {
         videoFilePath = candidateVideo;
@@ -453,7 +491,7 @@ export class VisionPipelineService {
           canSelectFolders: false,
           canSelectMany: false,
           filters: { Video: ['mp4', 'mov', 'avi', 'mkv'] },
-          title: `Pick video for project: ${data.videoName}`
+          title: I18n.t('config.prompts.selectVideoFile', `Pick video for project: ${data.videoName}`)
         });
         if (!selected || selected.length === 0) return;
         videoFilePath = selected[0]!.fsPath;

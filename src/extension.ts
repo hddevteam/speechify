@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { SpeechService } from './services/speechService';
 import { ConfigManager } from './utils/config';
 import { I18n } from './i18n';
@@ -53,16 +54,31 @@ export function deactivate(): void {
 /**
  * Convert selected text to speech
  */
-async function convertTextToSpeech(): Promise<void> {
+async function convertTextToSpeech(uri?: vscode.Uri): Promise<void> {
     try {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            vscode.window.showErrorMessage(I18n.t('errors.noActiveEditor'));
-            return;
-        }
+        let selectedText = '';
+        let sourceFilePath = 'headless_conv.txt';
 
-        const selection = editor.selection;
-        const selectedText = editor.document.getText(selection);
+        if (uri && isTextLikeFile(uri)) {
+            const document = await vscode.workspace.openTextDocument(uri);
+            selectedText = document.getText();
+            sourceFilePath = uri.fsPath;
+        } else {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showErrorMessage(I18n.t('errors.noActiveEditor'));
+                return;
+            }
+
+            const selection = editor.selection;
+            selectedText = editor.document.getText(selection);
+
+            if (!selectedText.trim() && isTextLikeFile(editor.document.uri)) {
+                selectedText = editor.document.getText();
+            }
+
+            sourceFilePath = editor.document.uri.fsPath;
+        }
 
         if (!selectedText.trim()) {
             vscode.window.showErrorMessage(I18n.t('errors.noTextSelected'));
@@ -75,8 +91,6 @@ async function convertTextToSpeech(): Promise<void> {
             return;
         }
 
-        const sourceFilePath = editor.document.uri.fsPath;
-        
         // Convert text to speech
         const result = await SpeechService.convertTextToSpeech(selectedText, sourceFilePath);
         
@@ -115,6 +129,11 @@ async function convertTextToSpeech(): Promise<void> {
             I18n.t('errors.speechGenerationFailed', error instanceof Error ? error.message : 'Unknown error')
         );
     }
+}
+
+function isTextLikeFile(uri: vscode.Uri): boolean {
+    const ext = path.extname(uri.fsPath).toLowerCase();
+    return ext === '.txt' || ext === '.md' || ext === '.markdown';
 }
 
 /**
@@ -215,10 +234,24 @@ async function selectVoiceRole(): Promise<void> {
 /**
  * Convert selected text to speech and merge with a video file
  */
-async function convertTextToVideo(args?: { text?: string, videoPath?: string }): Promise<void> {
+async function convertTextToVideo(args?: { text?: string, videoPath?: string } | vscode.Uri): Promise<void> {
     try {
-        let selectedText = args?.text;
-        let videoPath = args?.videoPath;
+        let selectedText: string | undefined;
+        let videoPath: string | undefined;
+        let sourceFilePath = 'headless_conv.txt';
+
+        if (args instanceof vscode.Uri) {
+            if (isTextLikeFile(args)) {
+                const document = await vscode.workspace.openTextDocument(args);
+                selectedText = document.getText();
+                sourceFilePath = args.fsPath;
+            } else {
+                videoPath = args.fsPath;
+            }
+        } else {
+            selectedText = args?.text;
+            videoPath = args?.videoPath;
+        }
 
         const editor = vscode.window.activeTextEditor;
 
@@ -230,6 +263,12 @@ async function convertTextToVideo(args?: { text?: string, videoPath?: string }):
             }
             const selection = editor.selection;
             selectedText = editor.document.getText(selection);
+
+            if (!selectedText.trim() && isTextLikeFile(editor.document.uri)) {
+                selectedText = editor.document.getText();
+            }
+
+            sourceFilePath = editor.document.uri.fsPath;
         }
 
         if (!selectedText || !selectedText.trim()) {
@@ -263,8 +302,6 @@ async function convertTextToVideo(args?: { text?: string, videoPath?: string }):
         if (!videoPath) {
             return;
         }
-
-        const sourceFilePath = editor?.document.uri.fsPath || 'headless_conv.txt';
 
         // 100% Vision mode now. Let user choose extraction interval.
         const interval = await vscode.window.showQuickPick([

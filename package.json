@@ -100,6 +100,18 @@
       }
     ],
     "menus": {
+      "editor/title": [
+        {
+          "command": "extension.openAlignmentEditor",
+          "group": "navigation",
+          "when": "resourceExtname == .json"
+        },
+        {
+          "command": "extension.synthesizeVideoFromProject",
+          "group": "navigation",
+          "when": "resourceExtname == .json"
+        }
+      ],
       "editor/context": [
         {
           "submenu": "speechify.submenu",
@@ -110,46 +122,54 @@
         {
           "submenu": "speechify.submenu",
           "group": "navigation",
-          "when": "resourceExtname == .mp4 || resourceExtname == .mov || resourceFilename == timing.json"
+          "when": "resourceExtname == .mp4 || resourceExtname == .mov || resourceExtname == .json || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
         }
       ],
       "speechify.submenu": [
         {
           "command": "extension.speechify",
-          "group": "1_core@1"
+          "group": "1_core@1",
+          "when": "editorTextFocus || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
         },
         {
           "command": "extension.convertToVideo",
-          "group": "2_video@1"
+          "group": "2_video@1",
+          "when": "editorTextFocus || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
         },
         {
           "command": "extension.openAlignmentEditor",
           "group": "2_video@2",
-          "when": "resourceFilename == timing.json"
+          "when": "resourceExtname == .mp4 || resourceExtname == .mov || resourceExtname == .json"
         },
         {
           "command": "extension.synthesizeVideoFromProject",
-          "group": "2_video@3"
+          "group": "2_video@3",
+          "when": "resourceExtname == .mp4 || resourceExtname == .mov || resourceExtname == .json"
         },
         {
           "command": "extension.selectSpeechifyVoiceStyle",
-          "group": "3_settings@1"
+          "group": "3_settings@1",
+          "when": "editorTextFocus"
         },
         {
           "command": "extension.configureSpeechifyVoiceSettings",
-          "group": "3_settings@2"
+          "group": "3_settings@2",
+          "when": "editorTextFocus"
         },
         {
           "command": "extension.configureSpeechifyVisionSettings",
-          "group": "3_settings@2.5"
+          "group": "3_settings@2.5",
+          "when": "editorTextFocus"
         },
         {
           "command": "extension.selectSpeechifyVoiceRole",
-          "group": "3_settings@3"
+          "group": "3_settings@3",
+          "when": "editorTextFocus"
         },
         {
           "command": "extension.showSpeechifyVoiceSettings",
-          "group": "3_settings@4"
+          "group": "3_settings@4",
+          "when": "editorTextFocus"
         }
       ]
     },
