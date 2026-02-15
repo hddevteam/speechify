@@ -46,6 +46,8 @@ out/**
 !dist/extension.js
 
 # Configuration examples
+# NOTE: test-config.json contains real keys in local dev; NEVER ship it.
+test-config.json
 test-config.json.example
 *.example
 
