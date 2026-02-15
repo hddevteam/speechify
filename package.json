@@ -3,7 +3,7 @@
   "displayName": "%speechify.displayName%",
   "description": "%speechify.description%",
   "icon": "images/icon-128.png",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "engines": {
     "vscode": "^1.82.0"
   },
