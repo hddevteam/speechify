@@ -5,6 +5,7 @@ export class SubtitleUtils {
   private static readonly STRONG_BREAK_PUNCTUATION = /[。！？!?]/;
   private static readonly SENTENCE_END_PUNCTUATION = /[。！？!?]/;
   private static readonly DROP_DISPLAY_PUNCTUATION = /[，。；、,.;]/g;
+  private static readonly CHINESE_CHAR = /[\u4e00-\u9fff]/;
   private static readonly MAX_WORDS_PER_SUBTITLE = 40;
   private static readonly MAX_GAP_MS = 1000;
 
@@ -133,7 +134,7 @@ export class SubtitleUtils {
   }
 
   private static normalizeSubtitleText(text: string): string {
-    return text
+    const normalized = text
       .replace(this.DROP_DISPLAY_PUNCTUATION, ' ')
       .replace(/\s*([！？!?])/g, '$1')
       .replace(/([“‘])\s+/g, '$1')
@@ -141,6 +142,33 @@ export class SubtitleUtils {
       .replace(/([！？!?])\s+(?=[\u4e00-\u9fffA-Za-z0-9])/g, '$1')
       .replace(/\s+/g, ' ')
       .trim();
+
+    return this.removeSpacesBetweenChineseChars(normalized);
+  }
+
+  private static removeSpacesBetweenChineseChars(text: string): string {
+    if (!text.includes(' ')) {
+      return text;
+    }
+
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+      const current = text[i];
+
+      if (
+        current === ' ' &&
+        i > 0 &&
+        i < text.length - 1 &&
+        this.CHINESE_CHAR.test(text[i - 1] || '') &&
+        this.CHINESE_CHAR.test(text[i + 1] || '')
+      ) {
+        continue;
+      }
+
+      result += current;
+    }
+
+    return result.replace(/\s+/g, ' ').trim();
   }
 
   private static endsWithSentencePunctuation(text: string): boolean {
