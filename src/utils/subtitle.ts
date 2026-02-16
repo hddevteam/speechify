@@ -3,10 +3,10 @@ import * as fs from 'fs';
 
 export class SubtitleUtils {
   private static readonly STRONG_BREAK_PUNCTUATION = /[。！？!?]/;
-  private static readonly WEAK_BREAK_PUNCTUATION = /[；;：:]/;
-  private static readonly COMMA_BREAK_PUNCTUATION = /[，,]/;
   private static readonly SENTENCE_END_PUNCTUATION = /[。！？!?]/;
-  private static readonly DISPLAY_STRIP_PUNCTUATION = /[，。！；：,.!;:]/g;
+  private static readonly DROP_DISPLAY_PUNCTUATION = /[，。；、,.;]/g;
+  private static readonly MAX_WORDS_PER_SUBTITLE = 40;
+  private static readonly MAX_GAP_MS = 1000;
 
   /**
    * Merge boundaries from multiple segments and enforce a hard break between segments
@@ -40,19 +40,20 @@ export class SubtitleUtils {
    * Convert word boundaries to SRT format
    */
   public static generateSRT(boundaries: WordBoundary[]): string {
-    let srt = '';
-    let index = 1;
+    type SubtitleEntry = {
+      startTime: string;
+      endTime: string;
+      text: string;
+    };
 
-    // Standard subtitle grouping logic: roughly 5-10 words per line
-    const wordsPerSubtitle = 8;
-    const maxGapMs = 1000; // If there is a gap > 1s, break the subtitle
+    const entries: SubtitleEntry[] = [];
 
     let i = 0;
     while (i < boundaries.length) {
       const chunk: WordBoundary[] = [];
       
       // Start a new chunk
-      for (let j = 0; j < wordsPerSubtitle && (i + j) < boundaries.length; j++) {
+      for (let j = 0; j < this.MAX_WORDS_PER_SUBTITLE && (i + j) < boundaries.length; j++) {
         const currentWord = boundaries[i + j];
         if (!currentWord) break;
 
@@ -61,7 +62,7 @@ export class SubtitleUtils {
         if (prevWord) {
           const gap = currentWord.audioOffset - (prevWord.audioOffset + (prevWord.duration || 0));
           
-          if (gap > maxGapMs) {
+          if (gap > this.MAX_GAP_MS) {
             // Large gap detected, finish this chunk early
             break;
           }
@@ -69,7 +70,7 @@ export class SubtitleUtils {
         
         chunk.push(currentWord);
 
-        if (this.shouldBreakAtPunctuation(currentWord.text, chunk.length, wordsPerSubtitle)) {
+        if (this.shouldBreakAtPunctuation(currentWord.text, chunk.length, this.MAX_WORDS_PER_SUBTITLE)) {
           break;
         }
       }
@@ -82,20 +83,26 @@ export class SubtitleUtils {
         const endTime = this.formatSrtTime(lastWord.audioOffset + (lastWord.duration || 0));
         
         const chunkText = this.buildChunkText(chunk);
-        const cleanedText = this.stripDisplayPunctuation(chunkText);
-
-        if (cleanedText) {
-          srt += `${index}\n`;
-          srt += `${startTime} --> ${endTime}\n`;
-          srt += `${cleanedText}\n\n`;
-          index++;
+        if (chunkText) {
+          if (this.isPunctuationOnlyText(chunkText)) {
+            const prevEntry = entries[entries.length - 1];
+            if (prevEntry) {
+              prevEntry.text = `${prevEntry.text}${chunkText}`;
+              prevEntry.endTime = endTime;
+            }
+          } else {
+            entries.push({ startTime, endTime, text: this.normalizeSubtitleText(chunkText) });
+          }
         }
       }
 
       i += chunk.length;
     }
 
-    return srt;
+    return entries
+      .map((entry, idx) => `${idx + 1}\n${entry.startTime} --> ${entry.endTime}\n${entry.text}`)
+      .join('\n\n')
+      .concat(entries.length > 0 ? '\n\n' : '');
   }
 
   private static shouldBreakAtPunctuation(token: string, chunkLength: number, wordsPerSubtitle: number): boolean {
@@ -103,13 +110,7 @@ export class SubtitleUtils {
       return true;
     }
 
-    const commaBreakThreshold = Math.max(4, Math.ceil(wordsPerSubtitle / 2));
-    if (chunkLength >= commaBreakThreshold && this.COMMA_BREAK_PUNCTUATION.test(token)) {
-      return true;
-    }
-
-    const weakBreakThreshold = Math.max(3, Math.ceil(wordsPerSubtitle / 2));
-    return chunkLength >= weakBreakThreshold && this.WEAK_BREAK_PUNCTUATION.test(token);
+    return chunkLength >= wordsPerSubtitle;
   }
 
   private static buildChunkText(chunk: WordBoundary[]): string {
@@ -119,15 +120,25 @@ export class SubtitleUtils {
       .join(' ');
 
     return merged
+      .replace(/([“‘])\s+/g, '$1')
+      .replace(/\s+([”’])/g, '$1')
       .replace(/\s+([，。！？；：,.!?;:])/g, '$1')
-      .replace(/([\u4e00-\u9fff])\s+(?=[\u4e00-\u9fff])/g, '$1')
       .replace(/\s+/g, ' ')
       .trim();
   }
 
-  private static stripDisplayPunctuation(text: string): string {
+  private static isPunctuationOnlyText(text: string): boolean {
+    const nonPunctuation = text.replace(/[\s\p{P}\p{S}]/gu, '');
+    return nonPunctuation.length === 0;
+  }
+
+  private static normalizeSubtitleText(text: string): string {
     return text
-      .replace(this.DISPLAY_STRIP_PUNCTUATION, ' ')
+      .replace(this.DROP_DISPLAY_PUNCTUATION, ' ')
+      .replace(/\s*([！？!?])/g, '$1')
+      .replace(/([“‘])\s+/g, '$1')
+      .replace(/\s+([”’])/g, '$1')
+      .replace(/([！？!?])\s+(?=[\u4e00-\u9fffA-Za-z0-9])/g, '$1')
       .replace(/\s+/g, ' ')
       .trim();
   }
