@@ -5,6 +5,18 @@ All notable changes to the **Speechify** extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.3] - 2026-02-16
+
+### 🐛 Bug Fixes
+- **Subtitle Spacing Normalization**: Fixed excessive spaces in Chinese subtitles generated from word boundaries while preserving readability for mixed-language terms like `App` and `WebAudio`.
+- **Punctuation Handling**: Dropped Chinese punctuation now consistently maps to English spaces to keep natural pause rhythm in displayed subtitles.
+
+### ✨ UX Improvements
+- **Command Terminology Refresh**: Updated command labels to clearer, creator-friendly terms (e.g., AI Smart Align, Manual Alignment, Export Video).
+
+### 🔧 Build Improvements
+- **Webpack Mode Explicitly Set**: Added explicit `mode` in webpack config to remove fallback mode warning during compile.
+
 ## [3.0.0] - 2026-02-13
 
 ### 🎬 Video Synthesis & Vision Integration
