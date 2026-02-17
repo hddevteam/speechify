@@ -3,7 +3,7 @@
   "displayName": "%speechify.displayName%",
   "description": "%speechify.description%",
   "icon": "images/icon-128.png",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "engines": {
     "vscode": "^1.82.0"
   },
@@ -214,7 +214,11 @@
         "speechify.transitionType": {
           "type": "string",
           "default": "fade",
-          "enum": ["fade", "wipeleft", "slideleft"],
+          "enum": [
+            "fade",
+            "wipeleft",
+            "slideleft"
+          ],
           "description": "%speechify.configuration.transitionType%"
         },
         "speechify.autoTrimVideo": {

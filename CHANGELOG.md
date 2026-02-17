@@ -5,6 +5,13 @@ All notable changes to the **Speechify** extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.4] - 2026-02-17
+
+### 🐛 Bug Fixes
+- **Portrait Subtitle Scaling**: Fixed oversized subtitles on vertical videos by scaling subtitle font size dynamically based on video dimensions and aspect ratio.
+- **Dynamic Subtitle Layout**: Subtitle outline, shadow, spacing, and margins now scale with resolution/aspect ratio for more balanced readability across portrait and landscape videos.
+- **Title Overlay Adaptation**: Center title-card text, padding, and line spacing now adjust dynamically to avoid excessive screen occupation on narrow portrait frames.
+
 ## [3.0.3] - 2026-02-16
 
 ### 🐛 Bug Fixes
