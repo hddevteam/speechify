@@ -184,6 +184,13 @@ export interface Messages {
   'alignment.speedFactor': string;
   'alignment.seeking': string;
   'alignment.seekingDetail': string;
+  'alignment.audioMode': string;
+  'alignment.audioMode.replace': string;
+  'alignment.audioMode.mix': string;
+  'alignment.audioMode.ducking': string;
+  'alignment.muteOriginalSegment': string;
+  'alignment.muteOriginalDisabledHint': string;
+  'alignment.muteOriginalOnlySpeedOverflow': string;
   
   // Synthesis Modes
   'modes.compact': string;

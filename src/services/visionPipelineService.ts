@@ -7,12 +7,12 @@ import { AzureSpeechService } from '../utils/azure';
 import { AudioUtils } from '../utils/audio';
 import { SubtitleUtils } from '../utils/subtitle';
 import { VideoMuxer } from '../utils/videoMuxer';
-import { VideoAnalyzer, TimingSegment, TimingProject } from '../utils/videoAnalyzer';
-import { AlignmentEditor } from '../webview/alignmentEditor';
+import { VideoAnalyzer, TimingAudioConfig, TimingSegment, TimingProject } from '../utils/videoAnalyzer';
+import { AlignmentEditor, AlignmentResult } from '../webview/alignmentEditor';
 import { I18n } from '../i18n';
 import { buildVisionConfigGuidance, buildVisionRuntimeGuidance } from './visionGuidance';
 import { calculateShiftedSegments, ShiftedSegment } from './segmentTiming';
-import { mergeAudioWithOffsets } from './ffmpegAudio';
+import { composeFinalAudioTrack, mergeAudioWithOffsets } from './ffmpegAudio';
 
 export enum PipelineStep {
   ANALYZE = 'analyze',
@@ -82,12 +82,14 @@ export class VisionPipelineService {
       });
 
       let segments: TimingSegment[] = [];
+      let projectAudioConfig: TimingAudioConfig | undefined;
 
       const saveProject = (segs: TimingSegment[]): void => {
         const project: TimingProject = {
           version: '2.0',
           videoName: path.basename(videoFilePath),
           lastModified: new Date().toISOString(),
+          ...(projectAudioConfig ? { audio: projectAudioConfig } : {}),
           segments: segs
         };
         fs.writeFileSync(timingPath, JSON.stringify(project, null, 2));
@@ -121,6 +123,7 @@ export class VisionPipelineService {
       } else if (fs.existsSync(timingPath)) {
         const data = JSON.parse(fs.readFileSync(timingPath, 'utf-8'));
         segments = Array.isArray(data) ? data : data.segments;
+        projectAudioConfig = this.extractAudioConfig(data);
       }
 
       const shouldOpenEditor =
@@ -132,6 +135,13 @@ export class VisionPipelineService {
           throw new Error(I18n.t('errors.alignmentEditorCanceled'));
         }
         segments = result.segments;
+        if (result.audio) {
+          projectAudioConfig = {
+            ...projectAudioConfig,
+            ...result.audio
+          };
+          saveProject(segments);
+        }
       }
 
       const shouldRefine = options.forceRefine || options.startStep === PipelineStep.REFINE;
@@ -157,6 +167,7 @@ export class VisionPipelineService {
       } else {
         const data = JSON.parse(fs.readFileSync(timingPath, 'utf-8'));
         segments = Array.isArray(data) ? data : data.segments;
+        projectAudioConfig = this.extractAudioConfig(data);
       }
 
       if (
@@ -277,13 +288,39 @@ export class VisionPipelineService {
           }) as ShiftedSegment[];
 
           const mergedAudioPath = path.join(projectDir, 'merged_final.mp3');
-          await mergeAudioWithOffsets(
-            shiftedSegments.map(s => ({
-              audioPath: s.audioPath || '',
-              startTime: s.targetStartTime
-            })),
-            mergedAudioPath
-          );
+          const mergePlan = shiftedSegments.map((s, i) => {
+              const next = shiftedSegments[i + 1];
+              const slotDuration = next
+                ? Math.max(0.05, next.targetStartTime - s.targetStartTime)
+                : Math.max(0.05, s.targetDuration);
+              const spokenDuration = typeof s.audioDuration === 'number' && Number.isFinite(s.audioDuration)
+                ? Math.max(0.05, s.audioDuration + 0.03)
+                : null;
+              const trimDuration = spokenDuration !== null
+                ? Math.max(0.05, Math.min(slotDuration, spokenDuration))
+                : slotDuration;
+              return {
+                audioPath: s.audioPath || '',
+                startTime: s.targetStartTime,
+                ...(typeof trimDuration === 'number' ? { maxDurationSec: trimDuration } : {})
+              };
+            });
+          console.log('[Pipeline] Merge plan diagnostics:', mergePlan.map((m, i) => ({
+            index: i,
+            startTime: Number(m.startTime.toFixed(3)),
+            maxDurationSec: m.maxDurationSec !== undefined ? Number(m.maxDurationSec.toFixed(3)) : null,
+            audioPath: m.audioPath
+          })));
+          await mergeAudioWithOffsets(mergePlan, mergedAudioPath);
+
+          const finalAudioPath = path.join(projectDir, 'final_mix.m4a');
+          const muxAudioPath = await composeFinalAudioTrack({
+            videoSourcePath: videoFilePath,
+            narrationAudioPath: mergedAudioPath,
+            outputPath: finalAudioPath,
+            segments: shiftedSegments,
+            ...(projectAudioConfig ? { audioConfig: projectAudioConfig } : {})
+          });
 
           const srtOutputPath = path.join(projectDir, 'final.srt');
           const shiftedBoundaryGroups: WordBoundary[][] = [];
@@ -310,7 +347,7 @@ export class VisionPipelineService {
           const videoOutputPath = path.join(outputDir, `${projectName}_refined_vision.mp4`);
           const finalVideoPath = await VideoMuxer.muxVideoWithSegments(
             videoFilePath,
-            mergedAudioPath,
+            muxAudioPath,
             srtOutputPath,
             videoOutputPath,
             shiftedSegments,
@@ -325,7 +362,7 @@ export class VisionPipelineService {
             success: true,
             processedChunks: segments.length,
             totalChunks: segments.length,
-            outputPaths: [mergedAudioPath, srtOutputPath],
+            outputPaths: [mergedAudioPath, muxAudioPath, srtOutputPath],
             videoOutputPath: finalVideoPath,
             wordBoundaries: allBoundaries,
             errors: []
@@ -441,16 +478,30 @@ export class VisionPipelineService {
       return;
     }
 
-    const { segments: updatedSegments, action } = result;
+    const { segments: updatedSegments, action, audio: updatedAudio } = result;
 
     const projectContent = fs.readFileSync(timingPath, 'utf-8');
     const finalProject = JSON.parse(projectContent);
     if (finalProject && !Array.isArray(finalProject) && 'segments' in finalProject) {
       finalProject.segments = updatedSegments;
+      if (updatedAudio) {
+        finalProject.audio = {
+          ...(finalProject.audio || {}),
+          ...updatedAudio
+        };
+      }
       finalProject.lastModified = new Date().toISOString();
       fs.writeFileSync(timingPath, JSON.stringify(finalProject, null, 2));
     } else {
-      fs.writeFileSync(timingPath, JSON.stringify(updatedSegments, null, 2));
+      // Legacy upgrade or simple array
+      const upgraded: TimingProject = {
+        version: '2.0',
+        videoName: path.basename(videoFilePath),
+        lastModified: new Date().toISOString(),
+        segments: updatedSegments,
+        ...(updatedAudio ? { audio: updatedAudio } : {})
+      };
+      fs.writeFileSync(timingPath, JSON.stringify(upgraded, null, 2));
     }
 
     if (action === 'synthesize') {
@@ -545,15 +596,32 @@ export class VisionPipelineService {
     videoFilePath: string,
     timingPath: string,
     segments: TimingSegment[]
-  ): Promise<{ segments: TimingSegment[]; action: string } | null> {
+  ): Promise<{ segments: TimingSegment[]; action: string; audio?: AlignmentResult['audio'] } | null> {
     const context = this.extensionContext;
     if (!context) {
       vscode.window.showErrorMessage(I18n.t('errors.alignmentEditorUnavailable'));
       return null;
     }
 
+    // Read current audio config from timing file
+    let audioConfig: TimingAudioConfig | undefined;
+    if (fs.existsSync(timingPath)) {
+      try {
+        const data = JSON.parse(fs.readFileSync(timingPath, 'utf-8'));
+        audioConfig = this.extractAudioConfig(data);
+      } catch {
+        // ignore
+      }
+    }
+
     const result = await AlignmentEditor.open(context, videoFilePath, segments, {
-      autoSavePath: timingPath
+      autoSavePath: timingPath,
+      ...(audioConfig ? { 
+        audio: {
+          ...(audioConfig.mode ? { mode: audioConfig.mode } : {}),
+          ...(audioConfig.originalGainDb !== undefined ? { originalGainDb: audioConfig.originalGainDb } : {})
+        }
+      } : {})
     });
 
     if (!result) {
@@ -567,6 +635,20 @@ export class VisionPipelineService {
     const outputDir = path.dirname(videoFilePath);
     const projectName = path.basename(videoFilePath, path.extname(videoFilePath));
     return path.join(outputDir, `${projectName}_vision_project`);
+  }
+
+  private static extractAudioConfig(data: unknown): TimingAudioConfig | undefined {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      return undefined;
+    }
+    if (!('audio' in data)) {
+      return undefined;
+    }
+    const candidate = (data as { audio?: unknown }).audio;
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+      return undefined;
+    }
+    return candidate as TimingAudioConfig;
   }
 
   private static async refineSegmentsWithCalibration(

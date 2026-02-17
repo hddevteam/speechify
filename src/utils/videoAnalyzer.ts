@@ -9,6 +9,35 @@ const execAsync = promisify(exec);
 
 export type AlignmentStrategy = 'trim' | 'speed_total' | 'speed_overflow' | 'freeze';
 
+export type AudioMixMode = 'replace' | 'mix' | 'ducking';
+
+export interface TimingAudioStrategyRule {
+    allowOriginal?: boolean;
+    followSpeed?: boolean;
+    freezePartSilence?: boolean;
+}
+
+export interface TimingAudioDuckingConfig {
+    targetGainDb?: number;
+    attackMs?: number;
+    releaseMs?: number;
+}
+
+export interface SegmentAudioOverride {
+    muteOriginal?: boolean;
+    originalGainDb?: number;
+}
+
+export interface TimingAudioConfig {
+    mode?: AudioMixMode;
+    narrationGainDb?: number;
+    originalGainDb?: number;
+    ducking?: TimingAudioDuckingConfig;
+    introOriginalSec?: number;
+    outroOriginalSec?: number;
+    strategyRules?: Partial<Record<AlignmentStrategy, TimingAudioStrategyRule>>;
+}
+
 export interface TimingSegment {
     startTime: number;
     title: string;
@@ -19,6 +48,7 @@ export interface TimingSegment {
     audioDuration?: number;
     strategy?: AlignmentStrategy;
     speedFactor?: number;
+    audioOverride?: SegmentAudioOverride;
 }
 
 export interface TimingProject {
@@ -26,6 +56,7 @@ export interface TimingProject {
     videoName: string;
     videoPath?: string;
     lastModified: string;
+    audio?: TimingAudioConfig;
     segments: TimingSegment[];
 }
 

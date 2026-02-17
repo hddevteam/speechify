@@ -248,6 +248,41 @@ video {
   font-weight: bold;
 }
 
+.header-audio-config {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 1rem;
+  padding-left: 1rem;
+  border-left: 1px solid var(--vscode-border);
+}
+
+.audio-config-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  opacity: 0.5;
+  letter-spacing: 0.05em;
+}
+
+.audio-mode-select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--vscode-border);
+  color: var(--vscode-fg);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.audio-mode-select:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--vscode-accent);
+}
+
 .timeline-container {
   padding: 0.4rem 1.5rem 0.6rem 1.5rem;
   background: transparent;
@@ -713,4 +748,36 @@ video {
 .factor-input::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+.audio-toggle-container {
+  display: flex;
+  align-items: center;
+}
+
+.mute-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--vscode-fg);
+  white-space: nowrap;
+}
+
+.mute-label input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: var(--vscode-accent);
+}
+
+.mute-label span {
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.mute-label:hover span {
+  opacity: 1;
 }

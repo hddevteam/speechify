@@ -377,8 +377,10 @@ export class VideoMuxer {
       const command = `ffmpeg -y -i "${vBase}" -i "${aRel}" -filter_complex "${filterComplex}" -map "[${videoMap}]" -map 1:a:0 -c:v libx264 -c:a aac -shortest "${path.relative(vDir, outputPath)}"`;
 
       console.log('Running Advanced FFmpeg command:', command);
-      await execAsync(command, { cwd: vDir });
+      // Increased maxBuffer to 5MB to handle long command lines and large filter graphs
+      await execAsync(command, { cwd: vDir, maxBuffer: 5 * 1024 * 1024 });
 
+      console.log(`[Muxer] Advanced muxing completed: ${outputPath}`);
       return outputPath;
     } catch (error: unknown) {
       console.error('Advanced Muxing error:', error);

@@ -5,6 +5,17 @@ All notable changes to the **Speechify** extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.5] - 2026-02-17
+
+### 🐛 Bug Fixes
+- **Final Mix Duration Truncation**: Fixed `mix/ducking` mode output being cut to short original-audio length (e.g. ~14s) by anchoring final mix duration to narration timeline.
+- **Speed Overflow Mute Regression**: Restored default behavior to tail-only anti-bleed muting for `speed_overflow`; full-segment mute is now opt-in only.
+- **Alignment Editor Stability**: Fixed runtime issue in alignment webview caused by an undefined `isSpeedOverflow` variable.
+
+### 🎵 Audio Pipeline Improvements
+- **Duration Robustness**: Added original-track padding in final compose stage to avoid premature mix termination when source audio is short.
+- **Diagnostics**: Improved completion logs for final audio compose and advanced muxing stages.
+
 ## [3.0.4] - 2026-02-17
 
 ### 🐛 Bug Fixes

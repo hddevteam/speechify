@@ -181,6 +181,13 @@ const englishMessages: Messages = {
   'alignment.speedFactor': 'Speed Factor',
   'alignment.seeking': 'Seeking frame...',
   'alignment.seekingDetail': 'Large video or sparse keyframes may take a moment.',
+  'alignment.audioMode': 'Audio Mode',
+  'alignment.audioMode.replace': 'Replace Original (Voice Only)',
+  'alignment.audioMode.mix': 'Mix (Keep Original)',
+  'alignment.audioMode.ducking': 'Voice First (Ducking)',
+  'alignment.muteOriginalSegment': 'Mute Original for This Segment',
+  'alignment.muteOriginalDisabledHint': 'Global mode is “Replace Original”; original audio is already muted.',
+  'alignment.muteOriginalOnlySpeedOverflow': 'Only available for “Speed Overflow”.',
 
   // Synthesis Modes
   'modes.compact': 'Compact Mode',

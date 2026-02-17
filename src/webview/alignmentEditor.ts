@@ -27,6 +27,13 @@ interface AlignmentEditorLabels {
   speedFactor: string;
   seeking: string;
   seekingDetail: string;
+  audioMode: string;
+  audioModeReplace: string;
+  audioModeMix: string;
+  audioModeDucking: string;
+  muteOriginalSegment: string;
+  muteOriginalDisabledHint: string;
+  muteOriginalOnlySpeedOverflow: string;
   ok: string;
   synthesize: string;
   synthesizing: string;
@@ -35,12 +42,19 @@ interface AlignmentEditorLabels {
 interface AlignmentEditorInitState {
   videoSrc: string;
   segments: TimingSegment[];
+  audio?: {
+    mode?: 'replace' | 'mix' | 'ducking';
+    originalGainDb?: number | null;
+  } | null;
   labels: AlignmentEditorLabels;
   voiceName: string;
 }
 
 export interface AlignmentResult {
   segments: TimingSegment[];
+  audio?: {
+    mode?: 'replace' | 'mix' | 'ducking';
+  } | null;
   action: 'save' | 'synthesize';
 }
 
@@ -49,7 +63,13 @@ export class AlignmentEditor {
     context: vscode.ExtensionContext,
     videoFilePath: string,
     segments: TimingSegment[],
-    options?: { autoSavePath?: string }
+    options?: { 
+      autoSavePath?: string;
+      audio?: {
+        mode?: 'replace' | 'mix' | 'ducking';
+        originalGainDb?: number;
+      }
+    }
   ): Promise<AlignmentResult | null> {
     const panel = vscode.window.createWebviewPanel(
       'speechifyAlignmentEditor',
@@ -75,6 +95,7 @@ export class AlignmentEditor {
     const initState: AlignmentEditorInitState = {
       videoSrc: videoUri,
       segments,
+      audio: options?.audio || { mode: 'replace' },
       labels: {
         title: I18n.t('alignment.editorTitle'),
         timeline: I18n.t('alignment.timeline'),
@@ -96,6 +117,13 @@ export class AlignmentEditor {
         speedFactor: I18n.t('alignment.speedFactor'),
         seeking: I18n.t('alignment.seeking'),
         seekingDetail: I18n.t('alignment.seekingDetail'),
+        audioMode: I18n.t('alignment.audioMode'),
+        audioModeReplace: I18n.t('alignment.audioMode.replace'),
+        audioModeMix: I18n.t('alignment.audioMode.mix'),
+        audioModeDucking: I18n.t('alignment.audioMode.ducking'),
+        muteOriginalSegment: I18n.t('alignment.muteOriginalSegment'),
+        muteOriginalDisabledHint: I18n.t('alignment.muteOriginalDisabledHint'),
+        muteOriginalOnlySpeedOverflow: I18n.t('alignment.muteOriginalOnlySpeedOverflow'),
         ok: I18n.t('actions.ok'),
         synthesize: I18n.t('commands.synthesizeVideoFromProject.title'),
         synthesizing: I18n.t('progress.startingSynthesis')
@@ -109,6 +137,7 @@ export class AlignmentEditor {
       let resolved = false;
       let autoSaveTimer: NodeJS.Timeout | undefined;
       let pendingAutoSaveSegments: TimingSegment[] | null = null;
+      let pendingAutoSaveAudio: AlignmentResult['audio'] | null = null;
       let isFlushingAutoSave = false;
 
       const flushAutoSave = async (): Promise<void> => {
@@ -118,7 +147,9 @@ export class AlignmentEditor {
 
         isFlushingAutoSave = true;
         const segmentsToSave = pendingAutoSaveSegments;
+        const audioToSave = pendingAutoSaveAudio;
         pendingAutoSaveSegments = null;
+        pendingAutoSaveAudio = null;
 
         try {
           try {
@@ -127,13 +158,33 @@ export class AlignmentEditor {
 
             if (currentData && !Array.isArray(currentData) && 'segments' in currentData) {
               currentData.segments = segmentsToSave;
+              if (audioToSave) {
+                currentData.audio = {
+                  ...(currentData.audio || {}),
+                  ...audioToSave
+                };
+              }
               currentData.lastModified = new Date().toISOString();
               await fs.writeFile(options.autoSavePath, JSON.stringify(currentData, null, 2));
             } else {
-              await fs.writeFile(options.autoSavePath, JSON.stringify(segmentsToSave, null, 2));
+              const upgraded = {
+                version: '2.0',
+                videoName: path.basename(videoFilePath),
+                lastModified: new Date().toISOString(),
+                segments: segmentsToSave,
+                ...(audioToSave ? { audio: audioToSave } : {})
+              };
+              await fs.writeFile(options.autoSavePath, JSON.stringify(upgraded, null, 2));
             }
           } catch {
-            await fs.writeFile(options.autoSavePath, JSON.stringify(segmentsToSave, null, 2));
+            const fallbackData = {
+              version: '2.0',
+              videoName: path.basename(videoFilePath),
+              lastModified: new Date().toISOString(),
+              segments: segmentsToSave,
+              ...(audioToSave ? { audio: audioToSave } : {})
+            };
+            await fs.writeFile(options.autoSavePath, JSON.stringify(fallbackData, null, 2));
           }
           console.log(`[AutoSave] Saved segments to ${options.autoSavePath}`);
         } catch (err) {
@@ -146,8 +197,9 @@ export class AlignmentEditor {
         }
       };
 
-      const scheduleAutoSave = (segmentsToSave: TimingSegment[]): void => {
+      const scheduleAutoSave = (segmentsToSave: TimingSegment[], audioToSave?: AlignmentResult['audio']): void => {
         pendingAutoSaveSegments = segmentsToSave;
+        pendingAutoSaveAudio = audioToSave ?? null;
         if (autoSaveTimer) {
           clearTimeout(autoSaveTimer);
         }
@@ -158,7 +210,7 @@ export class AlignmentEditor {
         }, 300);
       };
 
-      const finalize = (segments: TimingSegment[] | null, action: 'save' | 'synthesize' = 'save'): void => {
+      const finalize = (segments: TimingSegment[] | null, action: 'save' | 'synthesize' = 'save', audio?: AlignmentResult['audio']): void => {
         if (resolved) return;
         resolved = true;
         if (autoSaveTimer) {
@@ -166,7 +218,11 @@ export class AlignmentEditor {
           autoSaveTimer = undefined;
         }
         if (segments) {
-            resolve({ segments, action });
+            resolve({ 
+              segments, 
+              action,
+              ...(audio ? { audio } : {})
+            });
         } else {
             resolve(null);
         }
@@ -185,7 +241,7 @@ export class AlignmentEditor {
 
       panel.webview.onDidReceiveMessage((message) => {
         if (message?.type === 'save' && Array.isArray(message.segments)) {
-          finalize(message.segments as TimingSegment[], 'save');
+          finalize(message.segments as TimingSegment[], 'save', message.audio);
         }
 
         if (message?.type === 'configure-voice') {
@@ -283,7 +339,7 @@ export class AlignmentEditor {
         }
 
         if (message?.type === 'auto-save' && Array.isArray(message.segments) && options?.autoSavePath) {
-          scheduleAutoSave(message.segments as TimingSegment[]);
+          scheduleAutoSave(message.segments as TimingSegment[], message.audio);
         }
 
         if (message?.type === 'cancel') {
@@ -291,7 +347,7 @@ export class AlignmentEditor {
         }
 
         if (message?.type === 'synthesize-video' && Array.isArray(message.segments)) {
-          finalize(message.segments as TimingSegment[], 'synthesize');
+          finalize(message.segments as TimingSegment[], 'synthesize', message.audio);
         }
       });
 
@@ -356,6 +412,15 @@ export class AlignmentEditor {
         <div class="flex items-center gap-3">
           <span class="section-title">${initState.labels.timeline}</span>
           <span id="currentSelection" class="selection-badge"></span>
+
+          <div class="header-audio-config">
+            <span class="audio-config-label">${initState.labels.audioMode}</span>
+            <select id="globalAudioMode" class="audio-mode-select">
+              <option value="replace" ${(!initState.audio || initState.audio.mode === 'replace') ? 'selected' : ''}>${initState.labels.audioModeReplace}</option>
+              <option value="mix" ${initState.audio?.mode === 'mix' ? 'selected' : ''}>${initState.labels.audioModeMix}</option>
+              <option value="ducking" ${initState.audio?.mode === 'ducking' ? 'selected' : ''}>${initState.labels.audioModeDucking}</option>
+            </select>
+          </div>
         </div>
         <div class="footer-actions">
            <button id="synthesizeBtn" class="btn btn-primary" title="Synthesize final video with these settings">

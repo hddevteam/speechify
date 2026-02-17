@@ -181,6 +181,13 @@ const chineseMessages: Messages = {
   'alignment.speedFactor': '加速倍率',
   'alignment.seeking': '正在定位画面...',
   'alignment.seekingDetail': '大视频或关键帧稀疏时会稍慢，请稍候。',
+  'alignment.audioMode': '背景音模式',
+  'alignment.audioMode.replace': '替换原音 (仅保留配音)',
+  'alignment.audioMode.mix': '背景音混合 (保留原音)',
+  'alignment.audioMode.ducking': '配音优先 (自动压低原音)',
+  'alignment.muteOriginalSegment': '仅本段静音原音',
+  'alignment.muteOriginalDisabledHint': '当前为“替换原音”，全片原音已静音',
+  'alignment.muteOriginalOnlySpeedOverflow': '仅“超出部分加速”可设置原音静音',
 
   // Synthesis Modes
   'modes.compact': '紧凑模式',

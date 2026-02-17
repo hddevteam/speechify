@@ -15,10 +15,15 @@
     const videoSection = document.getElementById('videoSection');
     const seekOverlay = document.getElementById('seekOverlay');
 
-    let segments = initialState.segments.map(seg => ({ 
-      ...seg, 
+    let segments = initialState.segments.map(seg => ({
+      ...seg,
       adjustedContent: seg.adjustedContent || seg.content
     }));
+
+    let globalAudio = {
+      ...(initialState.audio || {}),
+      mode: (initialState.audio && initialState.audio.mode) || 'replace'
+    };
 
     // Resizer Logic
     if (resizer) {
@@ -79,14 +84,14 @@
           clearTimeout(autoSaveTimer);
           autoSaveTimer = null;
         }
-        vscode.postMessage({ type: 'auto-save', segments });
+        vscode.postMessage({ type: 'auto-save', segments, audio: globalAudio });
         return;
       }
 
       if (autoSaveTimer) clearTimeout(autoSaveTimer);
       autoSaveTimer = setTimeout(() => {
         autoSaveTimer = null;
-        vscode.postMessage({ type: 'auto-save', segments });
+        vscode.postMessage({ type: 'auto-save', segments, audio: globalAudio });
       }, AUTO_SAVE_DEBOUNCE_MS);
     };
 
@@ -296,6 +301,8 @@
       if (selectedIndex < 0) return;
 
       const seg = segments[selectedIndex];
+      const isGlobalReplace = globalAudio.mode === 'replace';
+      const isSpeedOverflow = seg.strategy === 'speed_overflow';
       const nextSeg = segments[selectedIndex + 1];
       const end = nextSeg ? nextSeg.startTime : duration;
       const reservedDur = end - seg.startTime;
@@ -339,6 +346,25 @@
                   <input type="number" id="factorInput" class="factor-input" value="${seg.speedFactor || 2}" min="2" max="20" step="1">
                 </div>
               </div>
+
+              <div class="action-divider"></div>
+
+              ${isGlobalReplace ? `
+                <div class="audio-toggle-container">
+                  <span class="strategy-label">${initialState.labels.muteOriginalDisabledHint}</span>
+                </div>
+              ` : !isSpeedOverflow ? `
+                <div class="audio-toggle-container">
+                  <span class="strategy-label">${initialState.labels.muteOriginalOnlySpeedOverflow}</span>
+                </div>
+              ` : `
+                <div class="audio-toggle-container">
+                  <label class="mute-label">
+                    <input type="checkbox" id="muteOriginalInput" ${seg.audioOverride?.muteOriginal ? 'checked' : ''}>
+                    <span>${initialState.labels.muteOriginalSegment}</span>
+                  </label>
+                </div>
+              `}
 
               <div class="action-divider"></div>
 
@@ -391,12 +417,15 @@
       const strategySelect = document.getElementById('strategySelect');
       if (strategySelect) {
         strategySelect.addEventListener('change', (e) => {
-          segments[selectedIndex].strategy = e.target.value;
+          const newStrategy = e.target.value;
+          segments[selectedIndex].strategy = newStrategy;
+          
           const factorContainer = document.getElementById('factorContainer');
           if (factorContainer) {
-            if (e.target.value === 'speed_overflow') factorContainer.classList.remove('hide');
+            if (newStrategy === 'speed_overflow') factorContainer.classList.remove('hide');
             else factorContainer.classList.add('hide');
           }
+
           postAutoSave();
         });
       }
@@ -408,6 +437,17 @@
           const safeFactor = Number.isFinite(parsed) ? Math.max(2, Math.min(20, parsed)) : 2;
           e.target.value = String(safeFactor);
           segments[selectedIndex].speedFactor = safeFactor;
+          postAutoSave();
+        });
+      }
+
+      const muteOriginalInput = document.getElementById('muteOriginalInput');
+      if (muteOriginalInput) {
+        muteOriginalInput.addEventListener('change', (e) => {
+          if (!segments[selectedIndex].audioOverride) {
+            segments[selectedIndex].audioOverride = {};
+          }
+          segments[selectedIndex].audioOverride.muteOriginal = e.target.checked;
           postAutoSave();
         });
       }
@@ -549,7 +589,16 @@
       synthesizeBtn.addEventListener('click', () => {
         synthesizeBtn.disabled = true;
         synthesizeBtn.innerHTML = `<span class="animate-pulse">${initialState.labels.synthesizing}</span>`;
-        vscode.postMessage({ type: 'synthesize-video', segments });
+        vscode.postMessage({ type: 'synthesize-video', segments, audio: globalAudio });
+      });
+    }
+
+    const globalAudioMode = document.getElementById('globalAudioMode');
+    if (globalAudioMode) {
+      globalAudioMode.addEventListener('change', (e) => {
+        globalAudio.mode = e.target.value;
+        updateInfo();
+        postAutoSave();
       });
     }
 
