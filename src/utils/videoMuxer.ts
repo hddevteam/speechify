@@ -43,8 +43,9 @@ export class VideoMuxer {
       const vBase = path.basename(videoSourcePath);
       const sRel = path.relative(vDir, srtPath);
       const aRel = path.relative(vDir, audioSourcePath);
-      const videoWidth = await this.getVideoWidth(videoSourcePath);
+      const { width: videoWidth, height: videoHeight } = await this.getVideoDimensions(videoSourcePath);
       const titleMaxWidthPx = Math.floor(videoWidth * (2 / 3));
+      const textLayout = this.getTextLayoutScale(videoWidth, videoHeight);
 
       // Escape helper for drawtext text argument
       const escapeDrawText = (text: string): string => text
@@ -280,10 +281,10 @@ export class VideoMuxer {
 
         const start = options.autoTrimVideo ? (seg.targetStartTime || 0) : seg.startTime;
         const hasCJK = containsCJK(seg.title);
-        const boxHorizontalPadding = 36;
+        const boxHorizontalPadding = Math.max(20, Math.round(36 * textLayout.titleScale));
 
         // Pass 1: wrap with baseline font size to estimate line count.
-        const baselineFontSize = 52;
+        const baselineFontSize = Math.max(28, Math.round(52 * textLayout.titleScale));
         const baselineUnitPx = getUnitPxByFont(baselineFontSize, hasCJK);
         const maxUnitsPass1 = Math.max(8, Math.floor((titleMaxWidthPx - boxHorizontalPadding * 2) / baselineUnitPx));
         let wrappedLines = wrapTitleText(seg.title, maxUnitsPass1);
@@ -291,6 +292,7 @@ export class VideoMuxer {
 
         let lineCount = wrappedLines.length;
         let fontSize = lineCount <= 1 ? 64 : lineCount === 2 ? 52 : lineCount === 3 ? 44 : 38;
+        fontSize = Math.max(28, Math.round(fontSize * textLayout.titleScale));
 
         // Pass 2: re-wrap with final font size so 2/3 width constraint is respected.
         const finalUnitPx = getUnitPxByFont(fontSize, hasCJK);
@@ -298,6 +300,7 @@ export class VideoMuxer {
         wrappedLines = wrapTitleText(seg.title, maxUnitsPass2);
         lineCount = wrappedLines.length;
         fontSize = lineCount <= 1 ? 64 : lineCount === 2 ? 52 : lineCount === 3 ? 44 : 38;
+        fontSize = Math.max(28, Math.round(fontSize * textLayout.titleScale));
 
         const titleLength = seg.title.trim().length;
         const maxTitleDuration = Math.min(6.2, Math.max(2.8, 1.8 + titleLength * 0.085 + (lineCount - 1) * 0.35));
@@ -310,8 +313,10 @@ export class VideoMuxer {
 
         // Using fontfile for macOS to ensure the font is found.
         const fontParam = isMac ? `fontfile='${titleFont}'` : `font='${titleFont}'`;
-        const boxBorderW = lineCount <= 1 ? 18 : lineCount === 2 ? 14 : 12;
-        const lineSpacing = lineCount <= 1 ? 0 : lineCount === 2 ? 28 : 20;
+        const boxBorderBase = lineCount <= 1 ? 18 : lineCount === 2 ? 14 : 12;
+        const lineSpacingBase = lineCount <= 1 ? 0 : lineCount === 2 ? 28 : 20;
+        const boxBorderW = Math.max(8, Math.round(boxBorderBase * textLayout.titleScale));
+        const lineSpacing = Math.max(0, Math.round(lineSpacingBase * textLayout.titleScale));
         const lineStep = fontSize + (boxBorderW * 2) + lineSpacing;
         const totalBlockHeight = (lineCount * (fontSize + boxBorderW * 2)) + ((lineCount - 1) * lineSpacing);
 
@@ -340,19 +345,19 @@ export class VideoMuxer {
 
       const subtitleStyle = [
         `FontName=${subtitleFont}`,
-        `FontSize=24`,
+        `FontSize=${textLayout.subtitleFontSize}`,
         `PrimaryColour=&H00FFFFFF`, // Pure white
         `OutlineColour=&H00000000`, // Black outline
         `BackColour=&H95000000`,    // More transparent shadow
         `BorderStyle=1`,            // Outline + Shadow style
-        `Outline=1.5`,             // Sharper outline
-        `Shadow=1.5`,               
-        `Blur=0.8`,                 // Soften the edges a bit
-        `Spacing=0.8`,
+        `Outline=${textLayout.subtitleOutline.toFixed(2)}`,             // Sharper outline
+        `Shadow=${textLayout.subtitleShadow.toFixed(2)}`,
+        `Blur=${textLayout.subtitleBlur.toFixed(2)}`,                 // Soften the edges a bit
+        `Spacing=${textLayout.subtitleSpacing.toFixed(2)}`,
         `Alignment=2`,
-        `MarginL=60`,
-        `MarginR=60`,
-        `MarginV=65`                // Positioned slightly higher for modern look
+        `MarginL=${textLayout.subtitleMarginL}`,
+        `MarginR=${textLayout.subtitleMarginR}`,
+        `MarginV=${textLayout.subtitleMarginV}`                // Positioned slightly higher for modern look
       ].join(',');
 
       let finalVideoFilter = `subtitles='${escapedSrtPath}':force_style='${subtitleStyle}'`;
@@ -406,6 +411,8 @@ export class VideoMuxer {
       const vBase = path.basename(videoSourcePath);
       const aRel = path.relative(vDir, audioSourcePath);
       const sRel = path.relative(vDir, srtPath);
+      const { width: videoWidth, height: videoHeight } = await this.getVideoDimensions(videoSourcePath);
+      const textLayout = this.getTextLayoutScale(videoWidth, videoHeight);
       const isMac = process.platform === 'darwin';
       // PingFang SC is usually available to libass on Mac via CoreText/FontConfig
       const subtitleFont = isMac ? 'PingFang SC' : 'Noto Sans CJK SC';
@@ -428,19 +435,19 @@ export class VideoMuxer {
 
       const subtitleStyle = [
         `FontName=${subtitleFont}`,
-        `FontSize=24`,
+        `FontSize=${textLayout.subtitleFontSize}`,
         `PrimaryColour=&H00FFFFFF`, // Pure white
         `OutlineColour=&H00000000`, // Black outline
         `BackColour=&H95000000`,    // More transparent shadow
         `BorderStyle=1`,            // Outline + Shadow style
-        `Outline=1.5`,             // Sharper outline
-        `Shadow=1.5`,               
-        `Blur=0.8`,                 // Soften the edges a bit
-        `Spacing=0.8`,
+        `Outline=${textLayout.subtitleOutline.toFixed(2)}`,             // Sharper outline
+        `Shadow=${textLayout.subtitleShadow.toFixed(2)}`,
+        `Blur=${textLayout.subtitleBlur.toFixed(2)}`,                 // Soften the edges a bit
+        `Spacing=${textLayout.subtitleSpacing.toFixed(2)}`,
         `Alignment=2`,
-        `MarginL=60`,
-        `MarginR=60`,
-        `MarginV=65`                // Positioned slightly higher for modern look
+        `MarginL=${textLayout.subtitleMarginL}`,
+        `MarginR=${textLayout.subtitleMarginR}`,
+        `MarginV=${textLayout.subtitleMarginV}`                // Positioned slightly higher for modern look
       ].join(',');
 
       // Use tpad filter to clone the last frame and remove -shortest (or use it with a very long tpad)
@@ -485,18 +492,59 @@ export class VideoMuxer {
     }
   }
 
-  private static async getVideoWidth(videoSourcePath: string): Promise<number> {
+  private static clamp(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  private static getTextLayoutScale(videoWidth: number, videoHeight: number): {
+    subtitleFontSize: number;
+    subtitleMarginL: number;
+    subtitleMarginR: number;
+    subtitleMarginV: number;
+    subtitleOutline: number;
+    subtitleShadow: number;
+    subtitleBlur: number;
+    subtitleSpacing: number;
+    titleScale: number;
+  } {
+    const safeWidth = Math.max(1, videoWidth || 0);
+    const safeHeight = Math.max(1, videoHeight || 0);
+    const shortEdge = Math.min(safeWidth, safeHeight);
+    const isPortrait = safeHeight > safeWidth;
+
+    const shortEdgeScale = this.clamp(shortEdge / 1080, 0.70, 1.15);
+    const portraitRatio = safeWidth / safeHeight;
+    const portraitPenalty = isPortrait ? this.clamp(portraitRatio / 0.75, 0.72, 1) : 1;
+    const subtitleScale = this.clamp(shortEdgeScale * portraitPenalty, 0.65, 1.20);
+    const titleScale = this.clamp(subtitleScale * (isPortrait ? 0.95 : 1), 0.62, 1.10);
+
+    return {
+      subtitleFontSize: Math.max(16, Math.round(24 * subtitleScale)),
+      subtitleMarginL: Math.max(28, Math.round(60 * subtitleScale)),
+      subtitleMarginR: Math.max(28, Math.round(60 * subtitleScale)),
+      subtitleMarginV: Math.max(30, Math.round(65 * subtitleScale)),
+      subtitleOutline: this.clamp(1.5 * subtitleScale, 1.0, 2.0),
+      subtitleShadow: this.clamp(1.5 * subtitleScale, 1.0, 2.0),
+      subtitleBlur: this.clamp(0.8 * subtitleScale, 0.5, 1.2),
+      subtitleSpacing: this.clamp(0.8 * subtitleScale, 0.5, 1.2),
+      titleScale
+    };
+  }
+
+  private static async getVideoDimensions(videoSourcePath: string): Promise<{ width: number; height: number }> {
     try {
       const escapedPath = videoSourcePath.replace(/"/g, '\\"');
-      const command = `ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "${escapedPath}"`;
+      const command = `ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0:s=x "${escapedPath}"`;
       const { stdout } = await execAsync(command);
-      const parsed = Number.parseInt(stdout.trim(), 10);
-      if (Number.isFinite(parsed) && parsed > 0) {
-        return parsed;
+      const [wRaw, hRaw] = stdout.trim().split('x');
+      const width = Number.parseInt((wRaw || '').trim(), 10);
+      const height = Number.parseInt((hRaw || '').trim(), 10);
+      if (Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0) {
+        return { width, height };
       }
-      return 1920;
+      return { width: 1920, height: 1080 };
     } catch {
-      return 1920;
+      return { width: 1920, height: 1080 };
     }
   }
 }
