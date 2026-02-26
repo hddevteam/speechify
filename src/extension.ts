@@ -67,18 +67,20 @@ async function convertTextToSpeech(uri?: vscode.Uri): Promise<void> {
         }
 
         const resolved = resolveSpeechText({
-            uri: uri ? { fsPath: uri.fsPath } : undefined,
-            uriDocumentText,
-            isTextLikeUri,
-            activeEditor: editor
+            ...(uri ? { uri: { fsPath: uri.fsPath } } : {}),
+            ...(typeof uriDocumentText === 'string' ? { uriDocumentText } : {}),
+            ...(isTextLikeUri ? { isTextLikeUri } : {}),
+            ...(editor
                 ? {
-                    documentText: editor.document.getText(),
-                    documentPath: editor.document.uri.fsPath,
-                    hasSelection: !editor.selection.isEmpty,
-                    selectionText: editor.document.getText(editor.selection),
-                    isTextLikeDocument: isTextLikeFile(editor.document.uri)
+                    activeEditor: {
+                        documentText: editor.document.getText(),
+                        documentPath: editor.document.uri.fsPath,
+                        hasSelection: !editor.selection.isEmpty,
+                        selectionText: editor.document.getText(editor.selection),
+                        isTextLikeDocument: isTextLikeFile(editor.document.uri)
+                    }
                 }
-                : undefined,
+                : {}),
             defaultSourceFilePath: 'headless_conv.txt'
         });
 
