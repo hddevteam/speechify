@@ -1,6 +1,7 @@
 import { VisionConfigValidationResult } from '../utils/config';
+import { Messages } from '../i18n';
 
-export type Translator = (key: any, ...args: string[]) => string;
+export type Translator = (key: keyof Messages, ...args: string[]) => string;
 
 export function buildVisionConfigGuidance(
   validation: VisionConfigValidationResult,

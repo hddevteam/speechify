@@ -405,7 +405,7 @@ export class VisionPipelineService {
     let data: unknown;
     try {
       data = JSON.parse(content);
-    } catch (e) {
+    } catch {
       vscode.window.showErrorMessage(I18n.t('errors.invalidRequest', 'Invalid JSON format'));
       return;
     }
@@ -522,7 +522,7 @@ export class VisionPipelineService {
       let data: unknown;
       try {
         data = JSON.parse(content);
-      } catch (e) {
+      } catch {
         throw new Error('Invalid JSON format.');
       }
 

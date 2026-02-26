@@ -284,7 +284,7 @@ export class I18n {
         }
         
         return 'en';
-      } catch (e) {
+      } catch {
         // Fallback to environment variables
       }
     }
@@ -307,7 +307,7 @@ export class I18n {
         return require('./zh-cn').default;
       }
       return require('./en').default;
-    } catch (e) {
+    } catch {
       console.warn(`Failed to load messages for locale ${locale}, falling back to English`);
       return require('./en').default;
     }

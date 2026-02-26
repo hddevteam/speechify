@@ -47,7 +47,7 @@ suite('AudioUtils', () => {
                 
                 // Should not throw
                 assert.ok(true);
-            } catch (error) {
+            } catch {
                 // Expected to fail gracefully
                 assert.ok(true);
             }

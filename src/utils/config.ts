@@ -8,6 +8,13 @@ export interface VisionConfigValidationResult {
   errors: string[];
 }
 
+export interface VisionConfig {
+  apiKey: string;
+  endpoint: string;
+  deployment: string;
+  refinementDeployment: string;
+}
+
 /**
  * Configuration manager for Speechify extension
  */
@@ -84,7 +91,7 @@ export class ConfigManager {
   /**
    * Get Vision configuration
    */
-  public static getVisionConfig() {
+  public static getVisionConfig(): VisionConfig {
     const config = this.getWorkspaceConfig();
     
     if (config.visionApiKey) {

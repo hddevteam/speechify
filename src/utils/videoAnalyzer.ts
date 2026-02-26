@@ -308,7 +308,7 @@ export class VideoAnalyzer {
 
                 console.log(`[Precision] Updated "${current.title}" start time: ${current.startTime}s -> ${preciseTime}s (Confidence: ${result.confidence})`);
                 current.startTime = preciseTime;
-            } catch (err) {
+            } catch {
                 console.warn(`[Precision] Failed to refine "${current.title}", keeping coarse time.`);
             }
             
@@ -411,7 +411,7 @@ Return a JSON object with a "segments" array. Each segment should have "startTim
                 }
                 try {
                     return JSON.parse(content);
-                } catch (e) {
+                } catch {
                     console.error('Failed to parse AI response as JSON:', content);
                     throw new Error(`Invalid JSON response from AI: ${content.substring(0, 100)}...`);
                 }
@@ -475,7 +475,7 @@ Respond with JSON only.`
             const relativeSecond = parseInt(content.transitionSecond || content.second || 0);
             const baseTime = Math.max(0, coarseTime - 5);
             return baseTime + relativeSecond;
-        } catch (error) {
+        } catch {
             return coarseTime; // Fallback
         }
     }

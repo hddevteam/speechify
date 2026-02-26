@@ -180,10 +180,10 @@ export class AudioUtils {
   /**
    * Create structured error
    */
-  private static createError(code: string, message: string, details?: any): Error {
-    const error = new Error(message);
-    (error as any).code = code;
-    (error as any).details = details;
+  private static createError(code: string, message: string, details?: unknown): Error {
+    const error = new Error(message) as Error & { code: string; details?: unknown };
+    error.code = code;
+    error.details = details;
     return error;
   }
 }

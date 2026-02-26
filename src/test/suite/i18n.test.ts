@@ -38,7 +38,7 @@ suite('Internationalization Tests', () => {
     test('should return key for missing translations', () => {
         // Test with a key that definitely doesn't exist by using any type assertion
         const nonExistentKey = 'nonexistent.key';
-        const result = I18n.t(nonExistentKey as any);
+        const result = I18n.t(nonExistentKey as unknown as Parameters<typeof I18n.t>[0]);
         
         assert.strictEqual(result, nonExistentKey, 'Missing translation should return the key itself');
     });

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ProcessingResult, VideoProcessingResult, VoiceListItem } from '../types';
+import { AzureConfig, ProcessingResult, VideoProcessingResult, VoiceListItem, VoiceSettings } from '../types';
 import { ConfigManager } from '../utils/config';
 import { AzureSpeechService } from '../utils/azure';
 import { AudioUtils } from '../utils/audio';
@@ -107,8 +107,8 @@ export class SpeechService {
   private static async processTextChunks(
     chunks: string[],
     sourceFilePath: string,
-    voiceSettings: unknown,
-    azureConfig: unknown
+    voiceSettings: VoiceSettings,
+    azureConfig: AzureConfig
   ): Promise<ProcessingResult> {
     const result: ProcessingResult = {
       success: false,
@@ -141,7 +141,7 @@ export class SpeechService {
               chunks.length
             );
 
-            const audioBuffer = await AzureSpeechService.synthesizeSpeech(chunk, voiceSettings as any, azureConfig as any);
+            const audioBuffer = await AzureSpeechService.synthesizeSpeech(chunk, voiceSettings, azureConfig);
             await AudioUtils.saveAudioFile(audioBuffer, outputPath);
 
             result.outputPaths.push(outputPath);

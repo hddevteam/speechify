@@ -135,7 +135,7 @@ export class AlignmentEditor {
 
     return new Promise((resolve) => {
       let resolved = false;
-      let autoSaveTimer: NodeJS.Timeout | undefined;
+      let autoSaveTimer: ReturnType<typeof setTimeout> | undefined;
       let pendingAutoSaveSegments: TimingSegment[] | null = null;
       let pendingAutoSaveAudio: AlignmentResult['audio'] | null = null;
       let isFlushingAutoSave = false;

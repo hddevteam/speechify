@@ -1,3 +1,8 @@
 #!/bin/sh
-echo "Checking build before commit..."
+set -e
+
+echo "[pre-commit] Checking build..."
 npm run compile
+
+echo "[pre-commit] Running lint..."
+npm run lint

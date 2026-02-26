@@ -116,7 +116,7 @@ export interface VideoProcessingResult extends ProcessingResult {
 export interface SpeechifyError {
   code: string;
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 /**
