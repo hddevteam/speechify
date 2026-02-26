@@ -5,6 +5,16 @@ All notable changes to the **Speechify** extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.6] - 2026-02-26
+
+### 🐛 Bug Fixes
+- **Selection-Aware Audio Conversion**: Right-click "Convert Text to Speech" now correctly prioritizes selected text; when no selection exists (including Explorer/file-name context), it converts the full document.
+- **Extension Debug Launch Unblocked**: Fixed build-time module override conflict in webpack/ts-loader so `Run Extension` can launch reliably after preLaunch compile.
+- **TypeScript 6 Compatibility**: Migrated module settings to Node16-compatible configuration to remove deprecated module resolution warnings.
+
+### 🧪 Test & Developer Experience
+- **Stable Unit Test Command**: Updated `test:unit` to run a deterministic TDD-mode unit test set and avoid accidental execution of stale/outdated compiled tests.
+
 ## [3.0.5] - 2026-02-17
 
 ### 🐛 Bug Fixes
