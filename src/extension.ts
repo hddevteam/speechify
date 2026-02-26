@@ -3,6 +3,7 @@ import * as path from 'path';
 import { SpeechService } from './services/speechService';
 import { ConfigManager } from './utils/config';
 import { I18n } from './i18n';
+import { resolveSpeechText } from './utils/textSource';
 
 /**
  * Extension activation function
@@ -56,28 +57,37 @@ export function deactivate(): void {
  */
 async function convertTextToSpeech(uri?: vscode.Uri): Promise<void> {
     try {
-        let selectedText = '';
-        let sourceFilePath = 'headless_conv.txt';
+        const editor = vscode.window.activeTextEditor;
 
-        if (uri && isTextLikeFile(uri)) {
+        let uriDocumentText: string | undefined;
+        const isTextLikeUri = !!uri && isTextLikeFile(uri);
+        if (uri && isTextLikeUri) {
             const document = await vscode.workspace.openTextDocument(uri);
-            selectedText = document.getText();
-            sourceFilePath = uri.fsPath;
-        } else {
-            const editor = vscode.window.activeTextEditor;
-            if (!editor) {
-                vscode.window.showErrorMessage(I18n.t('errors.noActiveEditor'));
-                return;
-            }
+            uriDocumentText = document.getText();
+        }
 
-            const selection = editor.selection;
-            selectedText = editor.document.getText(selection);
+        const resolved = resolveSpeechText({
+            uri: uri ? { fsPath: uri.fsPath } : undefined,
+            uriDocumentText,
+            isTextLikeUri,
+            activeEditor: editor
+                ? {
+                    documentText: editor.document.getText(),
+                    documentPath: editor.document.uri.fsPath,
+                    hasSelection: !editor.selection.isEmpty,
+                    selectionText: editor.document.getText(editor.selection),
+                    isTextLikeDocument: isTextLikeFile(editor.document.uri)
+                }
+                : undefined,
+            defaultSourceFilePath: 'headless_conv.txt'
+        });
 
-            if (!selectedText.trim() && isTextLikeFile(editor.document.uri)) {
-                selectedText = editor.document.getText();
-            }
+        const selectedText = resolved.text;
+        const sourceFilePath = resolved.sourceFilePath;
 
-            sourceFilePath = editor.document.uri.fsPath;
+        if (!selectedText.trim() && !editor && !isTextLikeUri) {
+            vscode.window.showErrorMessage(I18n.t('errors.noActiveEditor'));
+            return;
         }
 
         if (!selectedText.trim()) {
