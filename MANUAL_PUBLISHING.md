@@ -40,7 +40,7 @@ Ensure your publisher `luckyXmobile` is registered at [VS Code Marketplace](http
 
 #### Version Management
 - [ ] Update version in `package.json`
-- [ ] Ensure version follows semantic versioning (currently planning 3.0.6)
+- [ ] Ensure version follows semantic versioning (currently planning 3.0.7)
 - [ ] Update any version references in documentation
 
 ### 2. Build and Test
@@ -65,14 +65,14 @@ npm run lint
 # Create .vsix package
 vsce package
 
-# This will create: speechify-3.0.6.vsix
+# This will create: speechify-3.0.7.vsix
 ```
 
 ### 4. Test the Package Locally
 
 ```bash
 # Install locally for testing
-code --install-extension speechify-3.0.6.vsix
+code --install-extension speechify-3.0.7.vsix
 
 # Test the extension thoroughly
 # - Try all commands
@@ -91,7 +91,7 @@ vsce login luckyXmobile
 vsce publish --pat <YOUR_PERSONAL_ACCESS_TOKEN>
 
 # Or publish from package
-vsce publish --pat <YOUR_PERSONAL_ACCESS_TOKEN> speechify-3.0.6.vsix
+vsce publish --pat <YOUR_PERSONAL_ACCESS_TOKEN> speechify-3.0.7.vsix
 ```
 
 ### 6. Post-Publishing Tasks
@@ -103,7 +103,7 @@ vsce publish --pat <YOUR_PERSONAL_ACCESS_TOKEN> speechify-3.0.6.vsix
 
 #### GitHub Release
 1. Create a new release on GitHub
-2. Tag version: `v3.0.6`
+2. Tag version: `v3.0.7`
 3. Upload the `.vsix` file as a release asset
 4. Write comprehensive release notes
 
@@ -112,7 +112,7 @@ vsce publish --pat <YOUR_PERSONAL_ACCESS_TOKEN> speechify-3.0.6.vsix
 2. Update installation instructions if needed
 3. Announce the release in relevant channels
 
-## Version 3.0.6 Specific Notes
+## Version 3.0.7 Specific Notes
 
 ### Major Changes
 - **Complete TypeScript Migration**: Full rewrite from JavaScript
@@ -181,7 +181,7 @@ If you want to re-enable automated publishing later:
 
 ---
 
-**Current Version**: 3.0.6
+**Current Version**: 3.0.7
 **Publisher**: luckyXmobile
 **Marketplace**: https://marketplace.visualstudio.com/items?itemName=luckyXmobile.speechify
 **GitHub**: https://github.com/hddevteam/speechify

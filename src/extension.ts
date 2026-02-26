@@ -5,6 +5,131 @@ import { ConfigManager } from './utils/config';
 import { I18n } from './i18n';
 import { resolveSpeechText } from './utils/textSource';
 
+const TIMING_JSON_MAX_CHARS = 2_000_000;
+
+type TimingJsonDetection = {
+    isTimingSegmentsArrayJson: boolean;
+    isTimingProjectJson: boolean;
+    canSynthesizeFromTimingProjectJson: boolean;
+};
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isTimingSegmentLike(value: unknown): boolean {
+    if (!isPlainObject(value)) return false;
+    const startTime = value['startTime'];
+    const title = value['title'];
+    const content = value['content'];
+    return (
+        typeof startTime === 'number' &&
+        Number.isFinite(startTime) &&
+        typeof title === 'string' &&
+        typeof content === 'string'
+    );
+}
+
+function detectTimingJson(text: string): TimingJsonDetection {
+    if (!text) {
+        return {
+            isTimingSegmentsArrayJson: false,
+            isTimingProjectJson: false,
+            canSynthesizeFromTimingProjectJson: false
+        };
+    }
+
+    if (text.length > TIMING_JSON_MAX_CHARS) {
+        // Too large: skip content-based detection to avoid UI lag
+        return {
+            isTimingSegmentsArrayJson: false,
+            isTimingProjectJson: false,
+            canSynthesizeFromTimingProjectJson: false
+        };
+    }
+
+    let data: unknown;
+    try {
+        data = JSON.parse(text);
+    } catch {
+        return {
+            isTimingSegmentsArrayJson: false,
+            isTimingProjectJson: false,
+            canSynthesizeFromTimingProjectJson: false
+        };
+    }
+
+    // Legacy format: an array of segments
+    if (Array.isArray(data)) {
+        const first = data[0];
+        const isSegmentsArray = data.length > 0 && isTimingSegmentLike(first);
+        return {
+            isTimingSegmentsArrayJson: isSegmentsArray,
+            isTimingProjectJson: false,
+            canSynthesizeFromTimingProjectJson: false
+        };
+    }
+
+    // Project format: { version, videoName, lastModified, segments: [...] }
+    if (!isPlainObject(data)) {
+        return {
+            isTimingSegmentsArrayJson: false,
+            isTimingProjectJson: false,
+            canSynthesizeFromTimingProjectJson: false
+        };
+    }
+
+    const version = data['version'];
+    const videoName = data['videoName'];
+    const lastModified = data['lastModified'];
+    const segments = data['segments'];
+
+    const segmentsOk =
+        Array.isArray(segments) &&
+        (segments.length === 0 || isTimingSegmentLike(segments[0]));
+
+    const isProject =
+        typeof version === 'string' &&
+        typeof videoName === 'string' &&
+        typeof lastModified === 'string' &&
+        segmentsOk;
+
+    return {
+        isTimingSegmentsArrayJson: false,
+        isTimingProjectJson: isProject,
+        canSynthesizeFromTimingProjectJson: isProject && videoName.trim().length > 0
+    };
+}
+
+async function updateTimingJsonContexts(editor: vscode.TextEditor | undefined): Promise<void> {
+    const set = async (key: string, value: boolean): Promise<void> => {
+        await vscode.commands.executeCommand('setContext', key, value);
+    };
+
+    if (!editor) {
+        await set('speechify.activeEditorIsTimingJson', false);
+        await set('speechify.activeEditorIsTimingProjectJson', false);
+        await set('speechify.activeEditorCanSynthesizeTimingJson', false);
+        return;
+    }
+
+    const doc = editor.document;
+    const ext = path.extname(doc.uri.fsPath || '').toLowerCase();
+    if (ext !== '.json') {
+        await set('speechify.activeEditorIsTimingJson', false);
+        await set('speechify.activeEditorIsTimingProjectJson', false);
+        await set('speechify.activeEditorCanSynthesizeTimingJson', false);
+        return;
+    }
+
+    const detection = detectTimingJson(doc.getText());
+    const isTimingJson = detection.isTimingProjectJson || detection.isTimingSegmentsArrayJson;
+
+    await set('speechify.activeEditorIsTimingJson', isTimingJson);
+    await set('speechify.activeEditorIsTimingProjectJson', detection.isTimingProjectJson);
+    await set('speechify.activeEditorCanSynthesizeTimingJson', detection.canSynthesizeFromTimingProjectJson);
+}
+
 /**
  * Extension activation function
  */
@@ -31,18 +156,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     // Add commands to subscriptions
     context.subscriptions.push(...commands);
 
-    // Check initial configuration
-    if (!ConfigManager.isConfigurationComplete()) {
-        const result = await vscode.window.showInformationMessage(
-            I18n.t('messages.configurationRequired'),
-            I18n.t('actions.configureNow'),
-            I18n.t('actions.later')
-        );
-        
-        if (result === I18n.t('actions.configureNow')) {
-            await SpeechService.showConfigurationWizard();
-        }
-    }
+    // Keep editor/title actions tidy: only show timing-related commands for valid Speechify timing JSON.
+    const refresh = async (): Promise<void> => updateTimingJsonContexts(vscode.window.activeTextEditor);
+    context.subscriptions.push(
+        vscode.window.onDidChangeActiveTextEditor(editor => {
+            void updateTimingJsonContexts(editor);
+        }),
+        vscode.workspace.onDidSaveTextDocument(doc => {
+            if (doc === vscode.window.activeTextEditor?.document) {
+                void refresh();
+            }
+        }),
+        vscode.workspace.onDidOpenTextDocument(doc => {
+            if (doc === vscode.window.activeTextEditor?.document) {
+                void refresh();
+            }
+        })
+    );
+
+    await refresh();
 }
 
 /**

@@ -5,6 +5,15 @@ All notable changes to the **Speechify** extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.7] - 2026-02-26
+
+### 🐛 Bug Fixes
+- **Timing JSON Context Menu Filter**: Editor title bar actions (Open Alignment Editor, Export Video) no longer appear for every `.json` file. They now only display when the active JSON document is a valid Speechify timing project (containing `version`, `videoName`, `lastModified`, and `segments` fields). Legacy segment-array format is also detected.
+- **Explorer Context Menu Cleanup**: Right-click Speechify submenu on JSON files in the Explorer is now restricted to files named `timing.json`, reducing noise on unrelated project config files.
+
+### ✨ UX Improvements
+- **Smart Context Detection**: Extension listens to active editor changes, saves, and document opens to keep timing-JSON context keys up to date in real time.
+
 ## [3.0.6] - 2026-02-26
 
 ### 🐛 Bug Fixes

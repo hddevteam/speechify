@@ -3,7 +3,7 @@
   "displayName": "%speechify.displayName%",
   "description": "%speechify.description%",
   "icon": "images/icon-128.png",
-  "version": "3.0.6",
+  "version": "3.0.7",
   "engines": {
     "vscode": "^1.82.0"
   },
@@ -34,7 +34,19 @@
     "english"
   ],
   "publisher": "luckyXmobile",
-  "activationEvents": [],
+  "activationEvents": [
+    "onCommand:extension.speechify",
+    "onCommand:extension.showSpeechifyVoiceSettings",
+    "onCommand:extension.configureSpeechifyVoiceSettings",
+    "onCommand:extension.configureSpeechifyAzureSettings",
+    "onCommand:extension.configureSpeechifyVisionSettings",
+    "onCommand:extension.selectSpeechifyVoiceStyle",
+    "onCommand:extension.selectSpeechifyVoiceRole",
+    "onCommand:extension.convertToVideo",
+    "onCommand:extension.openAlignmentEditor",
+    "onCommand:extension.synthesizeVideoFromProject",
+    "onLanguage:json"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/hddevteam/speechify"
@@ -104,12 +116,12 @@
         {
           "command": "extension.openAlignmentEditor",
           "group": "navigation",
-          "when": "resourceExtname == .json"
+          "when": "resourceExtname == .json && speechify.activeEditorIsTimingJson"
         },
         {
           "command": "extension.synthesizeVideoFromProject",
           "group": "navigation",
-          "when": "resourceExtname == .json"
+          "when": "resourceExtname == .json && speechify.activeEditorCanSynthesizeTimingJson"
         }
       ],
       "editor/context": [
@@ -122,7 +134,7 @@
         {
           "submenu": "speechify.submenu",
           "group": "navigation",
-          "when": "resourceExtname == .mp4 || resourceExtname == .mov || resourceExtname == .json || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
+          "when": "resourceExtname == .mp4 || resourceExtname == .mov || (resourceExtname == .json && resourceFilename == 'timing.json') || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
         }
       ],
       "speechify.submenu": [
@@ -139,12 +151,12 @@
         {
           "command": "extension.openAlignmentEditor",
           "group": "2_video@2",
-          "when": "resourceExtname == .mp4 || resourceExtname == .mov || resourceExtname == .json"
+          "when": "resourceExtname == .mp4 || resourceExtname == .mov || (resourceExtname == .json && editorTextFocus && speechify.activeEditorIsTimingJson) || (resourceExtname == .json && !editorTextFocus && resourceFilename == 'timing.json')"
         },
         {
           "command": "extension.synthesizeVideoFromProject",
           "group": "2_video@3",
-          "when": "resourceExtname == .mp4 || resourceExtname == .mov || resourceExtname == .json"
+          "when": "resourceExtname == .mp4 || resourceExtname == .mov || (resourceExtname == .json && editorTextFocus && speechify.activeEditorCanSynthesizeTimingJson) || (resourceExtname == .json && !editorTextFocus && resourceFilename == 'timing.json')"
         },
         {
           "command": "extension.selectSpeechifyVoiceStyle",
