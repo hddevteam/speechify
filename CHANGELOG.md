@@ -5,6 +5,11 @@ All notable changes to the **Speechify** extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.8] - 2026-04-09
+
+### 🐛 Bug Fixes
+- **Paragraph-Based Audio Segmentation Restored**: Right-click "Generate Audio Only" now correctly splits large scripts into per-paragraph audio files (`_part01_`, `_part02_`, ...) again. The chunk size is 3,000 characters (matching the original v1.x behavior). Previously, the threshold was inadvertently raised to 8,000 characters and the split logic switched to punctuation-based, causing all scripts under 8,000 chars to export as a single file.
+
 ## [3.0.7] - 2026-02-26
 
 ### 🐛 Bug Fixes
