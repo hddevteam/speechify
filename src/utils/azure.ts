@@ -211,35 +211,32 @@ export class AzureSpeechService {
   }
 
   /**
-   * Split text into chunks to avoid size limits
+   * Split text into chunks to avoid size limits.
+   * Splits on newline boundaries to preserve paragraph/sentence structure.
    */
-  public static splitTextIntoChunks(text: string, maxChunkSize: number = 8000): string[] {
+  public static splitTextIntoChunks(text: string, maxChunkSize: number = 3000): string[] {
     if (text.length <= maxChunkSize) {
       return [text];
     }
 
     const chunks: string[] = [];
-    const sentences = text.split(/[.!?]+/);
+    const lines = text.split(/\n/);
     let currentChunk = '';
 
-    for (const sentence of sentences) {
-      const trimmedSentence = sentence.trim();
-      if (!trimmedSentence) continue;
+    for (const line of lines) {
+      const candidate = currentChunk ? currentChunk + '\n' + line : line;
 
-      const potentialChunk = currentChunk + (currentChunk ? '. ' : '') + trimmedSentence;
-      
-      if (potentialChunk.length <= maxChunkSize) {
-        currentChunk = potentialChunk;
+      if (candidate.length > maxChunkSize && currentChunk) {
+        // Save current chunk and start a new one with this line
+        chunks.push(currentChunk.trim());
+        currentChunk = line;
       } else {
-        if (currentChunk) {
-          chunks.push(currentChunk + '.');
-        }
-        currentChunk = trimmedSentence;
+        currentChunk = candidate;
       }
     }
 
-    if (currentChunk) {
-      chunks.push(currentChunk + '.');
+    if (currentChunk.trim()) {
+      chunks.push(currentChunk.trim());
     }
 
     return chunks;

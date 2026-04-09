@@ -13,7 +13,7 @@ import { VoiceConfigurationService } from './voiceConfigurationService';
  * Main speech synthesis service facade
  */
 export class SpeechService {
-  private static readonly MAX_CHUNK_SIZE = 8000;
+  private static readonly MAX_CHUNK_SIZE = 3000;
   private static readonly PROCESSING_DELAY = 500;
 
   public static async convertTextToSpeech(text: string, sourceFilePath: string): Promise<ProcessingResult> {
