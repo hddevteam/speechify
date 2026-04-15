@@ -145,6 +145,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('extension.showSpeechifyVoiceSettings', showVoiceSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyVoiceSettings', configureSpeechifyVoiceSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyAzureSettings', configureSpeechifyAzureSettings),
+        vscode.commands.registerCommand('extension.configureSpeechifyCosyVoiceSettings', configureSpeechifyCosyVoiceSettings),
+        vscode.commands.registerCommand('extension.recordSpeechifyCosyVoiceReference', recordSpeechifyCosyVoiceReference),
         vscode.commands.registerCommand('extension.configureSpeechifyVisionSettings', configureSpeechifyVisionSettings),
         vscode.commands.registerCommand('extension.selectSpeechifyVoiceStyle', selectVoiceStyle),
         vscode.commands.registerCommand('extension.selectSpeechifyVoiceRole', selectVoiceRole),
@@ -346,6 +348,28 @@ async function configureSpeechifyAzureSettings(): Promise<void> {
         console.error('Failed to configure Azure settings:', error);
         vscode.window.showErrorMessage(
             error instanceof Error ? error.message : I18n.t('errors.failedToConfigureAzure')
+        );
+    }
+}
+
+async function configureSpeechifyCosyVoiceSettings(): Promise<void> {
+    try {
+        await SpeechService.configureCosyVoiceSettings();
+    } catch (error) {
+        console.error('Failed to configure CosyVoice settings:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
+        );
+    }
+}
+
+async function recordSpeechifyCosyVoiceReference(): Promise<void> {
+    try {
+        await SpeechService.recordCosyVoiceReferenceAudio();
+    } catch (error) {
+        console.error('Failed to record CosyVoice reference audio:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
         );
     }
 }

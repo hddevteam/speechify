@@ -27,7 +27,9 @@ suite('Extension Integration Tests', () => {
             'extension.speechify',
             'extension.showSpeechifyVoiceSettings',
             'extension.configureSpeechifyVoiceSettings',
-            'extension.configureSpeechifyAzureSettings'
+            'extension.configureSpeechifyAzureSettings',
+            'extension.configureSpeechifyCosyVoiceSettings',
+            'extension.recordSpeechifyCosyVoiceReference'
         ];
         
         for (const command of expectedCommands) {

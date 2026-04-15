@@ -1,10 +1,13 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs/promises';
+import * as os from 'os';
 import * as path from 'path';
 import { VoiceListItem } from '../types';
 import { ConfigManager } from '../utils/config';
 import { I18n } from '../i18n';
 import { buildVisionConfigGuidance } from './visionGuidance';
 import { CosyVoiceReferenceService } from './cosyVoiceReferenceService';
+import { CosyVoiceRecorderPanel } from '../webview/cosyVoiceRecorderPanel';
 
 export class VoiceConfigurationService {
   private static extensionContext: vscode.ExtensionContext | null = null;
@@ -159,12 +162,18 @@ export class VoiceConfigurationService {
     vscode.window.showInformationMessage(I18n.t('notifications.success.azureSettingsUpdated'));
   }
 
-  private static async configureCosyVoiceSettings(): Promise<void> {
+  public static async configureCosyVoiceSettings(): Promise<void> {
     let isFinished = false;
+    const recordReferenceAudioLabel = this.getRecordReferenceAudioLabel();
+
     while (!isFinished) {
       const current = ConfigManager.getCosyVoiceConfig();
       const action = await vscode.window.showQuickPick(
         [
+          {
+            label: recordReferenceAudioLabel,
+            description: current.promptAudioPath ? path.basename(current.promptAudioPath) : I18n.t('settings.no')
+          },
           {
             label: I18n.t('actions.selectReferenceAudio'),
             description: current.promptAudioPath || I18n.t('settings.no')
@@ -197,6 +206,11 @@ export class VoiceConfigurationService {
         continue;
       }
 
+      if (action.label === recordReferenceAudioLabel) {
+        await this.recordCosyVoiceReferenceAudio();
+        continue;
+      }
+
       if (action.label === I18n.t('actions.selectReferenceAudio')) {
         await this.selectCosyVoiceReferenceAudio();
         continue;
@@ -220,6 +234,35 @@ export class VoiceConfigurationService {
     vscode.window.showInformationMessage(I18n.t('notifications.success.azureSettingsUpdated'));
   }
 
+  public static async recordCosyVoiceReferenceAudio(): Promise<void> {
+    if (!this.extensionContext) {
+      throw new Error('Speechify extension context is not initialized.');
+    }
+
+    const recorded = await CosyVoiceRecorderPanel.record(this.extensionContext);
+    if (!recorded) {
+      return;
+    }
+
+    const saveUri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(this.getDefaultCosyVoiceReferenceAudioPath(recorded.suggestedFileName)),
+      filters: {
+        Audio: ['wav']
+      },
+      saveLabel: this.getRecordReferenceAudioLabel(),
+      title: this.getCosyVoiceSaveAudioTitle()
+    });
+
+    if (!saveUri) {
+      return;
+    }
+
+    await fs.mkdir(path.dirname(saveUri.fsPath), { recursive: true });
+    await fs.writeFile(saveUri.fsPath, recorded.audioBuffer);
+
+    await this.updateCosyVoiceReferenceAudio(saveUri.fsPath);
+  }
+
   private static async selectCosyVoiceReferenceAudio(): Promise<void> {
     const picked = await vscode.window.showOpenDialog({
       canSelectFiles: true,
@@ -237,18 +280,7 @@ export class VoiceConfigurationService {
       return;
     }
 
-    const storedPath = this.toWorkspaceSettingPath(selected.fsPath);
-    await ConfigManager.updateWorkspaceConfig('cosyVoicePromptAudioPath', storedPath);
-
-    const autoTranscribe = await vscode.window.showInformationMessage(
-      I18n.t('notifications.success.referenceAudioUpdated'),
-      I18n.t('actions.autoTranscribeReference'),
-      I18n.t('actions.ok')
-    );
-
-    if (autoTranscribe === I18n.t('actions.autoTranscribeReference')) {
-      await this.autoTranscribeCosyVoiceReferenceAudio();
-    }
+    await this.updateCosyVoiceReferenceAudio(selected.fsPath);
   }
 
   private static async autoTranscribeCosyVoiceReferenceAudio(): Promise<void> {
@@ -332,6 +364,51 @@ export class VoiceConfigurationService {
     }
 
     return filePath;
+  }
+
+  private static async updateCosyVoiceReferenceAudio(filePath: string): Promise<void> {
+    const storedPath = this.toWorkspaceSettingPath(filePath);
+    await ConfigManager.updateWorkspaceConfig('cosyVoicePromptAudioPath', storedPath);
+
+    const autoTranscribeLabel = I18n.t('actions.autoTranscribeReference');
+    const revealLabel = I18n.t('actions.showInExplorer');
+    const selectedAction = await vscode.window.showInformationMessage(
+      I18n.t('notifications.success.referenceAudioUpdated'),
+      autoTranscribeLabel,
+      revealLabel,
+      I18n.t('actions.ok')
+    );
+
+    if (selectedAction === autoTranscribeLabel) {
+      await this.autoTranscribeCosyVoiceReferenceAudio();
+      return;
+    }
+
+    if (selectedAction === revealLabel) {
+      await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(filePath));
+    }
+  }
+
+  private static getDefaultCosyVoiceReferenceAudioPath(suggestedFileName: string): string {
+    const normalizedName = suggestedFileName.toLowerCase().endsWith('.wav')
+      ? suggestedFileName
+      : `${suggestedFileName}.wav`;
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const baseDir = workspaceRoot
+      ? path.join(workspaceRoot, '.speechify', 'reference-audio')
+      : path.join(os.homedir(), 'Downloads');
+
+    return path.join(baseDir, normalizedName);
+  }
+
+  private static getRecordReferenceAudioLabel(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh') ? '录制参考音频' : 'Record Reference Audio';
+  }
+
+  private static getCosyVoiceSaveAudioTitle(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? '保存 CosyVoice 参考音频'
+      : 'Save CosyVoice Reference Audio';
   }
 
   public static async configureVisionSettings(): Promise<void> {

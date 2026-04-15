@@ -39,6 +39,8 @@
     "onCommand:extension.showSpeechifyVoiceSettings",
     "onCommand:extension.configureSpeechifyVoiceSettings",
     "onCommand:extension.configureSpeechifyAzureSettings",
+    "onCommand:extension.configureSpeechifyCosyVoiceSettings",
+    "onCommand:extension.recordSpeechifyCosyVoiceReference",
     "onCommand:extension.configureSpeechifyVisionSettings",
     "onCommand:extension.selectSpeechifyVoiceStyle",
     "onCommand:extension.selectSpeechifyVoiceRole",
@@ -79,6 +81,14 @@
       {
         "command": "extension.configureSpeechifyAzureSettings",
         "title": "%speechify.command.configureAzure%"
+      },
+      {
+        "command": "extension.configureSpeechifyCosyVoiceSettings",
+        "title": "%speechify.command.configureCosyVoice%"
+      },
+      {
+        "command": "extension.recordSpeechifyCosyVoiceReference",
+        "title": "%speechify.command.recordCosyVoice%"
       },
       {
         "command": "extension.configureSpeechifyVisionSettings",
@@ -134,7 +144,7 @@
         {
           "submenu": "speechify.submenu",
           "group": "navigation",
-          "when": "resourceExtname == .mp4 || resourceExtname == .mov || (resourceExtname == .json && resourceFilename == 'timing.json') || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
+          "when": "resourceScheme == file"
         }
       ],
       "speechify.submenu": [
@@ -159,29 +169,36 @@
           "when": "resourceExtname == .mp4 || resourceExtname == .mov || (resourceExtname == .json && editorTextFocus && speechify.activeEditorCanSynthesizeTimingJson) || (resourceExtname == .json && !editorTextFocus && resourceFilename == 'timing.json')"
         },
         {
-          "command": "extension.selectSpeechifyVoiceStyle",
-          "group": "3_settings@1",
-          "when": "editorTextFocus"
+          "command": "extension.configureSpeechifyAzureSettings",
+          "group": "3_azure@1"
         },
         {
           "command": "extension.configureSpeechifyVoiceSettings",
-          "group": "3_settings@2",
-          "when": "editorTextFocus"
+          "group": "3_azure@2"
         },
         {
-          "command": "extension.configureSpeechifyVisionSettings",
-          "group": "3_settings@2.5",
-          "when": "editorTextFocus"
+          "command": "extension.selectSpeechifyVoiceStyle",
+          "group": "3_azure@3"
         },
         {
           "command": "extension.selectSpeechifyVoiceRole",
-          "group": "3_settings@3",
-          "when": "editorTextFocus"
+          "group": "3_azure@4"
+        },
+        {
+          "command": "extension.configureSpeechifyCosyVoiceSettings",
+          "group": "4_local@1"
+        },
+        {
+          "command": "extension.recordSpeechifyCosyVoiceReference",
+          "group": "4_local@2"
+        },
+        {
+          "command": "extension.configureSpeechifyVisionSettings",
+          "group": "5_vision@1"
         },
         {
           "command": "extension.showSpeechifyVoiceSettings",
-          "group": "3_settings@4",
-          "when": "editorTextFocus"
+          "group": "6_info@1"
         }
       ]
     },

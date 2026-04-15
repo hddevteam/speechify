@@ -205,6 +205,14 @@ export class SpeechService {
     await VoiceConfigurationService.configureAzureSettings();
   }
 
+  public static async configureCosyVoiceSettings(): Promise<void> {
+    await VoiceConfigurationService.configureCosyVoiceSettings();
+  }
+
+  public static async recordCosyVoiceReferenceAudio(): Promise<void> {
+    await VoiceConfigurationService.recordCosyVoiceReferenceAudio();
+  }
+
   public static async configureVisionSettings(): Promise<void> {
     await VoiceConfigurationService.configureVisionSettings();
   }
