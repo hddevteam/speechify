@@ -1,9 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { AzureConfig, VideoProcessingResult, VoiceSettings, WordBoundary } from '../types';
+import { VideoProcessingResult, WordBoundary } from '../types';
 import { ConfigManager, VisionConfigValidationResult } from '../utils/config';
-import { AzureSpeechService } from '../utils/azure';
 import { AudioUtils } from '../utils/audio';
 import { SubtitleUtils } from '../utils/subtitle';
 import { VideoMuxer } from '../utils/videoMuxer';
@@ -13,6 +12,7 @@ import { I18n } from '../i18n';
 import { buildVisionConfigGuidance, buildVisionRuntimeGuidance } from './visionGuidance';
 import { calculateShiftedSegments, ShiftedSegment } from './segmentTiming';
 import { composeFinalAudioTrack, mergeAudioWithOffsets } from './ffmpegAudio';
+import { SpeechProviderService } from './speechProviderService';
 
 export enum PipelineStep {
   ANALYZE = 'analyze',
@@ -58,9 +58,9 @@ export class VisionPipelineService {
         throw new Error(buildVisionConfigGuidance(visionValidation, I18n.t));
       }
 
-      const azureConfig = ConfigManager.getAzureConfigForTesting();
       const voiceSettings = ConfigManager.getVoiceSettings();
-      const cleanText = AzureSpeechService.extractTextFromMarkdown(text);
+      const cleanText = SpeechProviderService.extractTextFromMarkdown(text);
+      const segmentAudioFormat = SpeechProviderService.getPreferredOutputFormat();
 
       const analyzer = new VideoAnalyzer();
       const outputDir = path.dirname(videoFilePath);
@@ -159,7 +159,6 @@ export class VisionPipelineService {
               videoFilePath,
               cleanText,
               visionConfig,
-              azureConfig,
               voiceSettings
             )
         );
@@ -178,8 +177,8 @@ export class VisionPipelineService {
           const seg = segments[i];
           if (!seg) continue;
           const content = seg.adjustedContent || seg.content;
-          const ssml = AzureSpeechService.createSSML(content, voiceSettings);
-          fs.writeFileSync(path.join(ssmlDir, `seg_${i}.ssml`), ssml);
+          const artifact = SpeechProviderService.createDebugArtifact(content, voiceSettings);
+          fs.writeFileSync(path.join(ssmlDir, `seg_${i}.${artifact.extension}`), artifact.content);
         }
       }
 
@@ -206,13 +205,12 @@ export class VisionPipelineService {
               });
 
               const startTimeMs = seg.startTime * 1000;
-              const { audioBuffer, boundaries } = await AzureSpeechService.synthesizeWithBoundaries(
+              const { audioBuffer, boundaries } = await SpeechProviderService.synthesizeWithMetadata(
                 seg.adjustedContent || seg.content,
-                voiceSettings,
-                azureConfig
+                voiceSettings
               );
 
-              const segAudioPath = path.join(audioDir, `seg_${i}.mp3`);
+              const segAudioPath = path.join(audioDir, `seg_${i}.${segmentAudioFormat}`);
               const segBoundariesPath = path.join(boundariesDir, `seg_${i}.json`);
 
               await AudioUtils.saveAudioFile(audioBuffer, segAudioPath);
@@ -238,7 +236,7 @@ export class VisionPipelineService {
         for (let i = 0; i < segments.length; i++) {
           const seg = segments[i];
           if (!seg) continue;
-          seg.audioPath = path.join(audioDir, `seg_${i}.mp3`);
+          seg.audioPath = path.join(audioDir, `seg_${i}.${segmentAudioFormat}`);
           const boundariesPath = path.join(boundariesDir, `seg_${i}.json`);
           if (fs.existsSync(boundariesPath)) {
             const boundaries = JSON.parse(fs.readFileSync(boundariesPath, 'utf-8')) as WordBoundary[];
@@ -657,19 +655,14 @@ export class VisionPipelineService {
     videoFilePath: string,
     fallbackText: string,
     visionConfig: { apiKey?: string; endpoint?: string; deployment: string; refinementDeployment?: string },
-    azureConfig: AzureConfig,
-    voiceSettings: VoiceSettings
+    voiceSettings: { name: string; gender: string; style: string; locale?: string; role?: string }
   ): Promise<TimingSegment[]> {
     const duration = await analyzer.getVideoDuration(videoFilePath);
 
     let wordsPerSecond = 2.5;
     try {
       const calibrationText = segments[0]?.content.substring(0, 100) || fallbackText.substring(0, 100);
-      const { boundaries } = await AzureSpeechService.synthesizeWithBoundaries(
-        calibrationText,
-        voiceSettings,
-        azureConfig
-      );
+      const { boundaries } = await SpeechProviderService.synthesizeWithMetadata(calibrationText, voiceSettings);
 
       const lastBoundary = boundaries[boundaries.length - 1];
       if (lastBoundary) {

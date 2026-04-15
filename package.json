@@ -188,6 +188,15 @@
     "configuration": {
       "title": "%speechify.configuration.title%",
       "properties": {
+        "speechify.speechProvider": {
+          "type": "string",
+          "default": "azure",
+          "enum": [
+            "azure",
+            "cosyvoice"
+          ],
+          "description": "%speechify.configuration.speechProvider%"
+        },
         "speechify.azureSpeechServicesKey": {
           "type": "string",
           "default": "",
@@ -217,6 +226,21 @@
           "type": "string",
           "default": "",
           "description": "%speechify.configuration.voiceRole%"
+        },
+        "speechify.cosyVoiceBaseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:50000",
+          "description": "%speechify.configuration.cosyVoiceBaseUrl%"
+        },
+        "speechify.cosyVoicePromptAudioPath": {
+          "type": "string",
+          "default": "",
+          "description": "%speechify.configuration.cosyVoicePromptAudioPath%"
+        },
+        "speechify.cosyVoicePromptText": {
+          "type": "string",
+          "default": "",
+          "description": "%speechify.configuration.cosyVoicePromptText%"
         },
         "speechify.enableTransitions": {
           "type": "boolean",
@@ -270,6 +294,7 @@
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "node ./scripts/run-eslint.js",
+    "cosyvoice:start": "./scripts/run-cosyvoice-server.sh",
     "test": "node ./scripts/test-runner.js",
     "test:stable": "node ./scripts/test-runner.js",
     "test:full": "SPEECHIFY_TEST_PROFILE=full node ./scripts/test-runner.js",

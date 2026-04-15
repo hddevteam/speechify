@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
-import { AzureConfig, ProcessingResult, VideoProcessingResult, VoiceListItem, VoiceSettings } from '../types';
+import { ProcessingResult, VideoProcessingResult, VoiceListItem } from '../types';
 import { ConfigManager } from '../utils/config';
-import { AzureSpeechService } from '../utils/azure';
 import { AudioUtils } from '../utils/audio';
 import { SubtitleUtils } from '../utils/subtitle';
 import { VideoMuxer } from '../utils/videoMuxer';
 import { I18n } from '../i18n';
 import { PipelineStep, VisionPipelineService } from './visionPipelineService';
 import { VoiceConfigurationService } from './voiceConfigurationService';
+import { SpeechProviderService } from './speechProviderService';
 
 /**
  * Main speech synthesis service facade
@@ -22,16 +22,14 @@ export class SpeechService {
         throw new Error(I18n.t('errors.configurationIncomplete'));
       }
 
-      const azureConfig = ConfigManager.getAzureConfigForTesting();
-      const voiceSettings = ConfigManager.getVoiceSettings();
-      const cleanText = AzureSpeechService.extractTextFromMarkdown(text);
+      const cleanText = SpeechProviderService.extractTextFromMarkdown(text);
 
       if (!cleanText.trim()) {
         throw new Error(I18n.t('errors.noTextContent'));
       }
 
-      const chunks = AzureSpeechService.splitTextIntoChunks(cleanText, this.MAX_CHUNK_SIZE);
-      return await this.processTextChunks(chunks, sourceFilePath, voiceSettings, azureConfig);
+      const chunks = SpeechProviderService.splitTextIntoChunks(cleanText, this.MAX_CHUNK_SIZE);
+      return await this.processTextChunks(chunks, sourceFilePath);
     } catch (error) {
       console.error('Speech conversion failed:', error);
       throw error;
@@ -48,18 +46,17 @@ export class SpeechService {
         throw new Error(I18n.t('errors.configurationIncomplete'));
       }
 
-      const azureConfig = ConfigManager.getAzureConfigForTesting();
-      const voiceSettings = ConfigManager.getVoiceSettings();
-      const cleanText = AzureSpeechService.extractTextFromMarkdown(text);
+      const cleanText = SpeechProviderService.extractTextFromMarkdown(text);
+      const outputFormat = SpeechProviderService.getPreferredOutputFormat();
 
-      const audioOutputPath = AudioUtils.generateOutputPath(sourceFilePath, undefined, 1);
-      const srtOutputPath = audioOutputPath.replace(/\.mp3$/, '.srt');
-      const videoOutputPath = audioOutputPath.replace(/\.mp3$/, '_speechify.mp4');
+      const audioOutputPath = AudioUtils.generateOutputPath(sourceFilePath, undefined, 1, outputFormat);
+      const audioExtension = `.${outputFormat}`;
+      const srtOutputPath = audioOutputPath.replace(new RegExp(`${audioExtension.replace('.', '\\.')}$`), '.srt');
+      const videoOutputPath = audioOutputPath.replace(new RegExp(`${audioExtension.replace('.', '\\.')}$`), '_speechify.mp4');
 
-      const { audioBuffer, boundaries } = await AzureSpeechService.synthesizeWithBoundaries(
+      const { audioBuffer, boundaries } = await SpeechProviderService.synthesizeWithMetadata(
         cleanText,
-        voiceSettings,
-        azureConfig
+        ConfigManager.getVoiceSettings()
       );
 
       await AudioUtils.saveAudioFile(audioBuffer, audioOutputPath);
@@ -106,9 +103,7 @@ export class SpeechService {
 
   private static async processTextChunks(
     chunks: string[],
-    sourceFilePath: string,
-    voiceSettings: VoiceSettings,
-    azureConfig: AzureConfig
+    sourceFilePath: string
   ): Promise<ProcessingResult> {
     const result: ProcessingResult = {
       success: false,
@@ -135,13 +130,16 @@ export class SpeechService {
           });
 
           try {
+            const voiceSettings = ConfigManager.getVoiceSettings();
+            const outputFormat = SpeechProviderService.getPreferredOutputFormat();
             const outputPath = AudioUtils.generateOutputPath(
               sourceFilePath,
               chunks.length > 1 ? i : undefined,
-              chunks.length
+              chunks.length,
+              outputFormat
             );
 
-            const audioBuffer = await AzureSpeechService.synthesizeSpeech(chunk, voiceSettings, azureConfig);
+            const { audioBuffer } = await SpeechProviderService.synthesizeSpeech(chunk, voiceSettings);
             await AudioUtils.saveAudioFile(audioBuffer, outputPath);
 
             result.outputPaths.push(outputPath);

@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { VoiceListItem } from '../types';
 import { ConfigManager } from '../utils/config';
 import { I18n } from '../i18n';
 import { buildVisionConfigGuidance } from './visionGuidance';
+import { CosyVoiceReferenceService } from './cosyVoiceReferenceService';
 
 export class VoiceConfigurationService {
   private static extensionContext: vscode.ExtensionContext | null = null;
@@ -12,6 +14,10 @@ export class VoiceConfigurationService {
   }
 
   public static getVoiceList(): VoiceListItem[] {
+    if (ConfigManager.getSpeechProvider() !== 'azure') {
+      return [];
+    }
+
     try {
       const fs = require('fs');
       const path = require('path');
@@ -95,6 +101,41 @@ export class VoiceConfigurationService {
   }
 
   public static async configureAzureSettings(): Promise<void> {
+    const currentProvider = ConfigManager.getSpeechProvider();
+    const providerChoice = await vscode.window.showQuickPick(
+      [
+        {
+          label: 'Azure Speech',
+          description: currentProvider === 'azure' ? I18n.t('settings.current') : '',
+          provider: 'azure' as const
+        },
+        {
+          label: 'CosyVoice (Local)',
+          description: currentProvider === 'cosyvoice' ? I18n.t('settings.current') : '',
+          provider: 'cosyvoice' as const
+        }
+      ],
+      {
+        title: 'Select Speech Backend',
+        placeHolder: 'Choose the speech backend to configure'
+      }
+    );
+
+    if (!providerChoice) {
+      return;
+    }
+
+    await ConfigManager.updateWorkspaceConfig('speechProvider', providerChoice.provider);
+
+    if (providerChoice.provider === 'cosyvoice') {
+      await this.configureCosyVoiceSettings();
+      return;
+    }
+
+    await this.configureAzureBackendSettings();
+  }
+
+  private static async configureAzureBackendSettings(): Promise<void> {
     const subscriptionKey = await vscode.window.showInputBox({
       prompt: I18n.t('config.prompts.subscriptionKey'),
       password: true,
@@ -116,6 +157,181 @@ export class VoiceConfigurationService {
     }
 
     vscode.window.showInformationMessage(I18n.t('notifications.success.azureSettingsUpdated'));
+  }
+
+  private static async configureCosyVoiceSettings(): Promise<void> {
+    let isFinished = false;
+    while (!isFinished) {
+      const current = ConfigManager.getCosyVoiceConfig();
+      const action = await vscode.window.showQuickPick(
+        [
+          {
+            label: I18n.t('actions.selectReferenceAudio'),
+            description: current.promptAudioPath || I18n.t('settings.no')
+          },
+          {
+            label: I18n.t('actions.autoTranscribeReference'),
+            description: current.promptAudioPath ? path.basename(current.promptAudioPath) : I18n.t('settings.no')
+          },
+          {
+            label: I18n.t('actions.editReferenceTranscript'),
+            description: current.promptText || I18n.t('settings.no')
+          },
+          {
+            label: I18n.t('actions.editBackendUrl'),
+            description: current.baseUrl || 'http://127.0.0.1:50000'
+          },
+          {
+            label: I18n.t('actions.finish'),
+            description: ''
+          }
+        ],
+        {
+          title: 'CosyVoice',
+          placeHolder: I18n.t('config.prompts.cosyVoiceSelectAction')
+        }
+      );
+
+      if (!action || action.label === I18n.t('actions.finish')) {
+        isFinished = true;
+        continue;
+      }
+
+      if (action.label === I18n.t('actions.selectReferenceAudio')) {
+        await this.selectCosyVoiceReferenceAudio();
+        continue;
+      }
+
+      if (action.label === I18n.t('actions.autoTranscribeReference')) {
+        await this.autoTranscribeCosyVoiceReferenceAudio();
+        continue;
+      }
+
+      if (action.label === I18n.t('actions.editReferenceTranscript')) {
+        await this.editCosyVoiceReferenceTranscript();
+        continue;
+      }
+
+      if (action.label === I18n.t('actions.editBackendUrl')) {
+        await this.editCosyVoiceBackendUrl();
+      }
+    }
+
+    vscode.window.showInformationMessage(I18n.t('notifications.success.azureSettingsUpdated'));
+  }
+
+  private static async selectCosyVoiceReferenceAudio(): Promise<void> {
+    const picked = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      openLabel: I18n.t('actions.selectReferenceAudio'),
+      filters: {
+        Audio: ['wav', 'mp3', 'm4a', 'flac', 'aac', 'ogg']
+      },
+      title: I18n.t('config.prompts.cosyVoiceSelectReferenceAudio')
+    });
+
+    const selected = picked?.[0];
+    if (!selected) {
+      return;
+    }
+
+    const storedPath = this.toWorkspaceSettingPath(selected.fsPath);
+    await ConfigManager.updateWorkspaceConfig('cosyVoicePromptAudioPath', storedPath);
+
+    const autoTranscribe = await vscode.window.showInformationMessage(
+      I18n.t('notifications.success.referenceAudioUpdated'),
+      I18n.t('actions.autoTranscribeReference'),
+      I18n.t('actions.ok')
+    );
+
+    if (autoTranscribe === I18n.t('actions.autoTranscribeReference')) {
+      await this.autoTranscribeCosyVoiceReferenceAudio();
+    }
+  }
+
+  private static async autoTranscribeCosyVoiceReferenceAudio(): Promise<void> {
+    const current = ConfigManager.getCosyVoiceConfig();
+    if (!current.promptAudioPath) {
+      throw new Error(I18n.t('errors.referenceAudioNotConfigured'));
+    }
+
+    const languageChoice = await vscode.window.showQuickPick(
+      [
+        { label: '中文 (Recommended)', language: 'zh' as const },
+        { label: 'Auto Detect', language: 'auto' as const },
+        { label: 'English', language: 'en' as const }
+      ],
+      {
+        title: 'CosyVoice',
+        placeHolder: I18n.t('config.prompts.cosyVoiceSelectTranscriptionLanguage')
+      }
+    );
+
+    if (!languageChoice) {
+      return;
+    }
+
+    const transcript = await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: I18n.t('progress.transcribingReferenceAudio'),
+        cancellable: false
+      },
+      async () =>
+        CosyVoiceReferenceService.transcribeReferenceAudio(current.promptAudioPath, {
+          language: languageChoice.language
+        })
+    );
+
+    await ConfigManager.updateWorkspaceConfig('cosyVoicePromptText', transcript);
+    vscode.window.showInformationMessage(I18n.t('notifications.success.referenceTranscriptUpdated', transcript));
+  }
+
+  private static async editCosyVoiceReferenceTranscript(): Promise<void> {
+    const current = ConfigManager.getCosyVoiceConfig();
+    const promptText = await vscode.window.showInputBox({
+      prompt: I18n.t('config.prompts.cosyVoiceReferenceTranscript'),
+      value: current.promptText || '',
+      placeHolder: I18n.t('config.prompts.cosyVoiceReferenceTranscriptPlaceholder')
+    });
+
+    if (promptText === undefined) {
+      return;
+    }
+
+    await ConfigManager.updateWorkspaceConfig('cosyVoicePromptText', promptText.trim());
+    vscode.window.showInformationMessage(I18n.t('notifications.success.referenceTranscriptUpdated', promptText.trim() || I18n.t('settings.no')));
+  }
+
+  private static async editCosyVoiceBackendUrl(): Promise<void> {
+    const current = ConfigManager.getCosyVoiceConfig();
+    const baseUrl = await vscode.window.showInputBox({
+      prompt: I18n.t('config.prompts.cosyVoiceBaseUrl'),
+      value: current.baseUrl || 'http://127.0.0.1:50000',
+      placeHolder: I18n.t('config.prompts.cosyVoiceBaseUrlPlaceholder')
+    });
+
+    if (baseUrl === undefined) {
+      return;
+    }
+
+    await ConfigManager.updateWorkspaceConfig('cosyVoiceBaseUrl', baseUrl.trim());
+  }
+
+  private static toWorkspaceSettingPath(filePath: string): string {
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!workspaceRoot) {
+      return filePath;
+    }
+
+    const relativePath = path.relative(workspaceRoot, filePath);
+    if (!relativePath.startsWith('..') && !path.isAbsolute(relativePath)) {
+      return `\${workspaceFolder}/${relativePath.replace(/\\/g, '/')}`;
+    }
+
+    return filePath;
   }
 
   public static async configureVisionSettings(): Promise<void> {
@@ -175,6 +391,11 @@ export class VoiceConfigurationService {
   }
 
   public static async configureVoiceSettings(): Promise<void> {
+    if (ConfigManager.getSpeechProvider() !== 'azure') {
+      await this.configureCosyVoiceSettings();
+      return;
+    }
+
     const voiceList = this.getVoiceList();
 
     if (voiceList.length === 0) {
@@ -207,6 +428,12 @@ export class VoiceConfigurationService {
   }
 
   public static async selectVoiceStyleQuickly(): Promise<void> {
+    if (ConfigManager.getSpeechProvider() !== 'azure') {
+      const voiceName = ConfigManager.getVoiceSettings().name;
+      vscode.window.showInformationMessage(I18n.t('errors.voiceNoStyles', voiceName));
+      return;
+    }
+
     const voiceSettings = ConfigManager.getVoiceSettings();
     const voiceList = this.getVoiceList();
 
@@ -249,6 +476,12 @@ export class VoiceConfigurationService {
   }
 
   public static async selectVoiceRole(): Promise<void> {
+    if (ConfigManager.getSpeechProvider() !== 'azure') {
+      const voiceName = ConfigManager.getVoiceSettings().name;
+      vscode.window.showInformationMessage(I18n.t('notifications.info.noRolesAvailable', voiceName));
+      return;
+    }
+
     try {
       const voiceList = this.getVoiceList();
       if (!voiceList || voiceList.length === 0) {

@@ -7,6 +7,15 @@ export interface AzureConfig {
   region?: string;
 }
 
+export const SPEECH_PROVIDERS = ['azure', 'cosyvoice'] as const;
+export type SpeechProviderType = typeof SPEECH_PROVIDERS[number];
+
+export interface CosyVoiceConfig {
+  baseUrl: string;
+  promptAudioPath: string;
+  promptText?: string;
+}
+
 export interface VoiceSettings {
   name: string;
   gender: string;
@@ -36,12 +45,16 @@ export interface VoiceListItem {
  * Extension configuration types
  */
 export interface SpeechifyConfig {
+  speechProvider?: SpeechProviderType;
   azureSpeechServicesKey: string;
   speechServicesRegion: string;
   voiceName: string;
   voiceGender: string;
   voiceStyle: string;
   voiceRole?: string;  // Optional role for roleplay voices
+  cosyVoiceBaseUrl?: string;
+  cosyVoicePromptAudioPath?: string;
+  cosyVoicePromptText?: string;
   enableTransitions?: boolean;
   transitionType?: string;
   autoTrimVideo?: boolean;
@@ -80,6 +93,15 @@ export interface SpeechResponse {
   audioPath?: string;
   error?: string;
   duration?: number;
+}
+
+export interface SpeechSynthesisResult {
+  audioBuffer: Buffer;
+  audioFormat: AudioFormat;
+  boundaries: WordBoundary[];
+  durationMs: number;
+  debugArtifactExtension: 'ssml' | 'txt';
+  debugArtifactContent: string;
 }
 
 /**

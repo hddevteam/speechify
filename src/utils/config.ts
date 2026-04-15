@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { SpeechifyConfig, VoiceSettings, AzureConfig, TestConfig } from '../types';
+import { AzureConfig, CosyVoiceConfig, SpeechProviderType, SpeechifyConfig, TestConfig, VoiceSettings } from '../types';
 
 export interface VisionConfigValidationResult {
   isValid: boolean;
@@ -30,12 +30,16 @@ export class ConfigManager {
     const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
     
     return {
+      speechProvider: config.get<SpeechProviderType>('speechProvider', 'azure'),
       azureSpeechServicesKey: config.get<string>('azureSpeechServicesKey', ''),
       speechServicesRegion: config.get<string>('speechServicesRegion', 'eastus'),
       voiceName: config.get<string>('voiceName', 'zh-CN-YunyangNeural'),
       voiceGender: config.get<string>('voiceGender', 'Male'),
       voiceStyle: config.get<string>('voiceStyle', 'friendly'),
       voiceRole: config.get<string>('voiceRole', ''),
+      cosyVoiceBaseUrl: config.get<string>('cosyVoiceBaseUrl', 'http://127.0.0.1:50000'),
+      cosyVoicePromptAudioPath: config.get<string>('cosyVoicePromptAudioPath', ''),
+      cosyVoicePromptText: config.get<string>('cosyVoicePromptText', ''),
       visionApiKey: config.get<string>('visionApiKey', ''),
       visionEndpoint: config.get<string>('visionEndpoint', ''),
       visionDeployment: config.get<string>('visionDeployment', 'gpt-5.2'),
@@ -49,9 +53,16 @@ export class ConfigManager {
   /**
    * Update VS Code workspace configuration
    */
-  public static async updateWorkspaceConfig(key: keyof SpeechifyConfig, value: string): Promise<void> {
+  public static async updateWorkspaceConfig<K extends keyof SpeechifyConfig>(
+    key: K,
+    value: SpeechifyConfig[K]
+  ): Promise<void> {
     const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
     await config.update(key, value, vscode.ConfigurationTarget.Global);
+  }
+
+  public static getSpeechProvider(): SpeechProviderType {
+    return this.getWorkspaceConfig().speechProvider || 'azure';
   }
 
   /**
@@ -59,12 +70,23 @@ export class ConfigManager {
    */
   public static getVoiceSettings(): VoiceSettings {
     const config = this.getWorkspaceConfig();
-    
+
+    if (this.getSpeechProvider() === 'cosyvoice') {
+      const promptPath = config.cosyVoicePromptAudioPath || '';
+      const inferredName = promptPath ? path.basename(promptPath, path.extname(promptPath)) : 'CosyVoice Clone';
+      return {
+        name: inferredName,
+        gender: 'Neutral',
+        style: 'general',
+        locale: 'zh-CN'
+      };
+    }
+
     const settings: VoiceSettings = {
       name: config.voiceName,
       gender: config.voiceGender,
       style: config.voiceStyle,
-      locale: 'zh-CN' // Extract locale from voice name or use default
+      locale: 'zh-CN'
     };
 
     // Only add role if it's set
@@ -86,6 +108,34 @@ export class ConfigManager {
       endpoint: `https://${config.speechServicesRegion}.tts.speech.microsoft.com/cognitiveservices/v1`,
       region: config.speechServicesRegion
     };
+  }
+
+  public static getCosyVoiceConfig(): CosyVoiceConfig {
+    const config = this.getWorkspaceConfig();
+    const promptAudioPath = this.resolveWorkspacePath((config.cosyVoicePromptAudioPath || '').trim());
+    return {
+      baseUrl: (config.cosyVoiceBaseUrl || '').trim(),
+      promptAudioPath,
+      promptText: (config.cosyVoicePromptText || '').trim()
+    };
+  }
+
+  private static resolveWorkspacePath(inputPath: string): string {
+    if (!inputPath) {
+      return '';
+    }
+
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!workspaceRoot) {
+      return inputPath;
+    }
+
+    const expandedPath = inputPath.replace(/\$\{workspaceFolder\}/g, workspaceRoot);
+    if (path.isAbsolute(expandedPath)) {
+      return expandedPath;
+    }
+
+    return path.resolve(workspaceRoot, expandedPath);
   }
 
   /**
@@ -253,16 +303,28 @@ export class ConfigManager {
   /**
    * Validate configuration
    */
-  public static validateConfig(config: AzureConfig): boolean {
+  public static validateAzureConfig(config: AzureConfig): boolean {
     return !!(config.subscriptionKey && config.endpoint);
+  }
+
+  public static validateConfig(config: AzureConfig): boolean {
+    return this.validateAzureConfig(config);
+  }
+
+  public static validateCosyVoiceConfig(config: CosyVoiceConfig): boolean {
+    return !!(config.baseUrl && config.promptAudioPath);
   }
 
   /**
    * Check if configuration is complete
    */
   public static isConfigurationComplete(): boolean {
+    if (this.getSpeechProvider() === 'cosyvoice') {
+      return this.validateCosyVoiceConfig(this.getCosyVoiceConfig());
+    }
+
     const config = this.getAzureConfigForTesting();
-    return this.validateConfig(config);
+    return this.validateAzureConfig(config);
   }
 
   /**
@@ -271,10 +333,14 @@ export class ConfigManager {
   public static async resetConfiguration(): Promise<void> {
     const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
     
+    await config.update('speechProvider', 'azure', vscode.ConfigurationTarget.Global);
     await config.update('azureSpeechServicesKey', '', vscode.ConfigurationTarget.Global);
     await config.update('speechServicesRegion', 'eastus', vscode.ConfigurationTarget.Global);
     await config.update('voiceName', 'zh-CN-YunyangNeural', vscode.ConfigurationTarget.Global);
     await config.update('voiceGender', 'Male', vscode.ConfigurationTarget.Global);
     await config.update('voiceStyle', 'friendly', vscode.ConfigurationTarget.Global);
+    await config.update('cosyVoiceBaseUrl', 'http://127.0.0.1:50000', vscode.ConfigurationTarget.Global);
+    await config.update('cosyVoicePromptAudioPath', '', vscode.ConfigurationTarget.Global);
+    await config.update('cosyVoicePromptText', '', vscode.ConfigurationTarget.Global);
   }
 }

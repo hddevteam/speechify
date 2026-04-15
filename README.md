@@ -136,7 +136,13 @@ While there are many video editors (CapCut, Premiere Pro, etc.), Speechify is de
 ### 1. Installation
 Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=luckyXmobile.speechify) or search for "Speechify" in VS Code Extensions.
 
-### 2. Azure Setup
+### 2. Speech Backend Setup
+
+Speechify now supports two speech backends:
+- **Azure Speech**: cloud TTS with full Azure voice catalog and accurate word boundaries
+- **CosyVoice (Local)**: local FastAPI backend for zero-shot voice cloning, better suited for private/local Chinese workflows
+
+#### Azure Setup
 
 🔒 **Security Best Practice**: Never commit your Azure subscription keys to version control. Always store them securely in VS Code settings or environment variables.
 
@@ -149,6 +155,26 @@ Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/item
 - Copy `test-config.json.example` to `test-config.json` and add your test credentials
 - The `test-config.json` file is automatically ignored by Git for security
 - Our CI pipeline includes automated security checks to prevent accidental key exposure
+
+#### Local CosyVoice Setup
+
+1. Clone the bundled upstream dependency:
+   ```bash
+   git clone --recursive https://github.com/FunAudioLLM/CosyVoice.git vendor/CosyVoice
+   ```
+2. Install Python 3.10, then create a dedicated virtual environment in `vendor/CosyVoice/.venv310`
+3. Install CosyVoice dependencies inside that virtual environment
+4. Start the FastAPI server from this repo:
+   ```bash
+   npm run cosyvoice:start
+   ```
+
+Notes:
+- The startup script now defaults to `iic/CosyVoice-300M`, which is the correct ModelScope ID for the official FastAPI server path.
+- If `vendor/CosyVoice/pretrained_models/CosyVoice-300M` already exists, the script will prefer that fully local model directory.
+- Override the model manually with `COSYVOICE_MODEL_DIR=/path/to/model npm run cosyvoice:start`
+- A quick local smoke-test reference clip is available at `vendor/CosyVoice/asset/zero_shot_prompt.wav`
+- Example prompt transcript: `希望你以后能够做的比我还好呦。`
 
 ### 2.1 Azure OpenAI Configuration (Vision)
 
@@ -219,6 +245,18 @@ Convert entire markdown documents, code comments, or any text-based content into
 - **Voice Gender**: Male or Female preference
 - **Voice Style**: Speaking style (friendly, newscast, cheerful, etc.)
 - **Voice Role**: Character role for roleplay-enabled voices
+
+### CosyVoice Settings
+- **Speech Provider**: Set `speechify.speechProvider` to `cosyvoice`
+- **Backend URL**: `speechify.cosyVoiceBaseUrl` (default `http://127.0.0.1:50000`)
+- **Reference Audio**: `speechify.cosyVoicePromptAudioPath`
+- **Reference Transcript**: `speechify.cosyVoicePromptText`
+
+Behavior notes:
+- If a reference transcript is configured, Speechify uses CosyVoice `inference_zero_shot`
+- If the transcript is left empty, Speechify falls back to `inference_cross_lingual`
+- CosyVoice returns raw PCM audio, so Speechify wraps it as `.wav`
+- CosyVoice does not provide Azure-style word timestamps in this path; subtitle boundaries are approximated from text and audio duration
 
 ### File Output Settings
 - **Format**: Audio format (MP3, WAV, OGG)
