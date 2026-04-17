@@ -35,7 +35,7 @@
   "speechify.configuration.cosyVoicePromptAudioPath": "用于 CosyVoice 零样本语音克隆的参考音频路径",
   "speechify.configuration.cosyVoicePromptText": "CosyVoice 参考音频对应的文本（零样本模式推荐填写）",
   "speechify.configuration.cosyVoiceRequestTimeoutSeconds": "本地 CosyVoice 请求超时时间（秒，默认 900；较慢机器上 zero-shot 生成可能需要更久）",
-  "speechify.configuration.qwenTtsPythonPath": "用于运行 Qwen3-TTS 的 MLX-Audio Python 路径",
+  "speechify.configuration.qwenTtsPythonPath": "用于运行 Qwen3-TTS 的 MLX-Audio Python 路径（可选；如果使用标准的 vendor/Qwen3-TTS 目录可留空）",
   "speechify.configuration.qwenTtsModel": "Qwen3-TTS 的 MLX 模型 ID 或本地模型路径",
   "speechify.configuration.qwenTtsPromptAudioPath": "用于 Qwen3-TTS 声音克隆的参考音频路径",
   "speechify.configuration.qwenTtsPromptText": "Qwen3-TTS 参考音频对应的文本（建议填写以获得更好的克隆效果）",

@@ -33,6 +33,7 @@
     - unit tests
   - Reuse the reference-media pipeline when possible, but keep provider-specific entrypoints and labels.
   - Qwen3-TTS in this repo runs through local Python + `mlx-audio`; it does not require a long-running backend service.
+  - If the repo-standard Qwen runtime exists at `vendor/Qwen3-TTS/.venv312/bin/python`, leaving `speechify.qwenTts.pythonPath` empty should still work. Do not require manual path entry for the happy-path install layout.
 
 ## Validation habits
 

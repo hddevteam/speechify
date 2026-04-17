@@ -23,6 +23,7 @@ export class ConfigManager {
   private static readonly CONFIG_SECTION = 'speechify';
   private static readonly TEST_CONFIG_FILE = 'test-config.json';
   private static readonly AZURE_OPENAI_HOST_SUFFIX = 'openai.azure.com';
+  private static readonly DEFAULT_QWEN_MODEL = 'mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16';
 
   /**
    * Get VS Code workspace configuration
@@ -155,15 +156,26 @@ export class ConfigManager {
   public static getQwenTtsConfig(): QwenTtsConfig {
     const config = this.getWorkspaceConfig();
     const promptAudioPath = this.resolveWorkspacePath((config.qwenTtsPromptAudioPath || '').trim());
-    const pythonPath = this.resolveWorkspacePath((config.qwenTtsPythonPath || '').trim());
+    const configuredPythonPath = this.resolveWorkspacePath((config.qwenTtsPythonPath || '').trim());
+    const pythonPath = configuredPythonPath || this.getDetectedQwenTtsPythonPath() || '';
 
     return {
       pythonPath,
-      model: (config.qwenTtsModel || '').trim() || 'mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16',
+      model: (config.qwenTtsModel || '').trim() || this.DEFAULT_QWEN_MODEL,
       promptAudioPath,
       promptText: (config.qwenTtsPromptText || '').trim(),
       requestTimeoutSeconds: this.normalizeQwenTtsRequestTimeoutSeconds(config.qwenTtsRequestTimeoutSeconds)
     };
+  }
+
+  public static getDetectedQwenTtsPythonPath(): string | null {
+    for (const candidate of this.getQwenTtsPythonCandidates()) {
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+
+    return null;
   }
 
   private static normalizeCosyVoiceRequestTimeoutSeconds(value: number | undefined): number {
@@ -192,6 +204,35 @@ export class ConfigManager {
     }
 
     return path.resolve(workspaceRoot, expandedPath);
+  }
+
+  private static getQwenTtsPythonCandidates(): string[] {
+    const workspaceRoots = vscode.workspace.workspaceFolders?.map(folder => folder.uri.fsPath) || [];
+    const roots = [
+      ...workspaceRoots,
+      process.cwd(),
+      path.resolve(__dirname, '../../'),
+      path.resolve(__dirname, '../../../'),
+      path.resolve(__dirname, '../../../../')
+    ];
+
+    const uniqueRoots = [...new Set(roots)];
+    const candidates = uniqueRoots.flatMap(root => [
+      path.join(root, 'vendor/Qwen3-TTS/.venv312/bin/python'),
+      path.join(root, 'vendor/Qwen3-TTS/.venv311/bin/python'),
+      path.join(root, 'vendor/Qwen3-TTS/.venv310/bin/python'),
+      path.join(root, 'vendor/Qwen3-TTS/.venv/bin/python'),
+      path.join(root, 'vendor/Qwen3TTS/.venv312/bin/python'),
+      path.join(root, 'vendor/Qwen3TTS/.venv311/bin/python'),
+      path.join(root, 'vendor/Qwen3TTS/.venv310/bin/python'),
+      path.join(root, 'vendor/Qwen3TTS/.venv/bin/python'),
+      path.join(root, '.venv312/bin/python'),
+      path.join(root, '.venv311/bin/python'),
+      path.join(root, '.venv310/bin/python'),
+      path.join(root, '.venv/bin/python')
+    ]);
+
+    return [...new Set(candidates)];
   }
 
   /**
@@ -410,7 +451,7 @@ export class ConfigManager {
     await this.updateWorkspaceConfig('cosyVoicePromptText', '');
     await this.updateWorkspaceConfig('cosyVoiceRequestTimeoutSeconds', 900);
     await this.updateWorkspaceConfig('qwenTtsPythonPath', '');
-    await this.updateWorkspaceConfig('qwenTtsModel', 'mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16');
+    await this.updateWorkspaceConfig('qwenTtsModel', this.DEFAULT_QWEN_MODEL);
     await this.updateWorkspaceConfig('qwenTtsPromptAudioPath', '');
     await this.updateWorkspaceConfig('qwenTtsPromptText', '');
     await this.updateWorkspaceConfig('qwenTtsRequestTimeoutSeconds', 900);

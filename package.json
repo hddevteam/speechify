@@ -546,7 +546,7 @@
     "test": "node ./scripts/test-runner.js",
     "test:stable": "node ./scripts/test-runner.js",
     "test:full": "SPEECHIFY_TEST_PROFILE=full node ./scripts/test-runner.js",
-    "test:unit": "npm run compile-tests && mocha --ui tdd \"out/test/suite/refineScript.unit.test.js\" \"out/test/suite/speechServiceRefactor.unit.test.js\" \"out/test/suite/cosyVoiceStartup.unit.test.js\" \"out/test/suite/cosyVoiceServer.unit.test.js\" \"out/test/suite/cosyVoiceAudio.unit.test.js\" \"out/test/suite/qwenTtsAudio.unit.test.js\" \"out/test/suite/voiceConfigurationService.unit.test.js\" \"out/test/suite/speechifySettings.unit.test.js\" \"out/test/suite/packageManifest.unit.test.js\" \"out/test/suite/releaseMetadata.unit.test.js\" \"out/test/suite/textSource.test.js\"",
+    "test:unit": "npm run compile-tests && mocha --ui tdd \"out/test/suite/refineScript.unit.test.js\" \"out/test/suite/speechServiceRefactor.unit.test.js\" \"out/test/suite/cosyVoiceStartup.unit.test.js\" \"out/test/suite/cosyVoiceServer.unit.test.js\" \"out/test/suite/cosyVoiceAudio.unit.test.js\" \"out/test/suite/qwenTtsAudio.unit.test.js\" \"out/test/suite/configManager.unit.test.js\" \"out/test/suite/voiceConfigurationService.unit.test.js\" \"out/test/suite/speechifySettings.unit.test.js\" \"out/test/suite/packageManifest.unit.test.js\" \"out/test/suite/releaseMetadata.unit.test.js\" \"out/test/suite/textSource.test.js\"",
     "test:integration": "node ./scripts/test-runner.js",
     "test:local": "node ./out/test/runTest.js"
   },
