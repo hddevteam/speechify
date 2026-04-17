@@ -4,7 +4,7 @@
   "speechify.command.speechify": "生成配音（当前后端）",
   "speechify.command.generateAzureAudio": "Azure：生成配音",
   "speechify.command.generateLocalAudio": "本地 CosyVoice：生成配音",
-  "speechify.command.voiceSettings": "查看当前配音配置",
+  "speechify.command.voiceSettings": "查看当前 Azure 配置",
   "speechify.command.configureVoice": "Azure：切换配音/语言", 
   "speechify.command.configureAzure": "Azure：设置后端",
   "speechify.command.configureCosyVoice": "本地 CosyVoice：设置参考音频",

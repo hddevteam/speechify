@@ -18,3 +18,4 @@
   - setting namespaces
   - menu grouping
   - command wording
+- For provider submenus, do not leave action-tier commands buried in settings-tier groups. If the user mentally sees it as “generate with this backend”, it should sit near the generation action.

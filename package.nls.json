@@ -4,7 +4,7 @@
   "speechify.command.speechify": "Generate Voiceover (Current Provider)",
   "speechify.command.generateAzureAudio": "Azure: Generate Voiceover",
   "speechify.command.generateLocalAudio": "Local CosyVoice: Generate Voiceover",
-  "speechify.command.voiceSettings": "View Configuration",
+  "speechify.command.voiceSettings": "View Azure Configuration",
   "speechify.command.configureVoice": "Azure: Set Voice & Language",
   "speechify.command.configureAzure": "Azure: Set Backend",
   "speechify.command.configureCosyVoice": "Local CosyVoice: Set Reference Voice",

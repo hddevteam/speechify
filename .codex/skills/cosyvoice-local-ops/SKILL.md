@@ -47,7 +47,8 @@ Use this when Speechify local CosyVoice generation fails or behaves inconsistent
 
 - Azure and local menu actions feel mixed together:
   - Azure-only actions should stay in the Azure submenu.
-  - Keep `AI Smart Align`, `Set Azure OpenAI (Vision)`, and `View Configuration` under Azure.
+  - Keep `AI Smart Align`, `Set Azure OpenAI (Vision)`, and `View Azure Configuration` under Azure.
+  - Within the Azure submenu, keep `AI Smart Align` in the action/generation block near `Generate Voiceover`, not mixed into settings.
   - Audio commands should use the current naming contract: `Generate Voiceover`, not `Generate Audio`.
 
 ## Expected repo contract

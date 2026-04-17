@@ -12,12 +12,15 @@
 - Do not rely on `vscode.workspace.getConfiguration().update(...)` alone when the user expects default-valued keys to appear in `.vscode/settings.json`. VS Code may omit default or empty values.
 - For menu IA in this repo:
   - Azure-only actions belong in the Azure submenu.
+  - Azure generation-adjacent actions such as `AI Smart Align` belong in the Azure action block, not in a generic top-level block.
   - Local cloning and recorder actions belong in the Local CosyVoice submenu.
   - User-facing audio wording should be `Generate Voiceover` / `生成配音`, not `Generate Audio` / `生成纯音频`.
+  - Menu labels should stay provider-specific once a command lives inside a provider submenu. Example: `View Azure Configuration`, not generic `View Configuration`.
 
 ## Validation habits
 
 - Add manifest-level unit tests when changing `package.json` menus or command labels.
+- When moving a menu item between groups, assert its target `group` value in tests instead of only checking presence.
 - Add settings-migration unit tests when changing config keys or namespace layout.
 - Run:
   - `npm run compile-tests`

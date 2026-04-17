@@ -204,6 +204,11 @@
           "when": "editorTextFocus"
         },
         {
+          "command": "extension.convertToVideo",
+          "group": "1_generate@2",
+          "when": "editorTextFocus"
+        },
+        {
           "command": "extension.configureSpeechifyVoiceSettings",
           "group": "2_settings@1",
           "when": "editorTextFocus"
@@ -231,11 +236,6 @@
         {
           "command": "extension.showSpeechifyVoiceSettings",
           "group": "2_settings@6",
-          "when": "editorTextFocus"
-        },
-        {
-          "command": "extension.convertToVideo",
-          "group": "3_video@1",
           "when": "editorTextFocus"
         }
       ],
