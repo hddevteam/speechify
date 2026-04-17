@@ -1,9 +1,9 @@
 {
   "speechify.displayName": "Speechify - AI语音合成与文本转语音",
   "speechify.description": "使用Azure AI语音服务将文本转换为自然语音。高质量神经网络语音，支持无障碍访问、内容创作和语言学习。支持中文、英文和多种语言的专业语音合成。",
-  "speechify.command.speechify": "生成音频（当前后端）",
-  "speechify.command.generateAzureAudio": "Azure：生成纯音频",
-  "speechify.command.generateLocalAudio": "本地 CosyVoice：生成纯音频",
+  "speechify.command.speechify": "生成配音（当前后端）",
+  "speechify.command.generateAzureAudio": "Azure：生成配音",
+  "speechify.command.generateLocalAudio": "本地 CosyVoice：生成配音",
   "speechify.command.voiceSettings": "查看当前配音配置",
   "speechify.command.configureVoice": "Azure：切换配音/语言", 
   "speechify.command.configureAzure": "Azure：设置后端",

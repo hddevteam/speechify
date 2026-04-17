@@ -1,9 +1,9 @@
 {
   "speechify.displayName": "Speechify - AI Text to Speech & Voice Converter",
   "speechify.description": "Transform text into natural speech using Azure AI Speech Services. High-quality neural voices for accessibility, content creation, and language learning. Supports Chinese, English, and multiple languages with professional voice synthesis.",
-  "speechify.command.speechify": "Generate Audio (Current Provider)",
-  "speechify.command.generateAzureAudio": "Azure: Generate Audio",
-  "speechify.command.generateLocalAudio": "Local CosyVoice: Generate Audio",
+  "speechify.command.speechify": "Generate Voiceover (Current Provider)",
+  "speechify.command.generateAzureAudio": "Azure: Generate Voiceover",
+  "speechify.command.generateLocalAudio": "Local CosyVoice: Generate Voiceover",
   "speechify.command.voiceSettings": "View Configuration",
   "speechify.command.configureVoice": "Azure: Set Voice & Language",
   "speechify.command.configureAzure": "Azure: Set Backend",

@@ -182,11 +182,6 @@
           "when": "editorTextFocus || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
         },
         {
-          "command": "extension.convertToVideo",
-          "group": "2_video@1",
-          "when": "editorTextFocus || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
-        },
-        {
           "command": "extension.openAlignmentEditor",
           "group": "2_video@2",
           "when": "resourceExtname == .mp4 || resourceExtname == .mov || (resourceExtname == .json && editorTextFocus && speechify.activeEditorIsTimingJson) || (resourceExtname == .json && !editorTextFocus && resourceFilename == 'timing.json')"
@@ -200,16 +195,6 @@
           "command": "extension.openSpeechifySettingsJson",
           "group": "3_settings@1",
           "when": "editorTextFocus || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown || resourceExtname == .mp4 || resourceExtname == .mov || resourceExtname == .json"
-        },
-        {
-          "command": "extension.configureSpeechifyVisionSettings",
-          "group": "3_settings@2",
-          "when": "editorTextFocus"
-        },
-        {
-          "command": "extension.showSpeechifyVoiceSettings",
-          "group": "3_settings@3",
-          "when": "editorTextFocus"
         }
       ],
       "speechify.azureSubmenu": [
@@ -236,6 +221,21 @@
         {
           "command": "extension.configureSpeechifyAzureSettings",
           "group": "2_settings@4",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.configureSpeechifyVisionSettings",
+          "group": "2_settings@5",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.showSpeechifyVoiceSettings",
+          "group": "2_settings@6",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.convertToVideo",
+          "group": "3_video@1",
           "when": "editorTextFocus"
         }
       ],
@@ -478,7 +478,7 @@
     "test": "node ./scripts/test-runner.js",
     "test:stable": "node ./scripts/test-runner.js",
     "test:full": "SPEECHIFY_TEST_PROFILE=full node ./scripts/test-runner.js",
-    "test:unit": "npm run compile-tests && mocha --ui tdd \"out/test/suite/refineScript.unit.test.js\" \"out/test/suite/speechServiceRefactor.unit.test.js\" \"out/test/suite/cosyVoiceStartup.unit.test.js\" \"out/test/suite/cosyVoiceServer.unit.test.js\" \"out/test/suite/cosyVoiceAudio.unit.test.js\" \"out/test/suite/speechifySettings.unit.test.js\" \"out/test/suite/textSource.test.js\"",
+    "test:unit": "npm run compile-tests && mocha --ui tdd \"out/test/suite/refineScript.unit.test.js\" \"out/test/suite/speechServiceRefactor.unit.test.js\" \"out/test/suite/cosyVoiceStartup.unit.test.js\" \"out/test/suite/cosyVoiceServer.unit.test.js\" \"out/test/suite/cosyVoiceAudio.unit.test.js\" \"out/test/suite/speechifySettings.unit.test.js\" \"out/test/suite/packageManifest.unit.test.js\" \"out/test/suite/textSource.test.js\"",
     "test:integration": "node ./scripts/test-runner.js",
     "test:local": "node ./out/test/runTest.js"
   },

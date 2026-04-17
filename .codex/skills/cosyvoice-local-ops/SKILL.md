@@ -10,8 +10,8 @@ Use this when Speechify local CosyVoice generation fails or behaves inconsistent
 ## Core checks
 
 1. Confirm the configured backend is local:
-   - `speechify.speechProvider = cosyvoice`
-   - `speechify.cosyVoiceBaseUrl` points to localhost, normally `http://127.0.0.1:50000`
+   - `speechify.provider = cosyvoice`
+   - `speechify.cosyVoice.baseUrl` points to localhost, normally `http://127.0.0.1:50000`
 2. Confirm the startup entry is the repo-owned script:
    - `package.json` must expose `cosyvoice:start`
    - `cosyvoice:start` must run `bash scripts/run-cosyvoice-server.sh`
@@ -39,7 +39,16 @@ Use this when Speechify local CosyVoice generation fails or behaves inconsistent
 - Backend times out around 120 seconds on short text:
   - Do not assume the text chunk is too long.
   - Check server logs for `first audio chunk after ...ms`; local zero-shot can take more than two minutes before first audio.
-  - Raise `speechify.cosyVoiceRequestTimeoutSeconds` for local CosyVoice before changing chunking logic.
+  - Raise `speechify.cosyVoice.requestTimeoutSeconds` for local CosyVoice before changing chunking logic.
+
+- Settings JSON shows stale flat keys:
+  - The current repo contract uses grouped keys such as `speechify.azure.*`, `speechify.cosyVoice.*`, and `speechify.vision.*`.
+  - `Open Speechify Settings (JSON)` should migrate legacy flat keys into grouped keys instead of leaving both forms behind.
+
+- Azure and local menu actions feel mixed together:
+  - Azure-only actions should stay in the Azure submenu.
+  - Keep `AI Smart Align`, `Set Azure OpenAI (Vision)`, and `View Configuration` under Azure.
+  - Audio commands should use the current naming contract: `Generate Voiceover`, not `Generate Audio`.
 
 ## Expected repo contract
 
@@ -47,11 +56,19 @@ Use this when Speechify local CosyVoice generation fails or behaves inconsistent
 - `scripts/cosyvoice_fastapi_server.py` returns complete binary audio responses, not streamed chunks
 - `SpeechProviderService` retries once with a freshly normalized prompt clip when the backend reports the 30-second prompt limit
 - `SpeechProviderService` uses a local CosyVoice-specific request timeout, defaulting to 300 seconds
+- The configuration schema uses grouped keys:
+  - `speechify.provider`
+  - `speechify.cosyVoice.baseUrl`
+  - `speechify.cosyVoice.pythonPath`
+  - `speechify.cosyVoice.promptAudioPath`
+  - `speechify.cosyVoice.promptText`
+  - `speechify.cosyVoice.requestTimeoutSeconds`
 - Unit tests should lock both rules:
   - startup wiring
   - server response contract
   - prompt-audio refresh and user-facing error contract
   - timeout configuration and timeout-context contract
+  - grouped settings migration contract
 
 ## Validation
 
@@ -66,7 +83,7 @@ Then verify manually:
 
 1. Start the backend from the repo entrypoint.
 2. Open `http://127.0.0.1:50000/docs`.
-3. Retry `Local CosyVoice: Generate Audio` in VS Code.
+3. Retry `Local CosyVoice: Generate Voiceover` in VS Code.
 
 ## Do not do
 
