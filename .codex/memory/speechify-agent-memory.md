@@ -9,6 +9,8 @@
   - `speechify.vision.*`
 - Runtime reads must prefer grouped keys and only fall back to legacy flat keys for migration compatibility.
 - `Open Speechify Settings (JSON)` is the migration surface. It should write grouped keys explicitly and remove legacy flat keys instead of leaving duplicate configuration behind.
+- `Open Speechify Settings (JSON)` should generate a guided JSONC template, not a bare key dump.
+- The template should call out the current provider first, include inline examples/options, and reduce the need for the user to search external docs while editing.
 - Do not rely on `vscode.workspace.getConfiguration().update(...)` alone when the user expects default-valued keys to appear in `.vscode/settings.json`. VS Code may omit default or empty values.
 - For menu IA in this repo:
   - Azure-only actions belong in the Azure submenu.

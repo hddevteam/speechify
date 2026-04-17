@@ -177,7 +177,7 @@ const englishMessages: Messages = {
   'messages.configurationRequired': 'Speechify requires speech backend configuration to work properly.',
   'messages.azureConfigurationRequired': 'Speechify requires speech backend configuration. Would you like to configure it now?',
   'messages.azureCredentialsConfigured': 'Azure credentials configured successfully. You can now use the Speechify extension.',
-  'messages.currentSettings': 'Current Speechify Settings:\\n{0}',
+  'messages.currentSettings': 'Current Speechify Settings:\n{0}',
   'messages.processingComplete': 'Text to speech conversion completed.',
   'messages.audioFilesSaved': 'Audio files have been saved successfully.',
   'messages.extensionActivated': 'Speechify extension is now active!',

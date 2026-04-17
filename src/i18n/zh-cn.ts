@@ -177,7 +177,7 @@ const chineseMessages: Messages = {
   'messages.configurationRequired': 'Speechify 需要先配置语音后端才能正常工作。',
   'messages.azureConfigurationRequired': 'Speechify 需要先配置语音后端。您现在要配置吗？',
   'messages.azureCredentialsConfigured': 'Azure 凭据配置成功。您现在可以使用 Speechify 扩展了。',
-  'messages.currentSettings': '当前 Speechify 设置：\\n{0}',
+  'messages.currentSettings': '当前 Speechify 设置：\n{0}',
   'messages.processingComplete': '文字转语音转换完成。',
   'messages.audioFilesSaved': '音频文件已成功保存。',
   'messages.extensionActivated': 'Speechify 扩展现已激活！',

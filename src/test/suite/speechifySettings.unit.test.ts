@@ -3,6 +3,7 @@ import {
   buildSpeechifyWorkspaceSeedEntries,
   getSpeechifyAllSettingPaths,
   getSpeechifyPrimarySettingPaths,
+  parseSettingsJsoncText,
   readSpeechifySettingValue,
   SPEECHIFY_WORKSPACE_SETTING_KEYS,
   upsertSpeechifyWorkspaceSettingsJsonText
@@ -68,7 +69,7 @@ suite('Speechify Settings Workspace Seeding', () => {
 `;
 
     const nextSettings = upsertSpeechifyWorkspaceSettingsJsonText(currentSettings, effectiveValues);
-    const parsed = JSON.parse(nextSettings) as Record<string, unknown>;
+    const parsed = parseSettingsJsoncText(nextSettings);
 
     assert.strictEqual(parsed['speechify.provider'], 'cosyvoice');
     assert.strictEqual(parsed['speechify.azure.speechServicesKey'], '');
@@ -79,6 +80,11 @@ suite('Speechify Settings Workspace Seeding', () => {
     assert.strictEqual(parsed['speechify.cosyVoice.promptText'], '希望你以后能够做的比我还好呦。');
     assert.ok(!('speechify.speechProvider' in parsed));
     assert.ok(!('speechify.cosyVoicePromptText' in parsed));
+    assert.ok(nextSettings.includes('// Speechify quick start:'), 'settings template should include quick-start guidance');
+    assert.ok(nextSettings.includes('// Options: "azure" | "cosyvoice".'), 'provider options should be explained inline');
+    assert.ok(nextSettings.includes('// 2. Current provider: cosyvoice. Read that section first.'), 'current provider should be called out in the template');
+    assert.ok(nextSettings.includes('// Can be a recorded sample, an audio file, or extracted audio from a video.'), 'local reference media guidance should be explicit');
+    assert.ok(nextSettings.indexOf('// Local CosyVoice voice cloning') < nextSettings.indexOf('// Azure voiceover'), 'active provider section should be shown before the inactive provider section');
   });
 
   test('should migrate legacy keys without overwriting existing grouped keys', () => {
@@ -93,7 +99,7 @@ suite('Speechify Settings Workspace Seeding', () => {
 `;
 
     const nextSettings = upsertSpeechifyWorkspaceSettingsJsonText(currentSettings, effectiveValues);
-    const parsed = JSON.parse(nextSettings) as Record<string, unknown>;
+    const parsed = parseSettingsJsoncText(nextSettings);
 
     assert.strictEqual(parsed['speechify.provider'], 'cosyvoice');
     assert.strictEqual(parsed['speechify.azure.speechServicesKey'], 'new-key');
@@ -130,6 +136,20 @@ suite('Speechify Settings Workspace Seeding', () => {
     configuredKeys.delete('azure.region');
     values.delete('azure.region');
     assert.strictEqual(readSpeechifySettingValue(fakeConfig as never, 'speechServicesRegion', 'eastus'), 'eastus');
+  });
+
+  test('should include azure chinese voice examples in the settings template', () => {
+    const azureValues: SpeechifyConfig = {
+      ...effectiveValues,
+      speechProvider: 'azure'
+    };
+
+    const nextSettings = upsertSpeechifyWorkspaceSettingsJsonText('{}\n', azureValues);
+
+    assert.ok(nextSettings.includes('zh-CN-YunyangNeural'), 'template should include common Chinese Azure voice examples');
+    assert.ok(nextSettings.includes('zh-CN-XiaoxiaoNeural'), 'template should include multiple Azure Chinese voice candidates');
+    assert.ok(nextSettings.includes('// Start here for your current provider.'), 'active provider section should be highlighted');
+    assert.ok(nextSettings.indexOf('// Azure voiceover') < nextSettings.indexOf('// Local CosyVoice voice cloning'), 'azure section should come first when Azure is active');
   });
 
   test('should keep grouped workspace setting paths aligned with non-deprecated package.json speechify properties', () => {

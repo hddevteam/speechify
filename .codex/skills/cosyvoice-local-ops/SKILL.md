@@ -44,6 +44,8 @@ Use this when Speechify local CosyVoice generation fails or behaves inconsistent
 - Settings JSON shows stale flat keys:
   - The current repo contract uses grouped keys such as `speechify.azure.*`, `speechify.cosyVoice.*`, and `speechify.vision.*`.
   - `Open Speechify Settings (JSON)` should migrate legacy flat keys into grouped keys instead of leaving both forms behind.
+  - The settings entry should open a guided JSONC template with inline notes and examples, not just a raw list of keys.
+  - For local troubleshooting, the CosyVoice section should explicitly mention that reference media can come from recording, audio, or video.
 
 - Azure and local menu actions feel mixed together:
   - Azure-only actions should stay in the Azure submenu.

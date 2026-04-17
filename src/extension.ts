@@ -310,7 +310,7 @@ async function showVoiceSettings(): Promise<void> {
             `${I18n.t('settings.voiceStyle')}: ${voiceSettings.style}`,
             `${I18n.t('settings.region')}: ${config.speechServicesRegion}`,
             `${I18n.t('settings.hasApiKey')}: ${config.azureSpeechServicesKey ? I18n.t('settings.yes') : I18n.t('settings.no')}`
-        ].join('\\n');
+        ].join('\n');
         
         const action = await vscode.window.showInformationMessage(
             I18n.t('messages.currentSettings', settingsInfo),
