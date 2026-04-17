@@ -5,6 +5,24 @@ All notable changes to the **Speechify** extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-04-17
+
+### ✨ Added
+- **Local CosyVoice Workflow**: Added a local provider path with reference-voice setup, in-editor recording, and local voiceover generation from the right-click Speechify menu.
+- **Guided Speechify Settings JSON**: "Open Speechify Settings (JSON)" now generates a commented JSONC template with grouped provider sections, examples, and migration away from legacy flat keys.
+
+### 🔧 Changed
+- **Provider-Focused Menu Layout**: Reorganized Speechify actions so Azure-only actions live under Azure, local capture/generation actions live under Local CosyVoice, and the global settings entry appears only once at the top-level Speechify menu.
+- **Configuration Grouping**: Standardized configuration on `speechify.provider`, `speechify.azure.*`, `speechify.cosyVoice.*`, and `speechify.vision.*` with legacy fallback support.
+
+### 🐛 Fixed
+- **CosyVoice Runtime Stability**: Improved local startup wiring, request timeout handling, prompt-media normalization, and server response behavior to reduce aborts, 500s, and misleading runtime-path errors.
+- **Recorder UX State Sync**: Fixed local recorder button/status state transitions so recording, stop, retry, and save affordances reflect the actual capture lifecycle.
+- **Azure Config Display**: Fixed "View Azure Configuration" rendering so multi-line content no longer shows literal `\\n` sequences.
+
+### 📚 Documentation
+- **GitHub Pages & Release Metadata Sync**: Updated the project website and release metadata to match the shipped extension version and current Speechify command/configuration flow.
+
 ## [3.0.8] - 2026-04-09
 
 ### 🐛 Bug Fixes

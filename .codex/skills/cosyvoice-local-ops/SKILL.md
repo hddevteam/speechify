@@ -40,6 +40,7 @@ Use this when Speechify local CosyVoice generation fails or behaves inconsistent
   - Do not assume the text chunk is too long.
   - Check server logs for `first audio chunk after ...ms`; local zero-shot can take more than two minutes before first audio.
   - Raise `speechify.cosyVoice.requestTimeoutSeconds` for local CosyVoice before changing chunking logic.
+  - Treat `900` seconds as the repo default for slower local machines; do not revert that default casually.
 
 - Settings JSON shows stale flat keys:
   - The current repo contract uses grouped keys such as `speechify.azure.*`, `speechify.cosyVoice.*`, and `speechify.vision.*`.
@@ -62,7 +63,7 @@ Use this when Speechify local CosyVoice generation fails or behaves inconsistent
 - `scripts/run-cosyvoice-server.sh` launches `scripts/cosyvoice_fastapi_server.py`
 - `scripts/cosyvoice_fastapi_server.py` returns complete binary audio responses, not streamed chunks
 - `SpeechProviderService` retries once with a freshly normalized prompt clip when the backend reports the 30-second prompt limit
-- `SpeechProviderService` uses a local CosyVoice-specific request timeout, defaulting to 300 seconds
+- `SpeechProviderService` uses a local CosyVoice-specific request timeout, defaulting to 900 seconds
 - The configuration schema uses grouped keys:
   - `speechify.provider`
   - `speechify.cosyVoice.baseUrl`

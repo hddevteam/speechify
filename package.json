@@ -3,7 +3,7 @@
   "displayName": "%speechify.displayName%",
   "description": "%speechify.description%",
   "icon": "images/icon-128.png",
-  "version": "3.0.8",
+  "version": "3.1.0",
   "engines": {
     "vscode": "^1.82.0"
   },
@@ -321,7 +321,7 @@
         },
         "speechify.cosyVoice.requestTimeoutSeconds": {
           "type": "number",
-          "default": 300,
+          "default": 900,
           "minimum": 30,
           "description": "%speechify.configuration.cosyVoiceRequestTimeoutSeconds%"
         },
@@ -433,7 +433,7 @@
         },
         "speechify.cosyVoiceRequestTimeoutSeconds": {
           "type": "number",
-          "default": 300,
+          "default": 900,
           "minimum": 30,
           "markdownDeprecationMessage": "Deprecated. Use `speechify.cosyVoice.requestTimeoutSeconds`.",
           "description": "%speechify.configuration.cosyVoiceRequestTimeoutSeconds%"
@@ -478,7 +478,7 @@
     "test": "node ./scripts/test-runner.js",
     "test:stable": "node ./scripts/test-runner.js",
     "test:full": "SPEECHIFY_TEST_PROFILE=full node ./scripts/test-runner.js",
-    "test:unit": "npm run compile-tests && mocha --ui tdd \"out/test/suite/refineScript.unit.test.js\" \"out/test/suite/speechServiceRefactor.unit.test.js\" \"out/test/suite/cosyVoiceStartup.unit.test.js\" \"out/test/suite/cosyVoiceServer.unit.test.js\" \"out/test/suite/cosyVoiceAudio.unit.test.js\" \"out/test/suite/speechifySettings.unit.test.js\" \"out/test/suite/packageManifest.unit.test.js\" \"out/test/suite/textSource.test.js\"",
+    "test:unit": "npm run compile-tests && mocha --ui tdd \"out/test/suite/refineScript.unit.test.js\" \"out/test/suite/speechServiceRefactor.unit.test.js\" \"out/test/suite/cosyVoiceStartup.unit.test.js\" \"out/test/suite/cosyVoiceServer.unit.test.js\" \"out/test/suite/cosyVoiceAudio.unit.test.js\" \"out/test/suite/speechifySettings.unit.test.js\" \"out/test/suite/packageManifest.unit.test.js\" \"out/test/suite/releaseMetadata.unit.test.js\" \"out/test/suite/textSource.test.js\"",
     "test:integration": "node ./scripts/test-runner.js",
     "test:local": "node ./out/test/runTest.js"
   },

@@ -96,7 +96,7 @@ export const SPEECHIFY_SETTING_DESCRIPTORS: SpeechifySettingDescriptor[] = [
     settingPath: 'speechify.cosyVoice.requestTimeoutSeconds',
     legacySettingPaths: ['speechify.cosyVoiceRequestTimeoutSeconds'],
     section: 'cosyvoice',
-    helpLines: ['Local request timeout in seconds.', 'Default: 300. Increase this first if local zero-shot feels slow.']
+    helpLines: ['Local request timeout in seconds.', 'Default: 900. Increase this first if local zero-shot feels slow.']
   },
   {
     configKey: 'visionApiKey',

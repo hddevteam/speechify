@@ -30,7 +30,7 @@
   "speechify.configuration.cosyVoicePythonPath": "本地 CosyVoice Python 路径（用于参考媒体转录，可覆盖自动探测）",
   "speechify.configuration.cosyVoicePromptAudioPath": "用于 CosyVoice 零样本语音克隆的参考音频路径",
   "speechify.configuration.cosyVoicePromptText": "CosyVoice 参考音频对应的文本（零样本模式推荐填写）",
-  "speechify.configuration.cosyVoiceRequestTimeoutSeconds": "本地 CosyVoice 请求超时时间（秒，默认 300；因为 zero-shot 生成可能需要数分钟）",
+  "speechify.configuration.cosyVoiceRequestTimeoutSeconds": "本地 CosyVoice 请求超时时间（秒，默认 900；较慢机器上 zero-shot 生成可能需要更久）",
   "speechify.configuration.enableTransitions": "启用段落间的转场动画",
   "speechify.configuration.transitionType": "转场动画类型",
   "speechify.configuration.autoTrimVideo": "根据音频时长自动裁切视频空白部分",

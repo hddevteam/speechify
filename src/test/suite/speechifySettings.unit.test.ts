@@ -23,7 +23,7 @@ suite('Speechify Settings Workspace Seeding', () => {
     cosyVoicePythonPath: '${workspaceFolder}/vendor/CosyVoice/.venv310/bin/python',
     cosyVoicePromptAudioPath: '${workspaceFolder}/.speechify/reference-audio/me.wav',
     cosyVoicePromptText: '示例文本',
-    cosyVoiceRequestTimeoutSeconds: 300,
+    cosyVoiceRequestTimeoutSeconds: 900,
     visionApiKey: '',
     visionEndpoint: '',
     visionDeployment: 'gpt-5.2',
@@ -53,7 +53,7 @@ suite('Speechify Settings Workspace Seeding', () => {
     assert.ok(!map.has('speechProvider'), 'existing workspace speechProvider should not be overwritten');
     assert.ok(!map.has('cosyVoicePromptText'), 'existing workspace prompt text should not be overwritten');
     assert.strictEqual(map.get('azureSpeechServicesKey'), 'azure-key');
-    assert.strictEqual(map.get('cosyVoiceRequestTimeoutSeconds'), 300);
+    assert.strictEqual(map.get('cosyVoiceRequestTimeoutSeconds'), 900);
     assert.strictEqual(map.get('visionEndpoint'), 'https://example.openai.azure.com');
     assert.strictEqual(map.get('autoTrimVideo'), true);
   });
@@ -150,6 +150,32 @@ suite('Speechify Settings Workspace Seeding', () => {
     assert.ok(nextSettings.includes('zh-CN-XiaoxiaoNeural'), 'template should include multiple Azure Chinese voice candidates');
     assert.ok(nextSettings.includes('// Start here for your current provider.'), 'active provider section should be highlighted');
     assert.ok(nextSettings.indexOf('// Azure voiceover') < nextSettings.indexOf('// Local CosyVoice voice cloning'), 'azure section should come first when Azure is active');
+  });
+
+  test('should keep the local CosyVoice timeout default aligned at 900 seconds', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pkg = require('../../../package.json') as {
+      contributes: {
+        configuration: {
+          properties: Record<string, { default?: unknown }>;
+        };
+      };
+    };
+
+    const nextSettings = upsertSpeechifyWorkspaceSettingsJsonText('{}\n', effectiveValues);
+
+    assert.strictEqual(
+      pkg.contributes.configuration.properties['speechify.cosyVoice.requestTimeoutSeconds']?.default,
+      900
+    );
+    assert.strictEqual(
+      pkg.contributes.configuration.properties['speechify.cosyVoiceRequestTimeoutSeconds']?.default,
+      900
+    );
+    assert.ok(
+      nextSettings.includes('// Default: 900. Increase this first if local zero-shot feels slow.'),
+      'settings template should explain the 900-second default'
+    );
   });
 
   test('should keep grouped workspace setting paths aligned with non-deprecated package.json speechify properties', () => {

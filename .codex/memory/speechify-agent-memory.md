@@ -28,6 +28,9 @@
 - When moving a menu item between groups, assert its target `group` value in tests instead of only checking presence.
 - Add settings-migration unit tests when changing config keys or namespace layout.
 - When command labels change, sync GitHub Pages and README examples in the same sprint. Do not leave docs on stale command names.
+- Marketplace packaging must exclude repo-local runtime artifacts such as `vendor/**`; local CosyVoice assets are for developer/runtime setup, not for the extension VSIX.
+- Marketplace packaging should also exclude dev-only repo metadata such as `.husky/**` and `.codex/**`.
+- For local CosyVoice in this repo, `speechify.cosyVoice.requestTimeoutSeconds` should default to `900`, not `300`, because local zero-shot generation on slower machines can legitimately run for many minutes.
 - Run:
   - `npm run compile-tests`
   - `npm run test:unit`

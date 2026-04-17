@@ -30,7 +30,7 @@
   "speechify.configuration.cosyVoicePythonPath": "Optional local CosyVoice Python path used for reference-media transcription (overrides auto-detection)",
   "speechify.configuration.cosyVoicePromptAudioPath": "Reference audio path used for CosyVoice zero-shot voice cloning",
   "speechify.configuration.cosyVoicePromptText": "Transcript of the CosyVoice reference audio (recommended for zero-shot mode)",
-  "speechify.configuration.cosyVoiceRequestTimeoutSeconds": "Local CosyVoice request timeout in seconds (default 300; useful because zero-shot generation can take several minutes)",
+  "speechify.configuration.cosyVoiceRequestTimeoutSeconds": "Local CosyVoice request timeout in seconds (default 900; useful because zero-shot generation can take several minutes on slower machines)",
   "speechify.configuration.enableTransitions": "Enable transition animations between video segments",
   "speechify.configuration.transitionType": "Type of transition animation",
   "speechify.configuration.autoTrimVideo": "Automatically trim video to match audio duration",

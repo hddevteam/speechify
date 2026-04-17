@@ -260,7 +260,7 @@ Convert entire markdown documents, code comments, or any text-based content into
 - `speechify.cosyVoice.pythonPath`
   Purpose: optional override for the local Python runtime path, mainly used by reference-media transcription when auto-detection is not enough.
 - `speechify.cosyVoice.requestTimeoutSeconds`
-  Purpose: sets the local CosyVoice request timeout. The default is `300`, because zero-shot generation on a local machine can take several minutes before the first audio chunk appears.
+  Purpose: sets the local CosyVoice request timeout. The default is `900`, because zero-shot generation on a local machine can take several minutes before the first audio chunk appears, especially on slower hardware.
 
 Recommended workspace settings example:
 
@@ -271,7 +271,7 @@ Recommended workspace settings example:
   "speechify.cosyVoice.promptAudioPath": "${workspaceFolder}/.speechify/reference-audio/my-voice.wav",
   "speechify.cosyVoice.promptText": "This is my local CosyVoice reference transcript.",
   "speechify.cosyVoice.pythonPath": "${workspaceFolder}/vendor/CosyVoice/.venv310/bin/python",
-  "speechify.cosyVoice.requestTimeoutSeconds": 300
+  "speechify.cosyVoice.requestTimeoutSeconds": 900
 }
 ```
 

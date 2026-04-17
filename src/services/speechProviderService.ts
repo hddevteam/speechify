@@ -21,7 +21,7 @@ import { ReferenceMediaService } from './referenceMediaService';
 export class SpeechProviderService {
   private static readonly COSYVOICE_SAMPLE_RATE = 22050;
   private static readonly COSYVOICE_PROMPT_TOO_LONG_MARKER = 'do not support extract speech token for audio longer than 30s';
-  private static readonly DEFAULT_COSYVOICE_REQUEST_TIMEOUT_MS = 300_000;
+  private static readonly DEFAULT_COSYVOICE_REQUEST_TIMEOUT_MS = 900_000;
   private static readonly cosyVoicePreparedPromptCache = new Map<string, string>();
 
   public static getActiveProvider(providerOverride?: SpeechProviderType): SpeechProviderType {

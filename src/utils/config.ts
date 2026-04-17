@@ -42,7 +42,7 @@ export class ConfigManager {
       cosyVoicePythonPath: readSpeechifySettingValue<string>(config, 'cosyVoicePythonPath', ''),
       cosyVoicePromptAudioPath: readSpeechifySettingValue<string>(config, 'cosyVoicePromptAudioPath', ''),
       cosyVoicePromptText: readSpeechifySettingValue<string>(config, 'cosyVoicePromptText', ''),
-      cosyVoiceRequestTimeoutSeconds: readSpeechifySettingValue<number>(config, 'cosyVoiceRequestTimeoutSeconds', 300),
+      cosyVoiceRequestTimeoutSeconds: readSpeechifySettingValue<number>(config, 'cosyVoiceRequestTimeoutSeconds', 900),
       visionApiKey: readSpeechifySettingValue<string>(config, 'visionApiKey', ''),
       visionEndpoint: readSpeechifySettingValue<string>(config, 'visionEndpoint', ''),
       visionDeployment: readSpeechifySettingValue<string>(config, 'visionDeployment', 'gpt-5.2'),
@@ -135,7 +135,7 @@ export class ConfigManager {
   }
 
   private static normalizeCosyVoiceRequestTimeoutSeconds(value: number | undefined): number {
-    const normalized = Number.isFinite(value) ? Math.round(value as number) : 300;
+    const normalized = Number.isFinite(value) ? Math.round(value as number) : 900;
     return Math.max(30, normalized);
   }
 
@@ -361,7 +361,7 @@ export class ConfigManager {
     await this.updateWorkspaceConfig('cosyVoicePythonPath', '');
     await this.updateWorkspaceConfig('cosyVoicePromptAudioPath', '');
     await this.updateWorkspaceConfig('cosyVoicePromptText', '');
-    await this.updateWorkspaceConfig('cosyVoiceRequestTimeoutSeconds', 300);
+    await this.updateWorkspaceConfig('cosyVoiceRequestTimeoutSeconds', 900);
     await this.updateWorkspaceConfig('visionApiKey', '');
     await this.updateWorkspaceConfig('visionEndpoint', '');
     await this.updateWorkspaceConfig('visionDeployment', 'gpt-5.2');
