@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { AzureConfig, CosyVoiceConfig, SpeechProviderType, SpeechifyConfig, TestConfig, VoiceSettings } from '../types';
+import { getSpeechifyPrimaryRelativeKey, readSpeechifySettingValue } from './speechifySettings';
 
 export interface VisionConfigValidationResult {
   isValid: boolean;
@@ -30,25 +31,25 @@ export class ConfigManager {
     const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
     
     return {
-      speechProvider: config.get<SpeechProviderType>('speechProvider', 'azure'),
-      azureSpeechServicesKey: config.get<string>('azureSpeechServicesKey', ''),
-      speechServicesRegion: config.get<string>('speechServicesRegion', 'eastus'),
-      voiceName: config.get<string>('voiceName', 'zh-CN-YunyangNeural'),
-      voiceGender: config.get<string>('voiceGender', 'Male'),
-      voiceStyle: config.get<string>('voiceStyle', 'friendly'),
-      voiceRole: config.get<string>('voiceRole', ''),
-      cosyVoiceBaseUrl: config.get<string>('cosyVoiceBaseUrl', 'http://127.0.0.1:50000'),
-      cosyVoicePythonPath: config.get<string>('cosyVoicePythonPath', ''),
-      cosyVoicePromptAudioPath: config.get<string>('cosyVoicePromptAudioPath', ''),
-      cosyVoicePromptText: config.get<string>('cosyVoicePromptText', ''),
-      cosyVoiceRequestTimeoutSeconds: config.get<number>('cosyVoiceRequestTimeoutSeconds', 300),
-      visionApiKey: config.get<string>('visionApiKey', ''),
-      visionEndpoint: config.get<string>('visionEndpoint', ''),
-      visionDeployment: config.get<string>('visionDeployment', 'gpt-5.2'),
-      refinementDeployment: config.get<string>('refinementDeployment', 'gpt-5.2'),
-      enableTransitions: config.get<boolean>('enableTransitions', true),
-      transitionType: config.get<string>('transitionType', 'fade'),
-      autoTrimVideo: config.get<boolean>('autoTrimVideo', true)
+      speechProvider: readSpeechifySettingValue<SpeechProviderType>(config, 'speechProvider', 'azure'),
+      azureSpeechServicesKey: readSpeechifySettingValue<string>(config, 'azureSpeechServicesKey', ''),
+      speechServicesRegion: readSpeechifySettingValue<string>(config, 'speechServicesRegion', 'eastus'),
+      voiceName: readSpeechifySettingValue<string>(config, 'voiceName', 'zh-CN-YunyangNeural'),
+      voiceGender: readSpeechifySettingValue<string>(config, 'voiceGender', 'Male'),
+      voiceStyle: readSpeechifySettingValue<string>(config, 'voiceStyle', 'friendly'),
+      voiceRole: readSpeechifySettingValue<string>(config, 'voiceRole', ''),
+      cosyVoiceBaseUrl: readSpeechifySettingValue<string>(config, 'cosyVoiceBaseUrl', 'http://127.0.0.1:50000'),
+      cosyVoicePythonPath: readSpeechifySettingValue<string>(config, 'cosyVoicePythonPath', ''),
+      cosyVoicePromptAudioPath: readSpeechifySettingValue<string>(config, 'cosyVoicePromptAudioPath', ''),
+      cosyVoicePromptText: readSpeechifySettingValue<string>(config, 'cosyVoicePromptText', ''),
+      cosyVoiceRequestTimeoutSeconds: readSpeechifySettingValue<number>(config, 'cosyVoiceRequestTimeoutSeconds', 300),
+      visionApiKey: readSpeechifySettingValue<string>(config, 'visionApiKey', ''),
+      visionEndpoint: readSpeechifySettingValue<string>(config, 'visionEndpoint', ''),
+      visionDeployment: readSpeechifySettingValue<string>(config, 'visionDeployment', 'gpt-5.2'),
+      refinementDeployment: readSpeechifySettingValue<string>(config, 'refinementDeployment', 'gpt-5.2'),
+      enableTransitions: readSpeechifySettingValue<boolean>(config, 'enableTransitions', true),
+      transitionType: readSpeechifySettingValue<string>(config, 'transitionType', 'fade'),
+      autoTrimVideo: readSpeechifySettingValue<boolean>(config, 'autoTrimVideo', true)
     };
   }
 
@@ -60,7 +61,7 @@ export class ConfigManager {
     value: SpeechifyConfig[K]
   ): Promise<void> {
     const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
-    await config.update(key, value, vscode.ConfigurationTarget.Global);
+    await config.update(getSpeechifyPrimaryRelativeKey(key), value, vscode.ConfigurationTarget.Global);
   }
 
   public static async updateProjectConfig<K extends keyof SpeechifyConfig>(
@@ -69,7 +70,7 @@ export class ConfigManager {
   ): Promise<void> {
     const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
     const target = vscode.workspace.workspaceFolders?.length ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global;
-    await config.update(key, value, target);
+    await config.update(getSpeechifyPrimaryRelativeKey(key), value, target);
   }
 
   public static getSpeechProvider(providerOverride?: SpeechProviderType): SpeechProviderType {
@@ -349,18 +350,21 @@ export class ConfigManager {
    * Reset configuration to defaults
    */
   public static async resetConfiguration(): Promise<void> {
-    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
-    
-    await config.update('speechProvider', 'azure', vscode.ConfigurationTarget.Global);
-    await config.update('azureSpeechServicesKey', '', vscode.ConfigurationTarget.Global);
-    await config.update('speechServicesRegion', 'eastus', vscode.ConfigurationTarget.Global);
-    await config.update('voiceName', 'zh-CN-YunyangNeural', vscode.ConfigurationTarget.Global);
-    await config.update('voiceGender', 'Male', vscode.ConfigurationTarget.Global);
-    await config.update('voiceStyle', 'friendly', vscode.ConfigurationTarget.Global);
-    await config.update('cosyVoiceBaseUrl', 'http://127.0.0.1:50000', vscode.ConfigurationTarget.Global);
-    await config.update('cosyVoicePythonPath', '', vscode.ConfigurationTarget.Global);
-    await config.update('cosyVoicePromptAudioPath', '', vscode.ConfigurationTarget.Global);
-    await config.update('cosyVoicePromptText', '', vscode.ConfigurationTarget.Global);
-    await config.update('cosyVoiceRequestTimeoutSeconds', 300, vscode.ConfigurationTarget.Global);
+    await this.updateWorkspaceConfig('speechProvider', 'azure');
+    await this.updateWorkspaceConfig('azureSpeechServicesKey', '');
+    await this.updateWorkspaceConfig('speechServicesRegion', 'eastus');
+    await this.updateWorkspaceConfig('voiceName', 'zh-CN-YunyangNeural');
+    await this.updateWorkspaceConfig('voiceGender', 'Male');
+    await this.updateWorkspaceConfig('voiceStyle', 'friendly');
+    await this.updateWorkspaceConfig('voiceRole', '');
+    await this.updateWorkspaceConfig('cosyVoiceBaseUrl', 'http://127.0.0.1:50000');
+    await this.updateWorkspaceConfig('cosyVoicePythonPath', '');
+    await this.updateWorkspaceConfig('cosyVoicePromptAudioPath', '');
+    await this.updateWorkspaceConfig('cosyVoicePromptText', '');
+    await this.updateWorkspaceConfig('cosyVoiceRequestTimeoutSeconds', 300);
+    await this.updateWorkspaceConfig('visionApiKey', '');
+    await this.updateWorkspaceConfig('visionEndpoint', '');
+    await this.updateWorkspaceConfig('visionDeployment', 'gpt-5.2');
+    await this.updateWorkspaceConfig('refinementDeployment', 'gpt-5.2');
   }
 }

@@ -44,8 +44,8 @@ suite('Extension Integration Tests', () => {
         assert.ok(config, 'Extension configuration should be available');
         
         // Check that configuration schema is properly defined
-        const voiceName = config.get('voiceName');
-        const azureRegion = config.get('speechServicesRegion');
+        const voiceName = config.get('azure.voiceName');
+        const azureRegion = config.get('azure.region');
         
         // These should be defined (with defaults) even if not set by user
         assert.notStrictEqual(voiceName, undefined, 'Voice name should have a default value');

@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { spawn } from 'child_process';
 import * as vscode from 'vscode';
+import { readSpeechifySettingValue } from '../utils/speechifySettings';
 
 export interface CosyVoiceTranscriptionOptions {
   language?: 'zh' | 'en' | 'auto';
@@ -175,7 +176,11 @@ export class CosyVoiceReferenceService {
   }
 
   private static getConfiguredPythonPath(): string {
-    const configured = vscode.workspace.getConfiguration('speechify').get<string>('cosyVoicePythonPath', '').trim();
+    const configured = readSpeechifySettingValue<string>(
+      vscode.workspace.getConfiguration('speechify'),
+      'cosyVoicePythonPath',
+      ''
+    ).trim();
     if (!configured) {
       return '';
     }

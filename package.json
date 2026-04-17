@@ -260,37 +260,7 @@
     "configuration": {
       "title": "%speechify.configuration.title%",
       "properties": {
-        "speechify.azureSpeechServicesKey": {
-          "type": "string",
-          "default": "",
-          "description": "%speechify.configuration.azureSpeechServicesKey%"
-        },
-        "speechify.speechServicesRegion": {
-          "type": "string",
-          "default": "eastus",
-          "description": "%speechify.configuration.speechServicesRegion%"
-        },
-        "speechify.voiceName": {
-          "type": "string",
-          "default": "zh-CN-YunyangNeural",
-          "description": "%speechify.configuration.voiceName%"
-        },
-        "speechify.voiceGender": {
-          "type": "string",
-          "default": "Male",
-          "description": "%speechify.configuration.voiceGender%"
-        },
-        "speechify.voiceStyle": {
-          "type": "string",
-          "default": "friendly",
-          "description": "%speechify.configuration.voiceStyle%"
-        },
-        "speechify.voiceRole": {
-          "type": "string",
-          "default": "",
-          "description": "%speechify.configuration.voiceRole%"
-        },
-        "speechify.speechProvider": {
+        "speechify.provider": {
           "type": "string",
           "default": "azure",
           "enum": [
@@ -299,27 +269,57 @@
           ],
           "description": "%speechify.configuration.speechProvider%"
         },
-        "speechify.cosyVoiceBaseUrl": {
+        "speechify.azure.speechServicesKey": {
+          "type": "string",
+          "default": "",
+          "description": "%speechify.configuration.azureSpeechServicesKey%"
+        },
+        "speechify.azure.region": {
+          "type": "string",
+          "default": "eastus",
+          "description": "%speechify.configuration.speechServicesRegion%"
+        },
+        "speechify.azure.voiceName": {
+          "type": "string",
+          "default": "zh-CN-YunyangNeural",
+          "description": "%speechify.configuration.voiceName%"
+        },
+        "speechify.azure.voiceGender": {
+          "type": "string",
+          "default": "Male",
+          "description": "%speechify.configuration.voiceGender%"
+        },
+        "speechify.azure.voiceStyle": {
+          "type": "string",
+          "default": "friendly",
+          "description": "%speechify.configuration.voiceStyle%"
+        },
+        "speechify.azure.voiceRole": {
+          "type": "string",
+          "default": "",
+          "description": "%speechify.configuration.voiceRole%"
+        },
+        "speechify.cosyVoice.baseUrl": {
           "type": "string",
           "default": "http://127.0.0.1:50000",
           "description": "%speechify.configuration.cosyVoiceBaseUrl%"
         },
-        "speechify.cosyVoicePythonPath": {
+        "speechify.cosyVoice.pythonPath": {
           "type": "string",
           "default": "",
           "description": "%speechify.configuration.cosyVoicePythonPath%"
         },
-        "speechify.cosyVoicePromptAudioPath": {
+        "speechify.cosyVoice.promptAudioPath": {
           "type": "string",
           "default": "",
           "description": "%speechify.configuration.cosyVoicePromptAudioPath%"
         },
-        "speechify.cosyVoicePromptText": {
+        "speechify.cosyVoice.promptText": {
           "type": "string",
           "default": "",
           "description": "%speechify.configuration.cosyVoicePromptText%"
         },
-        "speechify.cosyVoiceRequestTimeoutSeconds": {
+        "speechify.cosyVoice.requestTimeoutSeconds": {
           "type": "number",
           "default": 300,
           "minimum": 30,
@@ -345,24 +345,121 @@
           "default": true,
           "description": "%speechify.configuration.autoTrimVideo%"
         },
+        "speechify.vision.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "%speechify.configuration.visionApiKey%"
+        },
+        "speechify.vision.endpoint": {
+          "type": "string",
+          "default": "",
+          "description": "%speechify.configuration.visionEndpoint%"
+        },
+        "speechify.vision.deployment": {
+          "type": "string",
+          "default": "gpt-5.2",
+          "description": "%speechify.configuration.visionDeployment%"
+        },
+        "speechify.vision.refinementDeployment": {
+          "type": "string",
+          "default": "gpt-5.2",
+          "description": "%speechify.configuration.refinementDeployment%"
+        },
+        "speechify.speechProvider": {
+          "type": "string",
+          "default": "azure",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.provider`.",
+          "description": "%speechify.configuration.speechProvider%"
+        },
+        "speechify.azureSpeechServicesKey": {
+          "type": "string",
+          "default": "",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.azure.speechServicesKey`.",
+          "description": "%speechify.configuration.azureSpeechServicesKey%"
+        },
+        "speechify.speechServicesRegion": {
+          "type": "string",
+          "default": "eastus",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.azure.region`.",
+          "description": "%speechify.configuration.speechServicesRegion%"
+        },
+        "speechify.voiceName": {
+          "type": "string",
+          "default": "zh-CN-YunyangNeural",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.azure.voiceName`.",
+          "description": "%speechify.configuration.voiceName%"
+        },
+        "speechify.voiceGender": {
+          "type": "string",
+          "default": "Male",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.azure.voiceGender`.",
+          "description": "%speechify.configuration.voiceGender%"
+        },
+        "speechify.voiceStyle": {
+          "type": "string",
+          "default": "friendly",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.azure.voiceStyle`.",
+          "description": "%speechify.configuration.voiceStyle%"
+        },
+        "speechify.voiceRole": {
+          "type": "string",
+          "default": "",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.azure.voiceRole`.",
+          "description": "%speechify.configuration.voiceRole%"
+        },
+        "speechify.cosyVoiceBaseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:50000",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.cosyVoice.baseUrl`.",
+          "description": "%speechify.configuration.cosyVoiceBaseUrl%"
+        },
+        "speechify.cosyVoicePythonPath": {
+          "type": "string",
+          "default": "",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.cosyVoice.pythonPath`.",
+          "description": "%speechify.configuration.cosyVoicePythonPath%"
+        },
+        "speechify.cosyVoicePromptAudioPath": {
+          "type": "string",
+          "default": "",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.cosyVoice.promptAudioPath`.",
+          "description": "%speechify.configuration.cosyVoicePromptAudioPath%"
+        },
+        "speechify.cosyVoicePromptText": {
+          "type": "string",
+          "default": "",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.cosyVoice.promptText`.",
+          "description": "%speechify.configuration.cosyVoicePromptText%"
+        },
+        "speechify.cosyVoiceRequestTimeoutSeconds": {
+          "type": "number",
+          "default": 300,
+          "minimum": 30,
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.cosyVoice.requestTimeoutSeconds`.",
+          "description": "%speechify.configuration.cosyVoiceRequestTimeoutSeconds%"
+        },
         "speechify.visionApiKey": {
           "type": "string",
           "default": "",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.vision.apiKey`.",
           "description": "%speechify.configuration.visionApiKey%"
         },
         "speechify.visionEndpoint": {
           "type": "string",
           "default": "",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.vision.endpoint`.",
           "description": "%speechify.configuration.visionEndpoint%"
         },
         "speechify.visionDeployment": {
           "type": "string",
           "default": "gpt-5.2",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.vision.deployment`.",
           "description": "%speechify.configuration.visionDeployment%"
         },
         "speechify.refinementDeployment": {
           "type": "string",
           "default": "gpt-5.2",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.vision.refinementDeployment`.",
           "description": "%speechify.configuration.refinementDeployment%"
         }
       }

@@ -1,5 +1,12 @@
 import * as assert from 'assert';
-import { buildSpeechifyWorkspaceSeedEntries, SPEECHIFY_WORKSPACE_SETTING_KEYS, upsertSpeechifyWorkspaceSettingsJsonText } from '../../utils/speechifySettings';
+import {
+  buildSpeechifyWorkspaceSeedEntries,
+  getSpeechifyAllSettingPaths,
+  getSpeechifyPrimarySettingPaths,
+  readSpeechifySettingValue,
+  SPEECHIFY_WORKSPACE_SETTING_KEYS,
+  upsertSpeechifyWorkspaceSettingsJsonText
+} from '../../utils/speechifySettings';
 import { SpeechifyConfig } from '../../types';
 
 suite('Speechify Settings Workspace Seeding', () => {
@@ -50,7 +57,7 @@ suite('Speechify Settings Workspace Seeding', () => {
     assert.strictEqual(map.get('autoTrimVideo'), true);
   });
 
-  test('should explicitly write azure and other default-valued keys into settings json', () => {
+  test('should explicitly write grouped azure and other default-valued keys into settings json', () => {
     const currentSettings = `{
   "liveServer.settings.port": 5502,
   "speechify.speechProvider": "cosyvoice",
@@ -63,15 +70,89 @@ suite('Speechify Settings Workspace Seeding', () => {
     const nextSettings = upsertSpeechifyWorkspaceSettingsJsonText(currentSettings, effectiveValues);
     const parsed = JSON.parse(nextSettings) as Record<string, unknown>;
 
-    assert.strictEqual(parsed['speechify.azureSpeechServicesKey'], '');
-    assert.strictEqual(parsed['speechify.speechServicesRegion'], 'eastus');
-    assert.strictEqual(parsed['speechify.voiceName'], 'zh-CN-YunyangNeural');
-    assert.strictEqual(parsed['speechify.visionApiKey'], '');
-    assert.strictEqual(parsed['speechify.refinementDeployment'], 'gpt-5.2');
-    assert.strictEqual(parsed['speechify.cosyVoicePromptText'], '希望你以后能够做的比我还好呦。');
+    assert.strictEqual(parsed['speechify.provider'], 'cosyvoice');
+    assert.strictEqual(parsed['speechify.azure.speechServicesKey'], '');
+    assert.strictEqual(parsed['speechify.azure.region'], 'eastus');
+    assert.strictEqual(parsed['speechify.azure.voiceName'], 'zh-CN-YunyangNeural');
+    assert.strictEqual(parsed['speechify.vision.apiKey'], '');
+    assert.strictEqual(parsed['speechify.vision.refinementDeployment'], 'gpt-5.2');
+    assert.strictEqual(parsed['speechify.cosyVoice.promptText'], '希望你以后能够做的比我还好呦。');
+    assert.ok(!('speechify.speechProvider' in parsed));
+    assert.ok(!('speechify.cosyVoicePromptText' in parsed));
   });
 
-  test('should keep workspace seed key list aligned with package.json speechify properties', () => {
+  test('should migrate legacy keys without overwriting existing grouped keys', () => {
+    const currentSettings = `{
+  "speechify.provider": "cosyvoice",
+  "speechify.speechProvider": "azure",
+  "speechify.azure.speechServicesKey": "new-key",
+  "speechify.azureSpeechServicesKey": "legacy-key",
+  "speechify.cosyVoicePromptText": "旧文本",
+  "speechify.cosyVoice.promptText": "新文本"
+}
+`;
+
+    const nextSettings = upsertSpeechifyWorkspaceSettingsJsonText(currentSettings, effectiveValues);
+    const parsed = JSON.parse(nextSettings) as Record<string, unknown>;
+
+    assert.strictEqual(parsed['speechify.provider'], 'cosyvoice');
+    assert.strictEqual(parsed['speechify.azure.speechServicesKey'], 'new-key');
+    assert.strictEqual(parsed['speechify.cosyVoice.promptText'], '新文本');
+    assert.ok(!('speechify.speechProvider' in parsed));
+    assert.ok(!('speechify.azureSpeechServicesKey' in parsed));
+    assert.ok(!('speechify.cosyVoicePromptText' in parsed));
+  });
+
+  test('should prefer grouped config keys and fall back to legacy keys at runtime', () => {
+    const values = new Map<string, unknown>([
+      ['provider', 'cosyvoice'],
+      ['speechProvider', 'azure'],
+      ['azure.region', 'westus2'],
+      ['speechServicesRegion', 'eastus']
+    ]);
+    const configuredKeys = new Set<string>(['provider', 'speechProvider', 'azure.region', 'speechServicesRegion']);
+    const fakeConfig = {
+      get<T>(section: string, defaultValue?: T): T {
+        return (values.has(section) ? values.get(section) : defaultValue) as T;
+      },
+      inspect(section: string): { workspaceValue?: unknown } | undefined {
+        if (!configuredKeys.has(section)) {
+          return undefined;
+        }
+
+        return { workspaceValue: values.get(section) };
+      }
+    };
+
+    assert.strictEqual(readSpeechifySettingValue(fakeConfig as never, 'speechProvider', 'azure'), 'cosyvoice');
+    assert.strictEqual(readSpeechifySettingValue(fakeConfig as never, 'speechServicesRegion', 'eastus'), 'westus2');
+
+    configuredKeys.delete('azure.region');
+    values.delete('azure.region');
+    assert.strictEqual(readSpeechifySettingValue(fakeConfig as never, 'speechServicesRegion', 'eastus'), 'eastus');
+  });
+
+  test('should keep grouped workspace setting paths aligned with non-deprecated package.json speechify properties', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pkg = require('../../../package.json') as {
+      contributes: {
+        configuration: {
+          properties: Record<string, { markdownDeprecationMessage?: string }>;
+        };
+      };
+    };
+
+    const primaryPackageKeys = Object.entries(pkg.contributes.configuration.properties)
+      .filter(([key]) => key.startsWith('speechify.'))
+      .filter(([, value]) => !value.markdownDeprecationMessage)
+      .map(([key]) => key)
+      .sort();
+    const primaryWorkspacePaths = getSpeechifyPrimarySettingPaths().sort();
+
+    assert.deepStrictEqual(primaryWorkspacePaths, primaryPackageKeys);
+  });
+
+  test('should keep all speechify setting paths aligned with package.json including legacy aliases', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const pkg = require('../../../package.json') as {
       contributes: { configuration: { properties: Record<string, unknown> } };
@@ -79,10 +160,10 @@ suite('Speechify Settings Workspace Seeding', () => {
 
     const packageKeys = Object.keys(pkg.contributes.configuration.properties)
       .filter(key => key.startsWith('speechify.'))
-      .map(key => key.replace(/^speechify\./, ''))
       .sort();
-    const workspaceSeedKeys = [...SPEECHIFY_WORKSPACE_SETTING_KEYS].sort();
+    const declaredPaths = getSpeechifyAllSettingPaths().sort();
 
-    assert.deepStrictEqual(workspaceSeedKeys, packageKeys);
+    assert.deepStrictEqual(declaredPaths, packageKeys);
+    assert.strictEqual(SPEECHIFY_WORKSPACE_SETTING_KEYS.length, getSpeechifyPrimarySettingPaths().length);
   });
 });

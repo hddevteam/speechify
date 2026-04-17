@@ -425,10 +425,10 @@ export class VoiceConfigurationService {
       );
 
       await ConfigManager.updateProjectConfig('cosyVoicePromptText', transcript);
-      await this.openProjectSettingsAtKey('speechify.cosyVoicePromptText');
+      await this.openProjectSettingsAtKey('speechify.cosyVoice.promptText');
       vscode.window.showInformationMessage(this.getCosyVoiceVideoTranscriptionReadyMessage());
     } catch (error) {
-      await this.openProjectSettingsAtKey('speechify.cosyVoicePromptText');
+      await this.openProjectSettingsAtKey('speechify.cosyVoice.promptText');
       vscode.window.showWarningMessage(
         error instanceof Error ? error.message : I18n.t('errors.failedToTranscribeReferenceAudio')
       );
@@ -511,7 +511,7 @@ export class VoiceConfigurationService {
 
   public static async openSpeechifySettingsJson(): Promise<void> {
     await this.seedSpeechifyWorkspaceSettings();
-    await this.openProjectSettingsAtKey('speechify.speechProvider');
+    await this.openProjectSettingsAtKey('speechify.provider');
   }
 
   private static async seedSpeechifyWorkspaceSettings(): Promise<void> {

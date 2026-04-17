@@ -1,26 +1,85 @@
+import type * as vscode from 'vscode';
 import { SpeechifyConfig } from '../types';
 
-export const SPEECHIFY_WORKSPACE_SETTING_KEYS: Array<keyof SpeechifyConfig> = [
-  'speechProvider',
-  'azureSpeechServicesKey',
-  'speechServicesRegion',
-  'voiceName',
-  'voiceGender',
-  'voiceStyle',
-  'voiceRole',
-  'cosyVoiceBaseUrl',
-  'cosyVoicePythonPath',
-  'cosyVoicePromptAudioPath',
-  'cosyVoicePromptText',
-  'cosyVoiceRequestTimeoutSeconds',
-  'visionApiKey',
-  'visionEndpoint',
-  'visionDeployment',
-  'refinementDeployment',
-  'enableTransitions',
-  'transitionType',
-  'autoTrimVideo'
+export interface SpeechifySettingDescriptor {
+  configKey: keyof SpeechifyConfig;
+  settingPath: string;
+  legacySettingPaths: string[];
+}
+
+export const SPEECHIFY_SETTING_DESCRIPTORS: SpeechifySettingDescriptor[] = [
+  { configKey: 'speechProvider', settingPath: 'speechify.provider', legacySettingPaths: ['speechify.speechProvider'] },
+  { configKey: 'azureSpeechServicesKey', settingPath: 'speechify.azure.speechServicesKey', legacySettingPaths: ['speechify.azureSpeechServicesKey'] },
+  { configKey: 'speechServicesRegion', settingPath: 'speechify.azure.region', legacySettingPaths: ['speechify.speechServicesRegion'] },
+  { configKey: 'voiceName', settingPath: 'speechify.azure.voiceName', legacySettingPaths: ['speechify.voiceName'] },
+  { configKey: 'voiceGender', settingPath: 'speechify.azure.voiceGender', legacySettingPaths: ['speechify.voiceGender'] },
+  { configKey: 'voiceStyle', settingPath: 'speechify.azure.voiceStyle', legacySettingPaths: ['speechify.voiceStyle'] },
+  { configKey: 'voiceRole', settingPath: 'speechify.azure.voiceRole', legacySettingPaths: ['speechify.voiceRole'] },
+  { configKey: 'cosyVoiceBaseUrl', settingPath: 'speechify.cosyVoice.baseUrl', legacySettingPaths: ['speechify.cosyVoiceBaseUrl'] },
+  { configKey: 'cosyVoicePythonPath', settingPath: 'speechify.cosyVoice.pythonPath', legacySettingPaths: ['speechify.cosyVoicePythonPath'] },
+  { configKey: 'cosyVoicePromptAudioPath', settingPath: 'speechify.cosyVoice.promptAudioPath', legacySettingPaths: ['speechify.cosyVoicePromptAudioPath'] },
+  { configKey: 'cosyVoicePromptText', settingPath: 'speechify.cosyVoice.promptText', legacySettingPaths: ['speechify.cosyVoicePromptText'] },
+  { configKey: 'cosyVoiceRequestTimeoutSeconds', settingPath: 'speechify.cosyVoice.requestTimeoutSeconds', legacySettingPaths: ['speechify.cosyVoiceRequestTimeoutSeconds'] },
+  { configKey: 'visionApiKey', settingPath: 'speechify.vision.apiKey', legacySettingPaths: ['speechify.visionApiKey'] },
+  { configKey: 'visionEndpoint', settingPath: 'speechify.vision.endpoint', legacySettingPaths: ['speechify.visionEndpoint'] },
+  { configKey: 'visionDeployment', settingPath: 'speechify.vision.deployment', legacySettingPaths: ['speechify.visionDeployment'] },
+  { configKey: 'refinementDeployment', settingPath: 'speechify.vision.refinementDeployment', legacySettingPaths: ['speechify.refinementDeployment'] },
+  { configKey: 'enableTransitions', settingPath: 'speechify.enableTransitions', legacySettingPaths: [] },
+  { configKey: 'transitionType', settingPath: 'speechify.transitionType', legacySettingPaths: [] },
+  { configKey: 'autoTrimVideo', settingPath: 'speechify.autoTrimVideo', legacySettingPaths: [] }
 ];
+
+export const SPEECHIFY_WORKSPACE_SETTING_KEYS: Array<keyof SpeechifyConfig> = SPEECHIFY_SETTING_DESCRIPTORS.map(
+  descriptor => descriptor.configKey
+);
+
+const SPEECHIFY_SETTING_DESCRIPTOR_MAP = new Map<keyof SpeechifyConfig, SpeechifySettingDescriptor>(
+  SPEECHIFY_SETTING_DESCRIPTORS.map(descriptor => [descriptor.configKey, descriptor])
+);
+
+export function getSpeechifySettingDescriptor(configKey: keyof SpeechifyConfig): SpeechifySettingDescriptor {
+  const descriptor = SPEECHIFY_SETTING_DESCRIPTOR_MAP.get(configKey);
+  if (!descriptor) {
+    throw new Error(`Unknown Speechify config key: ${String(configKey)}`);
+  }
+
+  return descriptor;
+}
+
+export function getSpeechifyPrimarySettingPaths(): string[] {
+  return SPEECHIFY_SETTING_DESCRIPTORS.map(descriptor => descriptor.settingPath);
+}
+
+export function getSpeechifyPrimaryRelativeKey(configKey: keyof SpeechifyConfig): string {
+  const descriptor = getSpeechifySettingDescriptor(configKey);
+  return stripSpeechifyPrefix(descriptor.settingPath);
+}
+
+export function getSpeechifyAllSettingPaths(): string[] {
+  return SPEECHIFY_SETTING_DESCRIPTORS.flatMap(descriptor => [descriptor.settingPath, ...descriptor.legacySettingPaths]);
+}
+
+export function readSpeechifySettingValue<T>(
+  config: vscode.WorkspaceConfiguration,
+  configKey: keyof SpeechifyConfig,
+  defaultValue: T
+): T {
+  const descriptor = getSpeechifySettingDescriptor(configKey);
+  const primaryRelativeKey = stripSpeechifyPrefix(descriptor.settingPath);
+
+  if (hasConfiguredValue(config.inspect(primaryRelativeKey))) {
+    return config.get<T>(primaryRelativeKey, defaultValue);
+  }
+
+  for (const legacyPath of descriptor.legacySettingPaths) {
+    const legacyRelativeKey = stripSpeechifyPrefix(legacyPath);
+    if (hasConfiguredValue(config.inspect(legacyRelativeKey))) {
+      return config.get<T>(legacyRelativeKey, defaultValue);
+    }
+  }
+
+  return config.get<T>(primaryRelativeKey, defaultValue);
+}
 
 export function buildSpeechifyWorkspaceSeedEntries(
   effectiveValues: SpeechifyConfig,
@@ -28,7 +87,8 @@ export function buildSpeechifyWorkspaceSeedEntries(
 ): Array<[keyof SpeechifyConfig, SpeechifyConfig[keyof SpeechifyConfig]]> {
   const entries: Array<[keyof SpeechifyConfig, SpeechifyConfig[keyof SpeechifyConfig]]> = [];
 
-  for (const key of SPEECHIFY_WORKSPACE_SETTING_KEYS) {
+  for (const descriptor of SPEECHIFY_SETTING_DESCRIPTORS) {
+    const key = descriptor.configKey;
     if (workspaceValues[key] !== undefined) {
       continue;
     }
@@ -49,32 +109,53 @@ export function upsertSpeechifyWorkspaceSettingsJsonText(
   effectiveValues: SpeechifyConfig
 ): string {
   const settingsObject = parseJsoncObject(settingsJsonText);
-  const workspaceValues = readWorkspaceSpeechifyValues(settingsObject);
-  const entries = buildSpeechifyWorkspaceSeedEntries(effectiveValues, workspaceValues);
 
-  if (entries.length === 0) {
-    return stringifyJsonObject(settingsObject);
-  }
+  for (const descriptor of SPEECHIFY_SETTING_DESCRIPTORS) {
+    const currentValue = readWorkspaceValueFromSettingsObject(settingsObject, descriptor);
+    if (currentValue === undefined) {
+      const effectiveValue = effectiveValues[descriptor.configKey];
+      if (effectiveValue !== undefined) {
+        settingsObject[descriptor.settingPath] = effectiveValue;
+      }
+    } else if (!Object.prototype.hasOwnProperty.call(settingsObject, descriptor.settingPath)) {
+      settingsObject[descriptor.settingPath] = currentValue;
+    }
 
-  for (const [key, value] of entries) {
-    settingsObject[`speechify.${key}`] = value;
+    for (const legacySettingPath of descriptor.legacySettingPaths) {
+      delete settingsObject[legacySettingPath];
+    }
   }
 
   return stringifyJsonObject(settingsObject);
 }
 
-function readWorkspaceSpeechifyValues(settingsObject: Record<string, unknown>): Partial<SpeechifyConfig> {
-  const values: Partial<SpeechifyConfig> = {};
-  const mutableValues = values as Record<keyof SpeechifyConfig, SpeechifyConfig[keyof SpeechifyConfig]>;
+function readWorkspaceValueFromSettingsObject(
+  settingsObject: Record<string, unknown>,
+  descriptor: SpeechifySettingDescriptor
+): SpeechifyConfig[keyof SpeechifyConfig] | undefined {
+  if (Object.prototype.hasOwnProperty.call(settingsObject, descriptor.settingPath)) {
+    return settingsObject[descriptor.settingPath] as SpeechifyConfig[keyof SpeechifyConfig];
+  }
 
-  for (const key of SPEECHIFY_WORKSPACE_SETTING_KEYS) {
-    const fullKey = `speechify.${key}`;
-    if (Object.prototype.hasOwnProperty.call(settingsObject, fullKey)) {
-      mutableValues[key] = settingsObject[fullKey] as SpeechifyConfig[typeof key];
+  for (const legacySettingPath of descriptor.legacySettingPaths) {
+    if (Object.prototype.hasOwnProperty.call(settingsObject, legacySettingPath)) {
+      return settingsObject[legacySettingPath] as SpeechifyConfig[keyof SpeechifyConfig];
     }
   }
 
-  return values;
+  return undefined;
+}
+
+function hasConfiguredValue(
+  inspection: { workspaceFolderValue?: unknown; workspaceValue?: unknown; globalValue?: unknown } | undefined
+): boolean {
+  return inspection?.workspaceFolderValue !== undefined ||
+    inspection?.workspaceValue !== undefined ||
+    inspection?.globalValue !== undefined;
+}
+
+function stripSpeechifyPrefix(settingPath: string): string {
+  return settingPath.replace(/^speechify\./, '');
 }
 
 function parseJsoncObject(input: string): Record<string, unknown> {
