@@ -21,3 +21,8 @@ Thumbs.db
 
 # local dev secrets
 test-config.json
+
+# Local workspace/runtime artifacts
+.vscode/settings.json
+scripts/__pycache__/
+vendor/
