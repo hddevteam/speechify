@@ -31,6 +31,8 @@
 - Marketplace packaging must exclude repo-local runtime artifacts such as `vendor/**`; local CosyVoice assets are for developer/runtime setup, not for the extension VSIX.
 - Marketplace packaging should also exclude dev-only repo metadata such as `.husky/**` and `.codex/**`.
 - For local CosyVoice in this repo, `speechify.cosyVoice.requestTimeoutSeconds` should default to `900`, not `300`, because local zero-shot generation on slower machines can legitimately run for many minutes.
+- This machine can publish `luckyXmobile.speechify` via `npx vsce publish` even when no `VSCE_PAT` environment variable is visible; try the direct publish path before assuming credentials are missing.
+- Release work for this repo now has a dedicated skill: `.codex/skills/speechify-marketplace-release/SKILL.md`.
 - Run:
   - `npm run compile-tests`
   - `npm run test:unit`

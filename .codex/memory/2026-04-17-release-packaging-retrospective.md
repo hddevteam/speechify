@@ -20,6 +20,7 @@ Prepare the next Speechify marketplace release with:
 - Raised the default local CosyVoice timeout from `300` to `900` seconds
 - Updated README/settings guidance to match the new timeout default
 - Fixed VSIX packaging by excluding `vendor/**`, `.codex/**`, and `.husky/**`
+- Published `luckyXmobile.speechify v3.1.0` successfully with `npx vsce publish`
 
 ## What went wrong
 
@@ -32,6 +33,7 @@ Prepare the next Speechify marketplace release with:
 - Release consistency needs an explicit unit-test contract. Manual spot checks are not enough.
 - Marketplace packaging boundaries are part of the product contract, not just release hygiene.
 - Local runtime defaults should be set from observed machine behavior, not from optimistic assumptions.
+- Missing `VSCE_PAT` in the shell environment does not necessarily block publishing on this machine; stored `vsce` credentials may still allow a successful publish.
 
 ## Follow-up rule
 
@@ -39,3 +41,4 @@ Prepare the next Speechify marketplace release with:
   1. run `npm run test:unit`
   2. run `npx vsce package`
   3. inspect the VSIX file list for accidental local/runtime payloads
+  4. try `npx vsce publish` directly before stopping on credential assumptions
