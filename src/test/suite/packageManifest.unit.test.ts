@@ -31,6 +31,28 @@ suite('Package Manifest Menu Layout', () => {
     assert.ok(!topLevelSpeechifyCommands.has('extension.showSpeechifyVoiceSettings'));
   });
 
+  test('should keep local capture actions in the local submenu action block', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pkg = require('../../../package.json') as {
+      contributes: {
+        menus: Record<string, Array<{ command?: string; group?: string }>>;
+      };
+    };
+
+    const localMenuItems = pkg.contributes.menus['speechify.localSubmenu'] || [];
+    const topLevelSpeechifyCommands = new Set(
+      (pkg.contributes.menus['speechify.submenu'] || [])
+        .map(item => item.command)
+        .filter((command): command is string => Boolean(command))
+    );
+    const recordItem = localMenuItems.find(item => item.command === 'extension.recordSpeechifyCosyVoiceReference');
+    const settingsJsonItem = localMenuItems.find(item => item.command === 'extension.openSpeechifySettingsJson');
+
+    assert.strictEqual(recordItem?.group, '1_generate@2');
+    assert.strictEqual(settingsJsonItem, undefined);
+    assert.ok(topLevelSpeechifyCommands.has('extension.openSpeechifySettingsJson'));
+  });
+
   test('should label audio generation commands as voiceover generation', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const en = require('../../../package.nls.json') as Record<string, string>;
@@ -40,8 +62,10 @@ suite('Package Manifest Menu Layout', () => {
     assert.strictEqual(en['speechify.command.generateAzureAudio'], 'Azure: Generate Voiceover');
     assert.strictEqual(en['speechify.command.generateLocalAudio'], 'Local CosyVoice: Generate Voiceover');
     assert.strictEqual(en['speechify.command.voiceSettings'], 'View Azure Configuration');
+    assert.strictEqual(en['speechify.command.configureCosyVoice'], 'Local CosyVoice: Set Reference Voice');
     assert.strictEqual(zhCn['speechify.command.generateAzureAudio'], 'Azure：生成配音');
     assert.strictEqual(zhCn['speechify.command.generateLocalAudio'], '本地 CosyVoice：生成配音');
     assert.strictEqual(zhCn['speechify.command.voiceSettings'], '查看当前 Azure 配置');
+    assert.strictEqual(zhCn['speechify.command.configureCosyVoice'], '本地 CosyVoice：设置参考声音');
   });
 });

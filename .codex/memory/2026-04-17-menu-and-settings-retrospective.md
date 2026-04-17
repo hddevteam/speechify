@@ -19,3 +19,6 @@
   - menu grouping
   - command wording
 - For provider submenus, do not leave action-tier commands buried in settings-tier groups. If the user mentally sees it as “generate with this backend”, it should sit near the generation action.
+- Global settings shortcuts should stay single-homed at the top-level menu. Duplicating them inside provider submenus makes the IA feel repetitive instead of helpful.
+- Command wording must match workflow scope. Once local reference setup includes media selection and in-editor recording, `参考音频` is too narrow for the top-level command label.
+- Command-label refactors are incomplete unless docs and GitHub Pages are updated in the same sprint; otherwise the user immediately sees two different product vocabularies.

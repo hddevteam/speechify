@@ -246,13 +246,13 @@
           "when": "editorTextFocus"
         },
         {
-          "command": "extension.configureSpeechifyCosyVoiceSettings",
-          "group": "2_settings@1",
+          "command": "extension.recordSpeechifyCosyVoiceReference",
+          "group": "1_generate@2",
           "when": "editorTextFocus"
         },
         {
-          "command": "extension.recordSpeechifyCosyVoiceReference",
-          "group": "2_settings@2",
+          "command": "extension.configureSpeechifyCosyVoiceSettings",
+          "group": "2_settings@1",
           "when": "editorTextFocus"
         }
       ]
