@@ -175,6 +175,8 @@ Notes:
 - Override the model manually with `COSYVOICE_MODEL_DIR=/path/to/model npm run cosyvoice:start`
 - A quick local smoke-test reference clip is available at `vendor/CosyVoice/asset/zero_shot_prompt.wav`
 - Example prompt transcript: `希望你以后能够做的比我还好呦。`
+- CosyVoice zero-shot prompt audio must stay within 30 seconds. Speechify normalizes selected reference media to mono 16 kHz WAV and trims it to a safe length before local synthesis.
+- If the backend still reports that the prompt audio is too long, re-save or re-select the reference media once so Speechify can refresh the normalized cache.
 
 ### 2.1 Azure OpenAI Configuration (Vision)
 
@@ -247,16 +249,38 @@ Convert entire markdown documents, code comments, or any text-based content into
 - **Voice Role**: Character role for roleplay-enabled voices
 
 ### CosyVoice Settings
-- **Speech Provider**: Set `speechify.speechProvider` to `cosyvoice`
-- **Backend URL**: `speechify.cosyVoiceBaseUrl` (default `http://127.0.0.1:50000`)
-- **Reference Audio**: `speechify.cosyVoicePromptAudioPath`
-- **Reference Transcript**: `speechify.cosyVoicePromptText`
+- `speechify.speechProvider`
+  Purpose: selects the speech backend. Set it to `cosyvoice` when you want to use the local CosyVoice pipeline.
+- `speechify.cosyVoiceBaseUrl`
+  Purpose: points to your local CosyVoice FastAPI server. The default value is `http://127.0.0.1:50000`.
+- `speechify.cosyVoicePromptAudioPath`
+  Purpose: points to the reference audio file, or to the audio extracted from a reference video. CosyVoice uses this clip for voice cloning.
+- `speechify.cosyVoicePromptText`
+  Purpose: stores the transcript for the reference audio. When present, Speechify uses zero-shot cloning; when empty, it falls back to the audio-only path.
+- `speechify.cosyVoicePythonPath`
+  Purpose: optional override for the local Python runtime path, mainly used by reference-media transcription when auto-detection is not enough.
+- `speechify.cosyVoiceRequestTimeoutSeconds`
+  Purpose: sets the local CosyVoice request timeout. The default is `300`, because zero-shot generation on a local machine can take several minutes before the first audio chunk appears.
+
+Recommended workspace settings example:
+
+```json
+{
+  "speechify.speechProvider": "cosyvoice",
+  "speechify.cosyVoiceBaseUrl": "http://127.0.0.1:50000",
+  "speechify.cosyVoicePromptAudioPath": "${workspaceFolder}/.speechify/reference-audio/my-voice.wav",
+  "speechify.cosyVoicePromptText": "This is my local CosyVoice reference transcript.",
+  "speechify.cosyVoicePythonPath": "${workspaceFolder}/vendor/CosyVoice/.venv310/bin/python",
+  "speechify.cosyVoiceRequestTimeoutSeconds": 300
+}
+```
 
 Behavior notes:
 - If a reference transcript is configured, Speechify uses CosyVoice `inference_zero_shot`
 - If the transcript is left empty, Speechify falls back to `inference_cross_lingual`
 - CosyVoice returns raw PCM audio, so Speechify wraps it as `.wav`
 - CosyVoice does not provide Azure-style word timestamps in this path; subtitle boundaries are approximated from text and audio duration
+- Local zero-shot generation can exceed two minutes on some machines. If you still see request timeouts, raise `speechify.cosyVoiceRequestTimeoutSeconds` before assuming the text chunk is too long.
 
 ### File Output Settings
 - **Format**: Audio format (MP3, WAV, OGG)

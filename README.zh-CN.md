@@ -168,6 +168,8 @@ Speechify 现在支持两种语音后端：
 - 如需手动指定模型，可使用 `COSYVOICE_MODEL_DIR=/path/to/model npm run cosyvoice:start`
 - 本地联调可直接使用 `vendor/CosyVoice/asset/zero_shot_prompt.wav` 作为参考音频
 - 参考文本示例：`希望你以后能够做的比我还好呦。`
+- CosyVoice 的 zero-shot 参考音频必须控制在 30 秒内。Speechify 会在本地生成前把所选参考媒体标准化为单声道、16 kHz 的 WAV，并裁剪到安全时长。
+- 如果后端仍提示参考音频过长，请重新保存或重新选择一次参考媒体，让 Speechify 刷新标准化缓存。
 
 ### 2.1 Azure OpenAI 配置（Vision）
 
@@ -240,16 +242,38 @@ const greeting = "您好，欢迎使用 VS Code Speechify 扩展！";
 - **语音角色**：支持角色扮演的声音的角色
 
 ### CosyVoice 设置
-- **语音后端**：将 `speechify.speechProvider` 设为 `cosyvoice`
-- **后端地址**：`speechify.cosyVoiceBaseUrl`，默认 `http://127.0.0.1:50000`
-- **参考音频**：`speechify.cosyVoicePromptAudioPath`
-- **参考文本**：`speechify.cosyVoicePromptText`
+- `speechify.speechProvider`
+  用途：选择语音后端。使用本地 CosyVoice 时应设为 `cosyvoice`。
+- `speechify.cosyVoiceBaseUrl`
+  用途：指定本地 CosyVoice FastAPI 服务地址。默认值是 `http://127.0.0.1:50000`。
+- `speechify.cosyVoicePromptAudioPath`
+  用途：指定参考音频或从参考视频抽取后保存的音频文件路径。CosyVoice 会用这段音频做声音克隆。
+- `speechify.cosyVoicePromptText`
+  用途：填写参考音频对应的文本内容。配置后会优先走 zero-shot 克隆；不填时会退回纯音频参考路径。
+- `speechify.cosyVoicePythonPath`
+  用途：可选。显式指定本地 Python 运行时路径，主要用于参考媒体转录时覆盖自动探测结果。
+- `speechify.cosyVoiceRequestTimeoutSeconds`
+  用途：设置本地 CosyVoice 请求超时时间。默认值是 `300`，因为 zero-shot 在本机推理时，首个音频块可能要几分钟才出来。
+
+推荐的工作区配置示例：
+
+```json
+{
+  "speechify.speechProvider": "cosyvoice",
+  "speechify.cosyVoiceBaseUrl": "http://127.0.0.1:50000",
+  "speechify.cosyVoicePromptAudioPath": "${workspaceFolder}/.speechify/reference-audio/my-voice.wav",
+  "speechify.cosyVoicePromptText": "希望你以后能够做的比我还好呦。",
+  "speechify.cosyVoicePythonPath": "${workspaceFolder}/vendor/CosyVoice/.venv310/bin/python",
+  "speechify.cosyVoiceRequestTimeoutSeconds": 300
+}
+```
 
 行为说明：
 - 配置了参考文本时，Speechify 会调用 CosyVoice 的 `inference_zero_shot`
 - 参考文本留空时，会退回 `inference_cross_lingual`
 - CosyVoice 返回的是原始 PCM 数据，因此扩展会封装为 `.wav`
 - 这条 CosyVoice FastAPI 路径不提供 Azure 那种词级时间戳，所以字幕边界目前按文本和音频总时长做近似估算
+- 某些机器上的本地 zero-shot 推理会超过两分钟。如果你仍然遇到请求超时，先提高 `speechify.cosyVoiceRequestTimeoutSeconds`，不要先假设是文本分块过长。
 
 ### 文件输出设置
 - **格式**：音频格式（MP3、WAV、OGG）

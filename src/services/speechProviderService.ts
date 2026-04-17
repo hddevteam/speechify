@@ -1,10 +1,14 @@
 import * as fs from 'fs';
+import * as http from 'http';
+import * as https from 'https';
+import * as os from 'os';
 import * as path from 'path';
 import { AzureSpeechService } from '../utils/azure';
 import { ConfigManager } from '../utils/config';
 import {
   AudioFormat,
   CosyVoiceConfig,
+  SpeechExecutionOptions,
   SpeechProviderType,
   SpeechSynthesisResult,
   VoiceListItem,
@@ -12,27 +16,16 @@ import {
 } from '../types';
 import { SpeechTextUtils } from '../utils/speechText';
 import { pcm16MonoToWavBuffer } from '../utils/wav';
-
-interface CosyVoiceRuntimeGlobals {
-  FormData?: {
-    new (): {
-      set(name: string, value: unknown, fileName?: string): void;
-    };
-  };
-  Blob?: {
-    new (parts?: Array<Buffer | Uint8Array>, options?: { type?: string }): unknown;
-  };
-  fetch?: (
-    input: string,
-    init?: { method?: string; body?: unknown }
-  ) => Promise<{ ok: boolean; status: number; statusText: string; arrayBuffer(): Promise<ArrayBuffer> }>;
-}
+import { ReferenceMediaService } from './referenceMediaService';
 
 export class SpeechProviderService {
   private static readonly COSYVOICE_SAMPLE_RATE = 22050;
+  private static readonly COSYVOICE_PROMPT_TOO_LONG_MARKER = 'do not support extract speech token for audio longer than 30s';
+  private static readonly DEFAULT_COSYVOICE_REQUEST_TIMEOUT_MS = 300_000;
+  private static readonly cosyVoicePreparedPromptCache = new Map<string, string>();
 
-  public static getActiveProvider(): SpeechProviderType {
-    return ConfigManager.getSpeechProvider();
+  public static getActiveProvider(providerOverride?: SpeechProviderType): SpeechProviderType {
+    return ConfigManager.getSpeechProvider(providerOverride);
   }
 
   public static extractTextFromMarkdown(markdown: string): string {
@@ -43,12 +36,12 @@ export class SpeechProviderService {
     return SpeechTextUtils.splitTextIntoChunks(text, maxChunkSize);
   }
 
-  public static getPreferredOutputFormat(): AudioFormat {
-    return this.getActiveProvider() === 'cosyvoice' ? 'wav' : 'mp3';
+  public static getPreferredOutputFormat(options: SpeechExecutionOptions = {}): AudioFormat {
+    return this.getActiveProvider(options.providerOverride) === 'cosyvoice' ? 'wav' : 'mp3';
   }
 
-  public static supportsVoiceCatalog(): boolean {
-    return this.getActiveProvider() === 'azure';
+  public static supportsVoiceCatalog(providerOverride?: SpeechProviderType): boolean {
+    return this.getActiveProvider(providerOverride) === 'azure';
   }
 
   public static getVoiceList(): VoiceListItem[] {
@@ -59,8 +52,12 @@ export class SpeechProviderService {
     return [];
   }
 
-  public static createDebugArtifact(text: string, voice: VoiceSettings): { extension: 'ssml' | 'txt'; content: string } {
-    if (this.getActiveProvider() === 'cosyvoice') {
+  public static createDebugArtifact(
+    text: string,
+    voice: VoiceSettings,
+    options: SpeechExecutionOptions = {}
+  ): { extension: 'ssml' | 'txt'; content: string } {
+    if (this.getActiveProvider(options.providerOverride) === 'cosyvoice') {
       return {
         extension: 'txt',
         content: text
@@ -73,9 +70,13 @@ export class SpeechProviderService {
     };
   }
 
-  public static async synthesizeSpeech(text: string, voice: VoiceSettings): Promise<{ audioBuffer: Buffer; audioFormat: AudioFormat }> {
-    if (this.getActiveProvider() === 'cosyvoice') {
-      const result = await this.synthesizeWithMetadata(text, voice);
+  public static async synthesizeSpeech(
+    text: string,
+    voice: VoiceSettings,
+    options: SpeechExecutionOptions = {}
+  ): Promise<{ audioBuffer: Buffer; audioFormat: AudioFormat }> {
+    if (this.getActiveProvider(options.providerOverride) === 'cosyvoice') {
+      const result = await this.synthesizeWithMetadata(text, voice, options);
       return {
         audioBuffer: result.audioBuffer,
         audioFormat: result.audioFormat
@@ -90,8 +91,12 @@ export class SpeechProviderService {
     };
   }
 
-  public static async synthesizeWithMetadata(text: string, voice: VoiceSettings): Promise<SpeechSynthesisResult> {
-    if (this.getActiveProvider() === 'cosyvoice') {
+  public static async synthesizeWithMetadata(
+    text: string,
+    voice: VoiceSettings,
+    options: SpeechExecutionOptions = {}
+  ): Promise<SpeechSynthesisResult> {
+    if (this.getActiveProvider(options.providerOverride) === 'cosyvoice') {
       return this.synthesizeWithCosyVoice(text);
     }
 
@@ -114,59 +119,52 @@ export class SpeechProviderService {
     const config = ConfigManager.getCosyVoiceConfig();
     this.validateCosyVoiceConfig(config);
 
-    const promptAudio = fs.readFileSync(config.promptAudioPath);
-    const runtimeGlobals = global as unknown as CosyVoiceRuntimeGlobals;
-    const FormDataCtor = runtimeGlobals.FormData;
-    const BlobCtor = runtimeGlobals.Blob;
-    const fetchImpl = runtimeGlobals.fetch;
+    const hasPromptText = Boolean(config.promptText?.trim());
+    const endpoint = `${this.normalizeBaseUrl(config.baseUrl)}/${hasPromptText ? 'inference_zero_shot' : 'inference_cross_lingual'}`;
+    const promptText = config.promptText?.trim();
+    const requestTimeoutMs = this.getCosyVoiceRequestTimeoutMs(config);
+    const requestId = this.createCosyVoiceRequestId();
+    const requestStartedAt = Date.now();
+    const promptMode = hasPromptText ? 'zero_shot' : 'cross_lingual';
 
-    if (!FormDataCtor || !BlobCtor || !fetchImpl) {
-      throw new Error('Current Node.js runtime does not provide fetch/FormData/Blob required for CosyVoice requests.');
-    }
-
-    const formData = new FormDataCtor();
-    formData.set('tts_text', text);
-    formData.set(
-      'prompt_wav',
-      new BlobCtor([promptAudio], { type: 'audio/wav' }),
-      path.basename(config.promptAudioPath)
+    console.info(
+      `[Speechify][CosyVoice][${requestId}] Synthesis requested mode=${promptMode} textLength=${text.length} promptAudioPath=${config.promptAudioPath} timeoutMs=${requestTimeoutMs}`
     );
 
-    const hasPromptText = Boolean(config.promptText?.trim());
-    if (hasPromptText) {
-      const promptText = config.promptText?.trim();
-      if (promptText) {
-        formData.set('prompt_text', promptText);
+    try {
+      const prepareStartedAt = Date.now();
+      const preparedPromptPath = await this.prepareCosyVoicePromptAudio(config.promptAudioPath);
+      console.info(
+        `[Speechify][CosyVoice][${requestId}] Prompt audio prepared in ${Date.now() - prepareStartedAt}ms path=${preparedPromptPath}`
+      );
+      return await this.synthesizePreparedCosyVoice(text, endpoint, preparedPromptPath, promptText, requestId, requestTimeoutMs);
+    } catch (error) {
+      if (!this.isCosyVoicePromptTooLongError(error)) {
+        console.error(
+          `[Speechify][CosyVoice][${requestId}] Synthesis failed after ${Date.now() - requestStartedAt}ms:`,
+          error
+        );
+        throw this.decorateCosyVoiceError(error);
+      }
+
+      try {
+        console.warn(
+          `[Speechify][CosyVoice][${requestId}] Backend reported prompt too long. Refreshing normalized prompt audio cache.`
+        );
+        const refreshStartedAt = Date.now();
+        const refreshedPromptPath = await this.prepareCosyVoicePromptAudio(config.promptAudioPath, true);
+        console.info(
+          `[Speechify][CosyVoice][${requestId}] Prompt audio refreshed in ${Date.now() - refreshStartedAt}ms path=${refreshedPromptPath}`
+        );
+        return await this.synthesizePreparedCosyVoice(text, endpoint, refreshedPromptPath, promptText, requestId, requestTimeoutMs);
+      } catch (retryError) {
+        console.error(
+          `[Speechify][CosyVoice][${requestId}] Retry failed after ${Date.now() - requestStartedAt}ms:`,
+          retryError
+        );
+        throw this.decorateCosyVoiceError(retryError);
       }
     }
-
-    const endpoint = `${this.normalizeBaseUrl(config.baseUrl)}/${hasPromptText ? 'inference_zero_shot' : 'inference_cross_lingual'}`;
-    const response = await fetchImpl(endpoint, {
-      method: 'POST',
-      body: formData
-    });
-
-    if (!response.ok) {
-      throw new Error(`CosyVoice request failed with ${response.status} ${response.statusText}`);
-    }
-
-    const pcmBuffer = Buffer.from(await response.arrayBuffer());
-    const wavBuffer = pcm16MonoToWavBuffer(pcmBuffer, {
-      sampleRate: this.COSYVOICE_SAMPLE_RATE,
-      channels: 1
-    });
-
-    const durationMs = Math.round((pcmBuffer.length / 2 / this.COSYVOICE_SAMPLE_RATE) * 1000);
-    const boundaries = SpeechTextUtils.approximateBoundaries(text, durationMs);
-
-    return {
-      audioBuffer: wavBuffer,
-      audioFormat: 'wav',
-      boundaries,
-      durationMs,
-      debugArtifactExtension: 'txt',
-      debugArtifactContent: text
-    };
   }
 
   private static validateCosyVoiceConfig(config: CosyVoiceConfig): void {
@@ -185,5 +183,213 @@ export class SpeechProviderService {
 
   private static normalizeBaseUrl(baseUrl: string): string {
     return baseUrl.trim().replace(/\/+$/, '');
+  }
+
+  private static async prepareCosyVoicePromptAudio(inputPath: string, forceRefresh = false): Promise<string> {
+    const stats = fs.statSync(inputPath);
+    const cacheKey = `${inputPath}:${stats.size}:${stats.mtimeMs}`;
+    const cached = this.cosyVoicePreparedPromptCache.get(cacheKey);
+    if (!forceRefresh && cached && fs.existsSync(cached)) {
+      return cached;
+    }
+
+    if (cached && fs.existsSync(cached) && cached.startsWith(os.tmpdir())) {
+      try {
+        fs.unlinkSync(cached);
+      } catch {
+        // ignore cache cleanup failure
+      }
+    }
+    this.cosyVoicePreparedPromptCache.delete(cacheKey);
+
+    const normalizedPath = await ReferenceMediaService.normalizePromptAudioToTemp(inputPath);
+    this.cosyVoicePreparedPromptCache.set(cacheKey, normalizedPath);
+
+    for (const [key, value] of this.cosyVoicePreparedPromptCache.entries()) {
+      if (key !== cacheKey && value.startsWith(os.tmpdir()) && fs.existsSync(value)) {
+        try {
+          fs.unlinkSync(value);
+        } catch {
+          // ignore cache cleanup failure
+        }
+        this.cosyVoicePreparedPromptCache.delete(key);
+      }
+    }
+
+    return normalizedPath;
+  }
+
+  private static async synthesizePreparedCosyVoice(
+    text: string,
+    endpoint: string,
+    preparedPromptPath: string,
+    promptText?: string,
+    requestId?: string,
+    requestTimeoutMs?: number
+  ): Promise<SpeechSynthesisResult> {
+    const promptAudio = fs.readFileSync(preparedPromptPath);
+    const pcmBuffer = await this.postMultipartToCosyVoice(
+      endpoint,
+      text,
+      promptAudio,
+      path.basename(preparedPromptPath),
+      promptText,
+      requestId,
+      requestTimeoutMs
+    );
+    const wavBuffer = pcm16MonoToWavBuffer(pcmBuffer, {
+      sampleRate: this.COSYVOICE_SAMPLE_RATE,
+      channels: 1
+    });
+
+    const durationMs = Math.round((pcmBuffer.length / 2 / this.COSYVOICE_SAMPLE_RATE) * 1000);
+    const boundaries = SpeechTextUtils.approximateBoundaries(text, durationMs);
+
+    return {
+      audioBuffer: wavBuffer,
+      audioFormat: 'wav',
+      boundaries,
+      durationMs,
+      debugArtifactExtension: 'txt',
+      debugArtifactContent: text
+    };
+  }
+
+  private static isCosyVoicePromptTooLongError(error: unknown): boolean {
+    return error instanceof Error && error.message.includes(this.COSYVOICE_PROMPT_TOO_LONG_MARKER);
+  }
+
+  private static decorateCosyVoiceError(error: unknown): Error {
+    if (this.isCosyVoicePromptTooLongError(error)) {
+      return new Error(
+        'CosyVoice reference audio exceeds the model limit of 30 seconds. Re-save or re-select the reference media so Speechify can normalize it to a short prompt.'
+      );
+    }
+
+    return error instanceof Error ? error : new Error(String(error));
+  }
+
+  private static async postMultipartToCosyVoice(
+    endpoint: string,
+    text: string,
+    promptAudio: Buffer,
+    promptFileName: string,
+    promptText?: string,
+    requestId = this.createCosyVoiceRequestId(),
+    requestTimeoutMs = this.DEFAULT_COSYVOICE_REQUEST_TIMEOUT_MS
+  ): Promise<Buffer> {
+    const boundary = `----speechify-${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
+    const body = this.buildCosyVoiceMultipartBody(boundary, text, promptAudio, promptFileName, promptText);
+    const url = new URL(endpoint);
+    const client = url.protocol === 'https:' ? https : http;
+    const startedAt = Date.now();
+    const endpointName = url.pathname.replace(/^\/+/, '') || 'unknown';
+    let firstResponseByteAt = 0;
+
+    console.info(
+      `[Speechify][CosyVoice][${requestId}] POST ${endpointName} textLength=${text.length} promptBytes=${promptAudio.length} promptTextLength=${promptText?.length || 0}`
+    );
+
+    return new Promise<Buffer>((resolve, reject) => {
+      const request = client.request(
+        {
+          protocol: url.protocol,
+          hostname: url.hostname,
+          port: url.port ? Number(url.port) : (url.protocol === 'https:' ? 443 : 80),
+          path: `${url.pathname}${url.search}`,
+          method: 'POST',
+          headers: {
+            'Content-Type': `multipart/form-data; boundary=${boundary}`,
+            'Content-Length': body.length
+          },
+          timeout: requestTimeoutMs
+        },
+        response => {
+          const chunks: Buffer[] = [];
+          response.on('data', chunk => {
+            if (!firstResponseByteAt) {
+              firstResponseByteAt = Date.now();
+              console.info(
+                `[Speechify][CosyVoice][${requestId}] First response byte after ${firstResponseByteAt - startedAt}ms status=${response.statusCode || 0}`
+              );
+            }
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+          });
+          response.on('end', () => {
+            const responseBuffer = Buffer.concat(chunks);
+            if ((response.statusCode || 0) >= 400) {
+              const message = responseBuffer.toString('utf8').trim() || response.statusMessage || 'Unknown error';
+              reject(new Error(`CosyVoice request failed with ${response.statusCode} ${response.statusMessage || ''}: ${message}`.trim()));
+              return;
+            }
+            console.info(
+              `[Speechify][CosyVoice][${requestId}] Response completed in ${Date.now() - startedAt}ms bytes=${responseBuffer.length}`
+            );
+            resolve(responseBuffer);
+          });
+          response.on('aborted', () => {
+            reject(new Error('CosyVoice response stream was aborted by the server.'));
+          });
+          response.on('error', error => {
+            reject(new Error(`CosyVoice response error: ${error.message}`));
+          });
+        }
+      );
+
+      request.on('timeout', () => {
+        request.destroy(
+          new Error(
+            `CosyVoice request timed out after ${Math.round(requestTimeoutMs / 1000)}s. requestId=${requestId} endpoint=${endpointName} textLength=${text.length} promptBytes=${promptAudio.length}`
+          )
+        );
+      });
+      request.on('error', error => {
+        reject(new Error(`CosyVoice request failed: ${error.message}`));
+      });
+
+      request.write(body);
+      request.end();
+    });
+  }
+
+  private static buildCosyVoiceMultipartBody(
+    boundary: string,
+    text: string,
+    promptAudio: Buffer,
+    promptFileName: string,
+    promptText?: string
+  ): Buffer {
+    const parts: Buffer[] = [];
+    const pushTextField = (name: string, value: string): void => {
+      parts.push(Buffer.from(`--${boundary}\r\n`));
+      parts.push(Buffer.from(`Content-Disposition: form-data; name="${name}"\r\n\r\n`));
+      parts.push(Buffer.from(value));
+      parts.push(Buffer.from('\r\n'));
+    };
+
+    pushTextField('tts_text', text);
+    if (promptText) {
+      pushTextField('prompt_text', promptText);
+    }
+
+    parts.push(Buffer.from(`--${boundary}\r\n`));
+    parts.push(Buffer.from(`Content-Disposition: form-data; name="prompt_wav"; filename="${promptFileName}"\r\n`));
+    parts.push(Buffer.from('Content-Type: audio/wav\r\n\r\n'));
+    parts.push(promptAudio);
+    parts.push(Buffer.from('\r\n'));
+    parts.push(Buffer.from(`--${boundary}--\r\n`));
+
+    return Buffer.concat(parts);
+  }
+
+  private static createCosyVoiceRequestId(): string {
+    return Math.random().toString(36).slice(2, 10);
+  }
+
+  private static getCosyVoiceRequestTimeoutMs(config: CosyVoiceConfig): number {
+    const seconds = Number.isFinite(config.requestTimeoutSeconds)
+      ? Math.max(30, Math.round(config.requestTimeoutSeconds as number))
+      : Math.round(this.DEFAULT_COSYVOICE_REQUEST_TIMEOUT_MS / 1000);
+    return seconds * 1000;
   }
 }

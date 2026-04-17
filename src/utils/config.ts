@@ -38,8 +38,10 @@ export class ConfigManager {
       voiceStyle: config.get<string>('voiceStyle', 'friendly'),
       voiceRole: config.get<string>('voiceRole', ''),
       cosyVoiceBaseUrl: config.get<string>('cosyVoiceBaseUrl', 'http://127.0.0.1:50000'),
+      cosyVoicePythonPath: config.get<string>('cosyVoicePythonPath', ''),
       cosyVoicePromptAudioPath: config.get<string>('cosyVoicePromptAudioPath', ''),
       cosyVoicePromptText: config.get<string>('cosyVoicePromptText', ''),
+      cosyVoiceRequestTimeoutSeconds: config.get<number>('cosyVoiceRequestTimeoutSeconds', 300),
       visionApiKey: config.get<string>('visionApiKey', ''),
       visionEndpoint: config.get<string>('visionEndpoint', ''),
       visionDeployment: config.get<string>('visionDeployment', 'gpt-5.2'),
@@ -61,17 +63,26 @@ export class ConfigManager {
     await config.update(key, value, vscode.ConfigurationTarget.Global);
   }
 
-  public static getSpeechProvider(): SpeechProviderType {
-    return this.getWorkspaceConfig().speechProvider || 'azure';
+  public static async updateProjectConfig<K extends keyof SpeechifyConfig>(
+    key: K,
+    value: SpeechifyConfig[K]
+  ): Promise<void> {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    const target = vscode.workspace.workspaceFolders?.length ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global;
+    await config.update(key, value, target);
+  }
+
+  public static getSpeechProvider(providerOverride?: SpeechProviderType): SpeechProviderType {
+    return providerOverride || this.getWorkspaceConfig().speechProvider || 'azure';
   }
 
   /**
    * Get voice settings from configuration
    */
-  public static getVoiceSettings(): VoiceSettings {
+  public static getVoiceSettings(providerOverride?: SpeechProviderType): VoiceSettings {
     const config = this.getWorkspaceConfig();
 
-    if (this.getSpeechProvider() === 'cosyvoice') {
+    if (this.getSpeechProvider(providerOverride) === 'cosyvoice') {
       const promptPath = config.cosyVoicePromptAudioPath || '';
       const inferredName = promptPath ? path.basename(promptPath, path.extname(promptPath)) : 'CosyVoice Clone';
       return {
@@ -115,9 +126,16 @@ export class ConfigManager {
     const promptAudioPath = this.resolveWorkspacePath((config.cosyVoicePromptAudioPath || '').trim());
     return {
       baseUrl: (config.cosyVoiceBaseUrl || '').trim(),
+      pythonPath: this.resolveWorkspacePath((config.cosyVoicePythonPath || '').trim()),
       promptAudioPath,
-      promptText: (config.cosyVoicePromptText || '').trim()
+      promptText: (config.cosyVoicePromptText || '').trim(),
+      requestTimeoutSeconds: this.normalizeCosyVoiceRequestTimeoutSeconds(config.cosyVoiceRequestTimeoutSeconds)
     };
+  }
+
+  private static normalizeCosyVoiceRequestTimeoutSeconds(value: number | undefined): number {
+    const normalized = Number.isFinite(value) ? Math.round(value as number) : 300;
+    return Math.max(30, normalized);
   }
 
   private static resolveWorkspacePath(inputPath: string): string {
@@ -318,8 +336,8 @@ export class ConfigManager {
   /**
    * Check if configuration is complete
    */
-  public static isConfigurationComplete(): boolean {
-    if (this.getSpeechProvider() === 'cosyvoice') {
+  public static isConfigurationComplete(providerOverride?: SpeechProviderType): boolean {
+    if (this.getSpeechProvider(providerOverride) === 'cosyvoice') {
       return this.validateCosyVoiceConfig(this.getCosyVoiceConfig());
     }
 
@@ -340,7 +358,9 @@ export class ConfigManager {
     await config.update('voiceGender', 'Male', vscode.ConfigurationTarget.Global);
     await config.update('voiceStyle', 'friendly', vscode.ConfigurationTarget.Global);
     await config.update('cosyVoiceBaseUrl', 'http://127.0.0.1:50000', vscode.ConfigurationTarget.Global);
+    await config.update('cosyVoicePythonPath', '', vscode.ConfigurationTarget.Global);
     await config.update('cosyVoicePromptAudioPath', '', vscode.ConfigurationTarget.Global);
     await config.update('cosyVoicePromptText', '', vscode.ConfigurationTarget.Global);
+    await config.update('cosyVoiceRequestTimeoutSeconds', 300, vscode.ConfigurationTarget.Global);
   }
 }

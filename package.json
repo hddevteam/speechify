@@ -36,6 +36,8 @@
   "publisher": "luckyXmobile",
   "activationEvents": [
     "onCommand:extension.speechify",
+    "onCommand:extension.generateAzureAudio",
+    "onCommand:extension.generateLocalAudio",
     "onCommand:extension.showSpeechifyVoiceSettings",
     "onCommand:extension.configureSpeechifyVoiceSettings",
     "onCommand:extension.configureSpeechifyAzureSettings",
@@ -69,6 +71,14 @@
       {
         "command": "extension.speechify",
         "title": "%speechify.command.speechify%"
+      },
+      {
+        "command": "extension.generateAzureAudio",
+        "title": "%speechify.command.generateAzureAudio%"
+      },
+      {
+        "command": "extension.generateLocalAudio",
+        "title": "%speechify.command.generateLocalAudio%"
       },
       {
         "command": "extension.showSpeechifyVoiceSettings",
@@ -119,6 +129,14 @@
       {
         "id": "speechify.submenu",
         "label": "Speechify"
+      },
+      {
+        "id": "speechify.azureSubmenu",
+        "label": "%speechify.menu.azure%"
+      },
+      {
+        "id": "speechify.localSubmenu",
+        "label": "%speechify.menu.local%"
       }
     ],
     "menus": {
@@ -144,13 +162,18 @@
         {
           "submenu": "speechify.submenu",
           "group": "navigation",
-          "when": "resourceScheme == file"
+          "when": "resourceExtname == .mp4 || resourceExtname == .mov || (resourceExtname == .json && resourceFilename == 'timing.json') || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
         }
       ],
       "speechify.submenu": [
         {
-          "command": "extension.speechify",
-          "group": "1_core@1",
+          "submenu": "speechify.azureSubmenu",
+          "group": "1_audio@1",
+          "when": "editorTextFocus || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
+        },
+        {
+          "submenu": "speechify.localSubmenu",
+          "group": "1_audio@2",
           "when": "editorTextFocus || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
         },
         {
@@ -169,51 +192,64 @@
           "when": "resourceExtname == .mp4 || resourceExtname == .mov || (resourceExtname == .json && editorTextFocus && speechify.activeEditorCanSynthesizeTimingJson) || (resourceExtname == .json && !editorTextFocus && resourceFilename == 'timing.json')"
         },
         {
-          "command": "extension.configureSpeechifyAzureSettings",
-          "group": "3_azure@1"
-        },
-        {
-          "command": "extension.configureSpeechifyVoiceSettings",
-          "group": "3_azure@2"
-        },
-        {
-          "command": "extension.selectSpeechifyVoiceStyle",
-          "group": "3_azure@3"
-        },
-        {
-          "command": "extension.selectSpeechifyVoiceRole",
-          "group": "3_azure@4"
-        },
-        {
-          "command": "extension.configureSpeechifyCosyVoiceSettings",
-          "group": "4_local@1"
-        },
-        {
-          "command": "extension.recordSpeechifyCosyVoiceReference",
-          "group": "4_local@2"
-        },
-        {
           "command": "extension.configureSpeechifyVisionSettings",
-          "group": "5_vision@1"
+          "group": "3_settings@1",
+          "when": "editorTextFocus"
         },
         {
           "command": "extension.showSpeechifyVoiceSettings",
-          "group": "6_info@1"
+          "group": "3_settings@2",
+          "when": "editorTextFocus"
+        }
+      ],
+      "speechify.azureSubmenu": [
+        {
+          "command": "extension.generateAzureAudio",
+          "group": "1_generate@1",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.configureSpeechifyVoiceSettings",
+          "group": "2_settings@1",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.selectSpeechifyVoiceStyle",
+          "group": "2_settings@2",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.selectSpeechifyVoiceRole",
+          "group": "2_settings@3",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.configureSpeechifyAzureSettings",
+          "group": "2_settings@4",
+          "when": "editorTextFocus"
+        }
+      ],
+      "speechify.localSubmenu": [
+        {
+          "command": "extension.generateLocalAudio",
+          "group": "1_generate@1",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.configureSpeechifyCosyVoiceSettings",
+          "group": "2_settings@1",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.recordSpeechifyCosyVoiceReference",
+          "group": "2_settings@2",
+          "when": "editorTextFocus"
         }
       ]
     },
     "configuration": {
       "title": "%speechify.configuration.title%",
       "properties": {
-        "speechify.speechProvider": {
-          "type": "string",
-          "default": "azure",
-          "enum": [
-            "azure",
-            "cosyvoice"
-          ],
-          "description": "%speechify.configuration.speechProvider%"
-        },
         "speechify.azureSpeechServicesKey": {
           "type": "string",
           "default": "",
@@ -244,10 +280,24 @@
           "default": "",
           "description": "%speechify.configuration.voiceRole%"
         },
+        "speechify.speechProvider": {
+          "type": "string",
+          "default": "azure",
+          "enum": [
+            "azure",
+            "cosyvoice"
+          ],
+          "description": "%speechify.configuration.speechProvider%"
+        },
         "speechify.cosyVoiceBaseUrl": {
           "type": "string",
           "default": "http://127.0.0.1:50000",
           "description": "%speechify.configuration.cosyVoiceBaseUrl%"
+        },
+        "speechify.cosyVoicePythonPath": {
+          "type": "string",
+          "default": "",
+          "description": "%speechify.configuration.cosyVoicePythonPath%"
         },
         "speechify.cosyVoicePromptAudioPath": {
           "type": "string",
@@ -258,6 +308,12 @@
           "type": "string",
           "default": "",
           "description": "%speechify.configuration.cosyVoicePromptText%"
+        },
+        "speechify.cosyVoiceRequestTimeoutSeconds": {
+          "type": "number",
+          "default": 300,
+          "minimum": 30,
+          "description": "%speechify.configuration.cosyVoiceRequestTimeoutSeconds%"
         },
         "speechify.enableTransitions": {
           "type": "boolean",
@@ -307,15 +363,15 @@
     "compile": "webpack",
     "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
+    "cosyvoice:start": "bash scripts/run-cosyvoice-server.sh",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "node ./scripts/run-eslint.js",
-    "cosyvoice:start": "./scripts/run-cosyvoice-server.sh",
     "test": "node ./scripts/test-runner.js",
     "test:stable": "node ./scripts/test-runner.js",
     "test:full": "SPEECHIFY_TEST_PROFILE=full node ./scripts/test-runner.js",
-    "test:unit": "npm run compile-tests && mocha --ui tdd \"out/test/suite/refineScript.unit.test.js\" \"out/test/suite/speechServiceRefactor.unit.test.js\" \"out/test/suite/textSource.test.js\"",
+    "test:unit": "npm run compile-tests && mocha --ui tdd \"out/test/suite/refineScript.unit.test.js\" \"out/test/suite/speechServiceRefactor.unit.test.js\" \"out/test/suite/cosyVoiceStartup.unit.test.js\" \"out/test/suite/cosyVoiceServer.unit.test.js\" \"out/test/suite/cosyVoiceAudio.unit.test.js\" \"out/test/suite/textSource.test.js\"",
     "test:integration": "node ./scripts/test-runner.js",
     "test:local": "node ./out/test/runTest.js"
   },

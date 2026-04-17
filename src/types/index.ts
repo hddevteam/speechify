@@ -14,6 +14,8 @@ export interface CosyVoiceConfig {
   baseUrl: string;
   promptAudioPath: string;
   promptText?: string;
+  pythonPath?: string;
+  requestTimeoutSeconds?: number;
 }
 
 export interface VoiceSettings {
@@ -53,8 +55,10 @@ export interface SpeechifyConfig {
   voiceStyle: string;
   voiceRole?: string;  // Optional role for roleplay voices
   cosyVoiceBaseUrl?: string;
+  cosyVoicePythonPath?: string;
   cosyVoicePromptAudioPath?: string;
   cosyVoicePromptText?: string;
+  cosyVoiceRequestTimeoutSeconds?: number;
   enableTransitions?: boolean;
   transitionType?: string;
   autoTrimVideo?: boolean;
@@ -86,6 +90,10 @@ export interface SpeechRequest {
   voice: VoiceSettings;
   config: AzureConfig;
   outputPath: string;
+}
+
+export interface SpeechExecutionOptions {
+  providerOverride?: SpeechProviderType;
 }
 
 export interface SpeechResponse {

@@ -1,0 +1,75 @@
+---
+name: cosyvoice-local-ops
+description: Diagnose and stabilize Speechify local CosyVoice startup, routing, and synthesis failures. Use when local voice cloning or local audio generation fails, when the wrong CosyVoice server is running, or when startup/documentation drift causes the runtime path to differ from the repo-owned server.
+---
+
+# CosyVoice Local Ops
+
+Use this when Speechify local CosyVoice generation fails or behaves inconsistently.
+
+## Core checks
+
+1. Confirm the configured backend is local:
+   - `speechify.speechProvider = cosyvoice`
+   - `speechify.cosyVoiceBaseUrl` points to localhost, normally `http://127.0.0.1:50000`
+2. Confirm the startup entry is the repo-owned script:
+   - `package.json` must expose `cosyvoice:start`
+   - `cosyvoice:start` must run `bash scripts/run-cosyvoice-server.sh`
+3. Confirm the actual running process matches the repo-owned server:
+   - Expected process path: `scripts/cosyvoice_fastapi_server.py`
+   - Unexpected process path: `vendor/CosyVoice/runtime/python/fastapi/server.py`
+4. Confirm the FastAPI server responds on `/docs` before debugging the extension side.
+
+## Failure patterns
+
+- Menu shows stale behavior after code changes:
+  - Reload VS Code window before retesting.
+- Docs say `npm run cosyvoice:start` but script is missing:
+  - Fix `package.json` first. This is a startup contract bug.
+- Local generation returns `stream aborted`:
+  - First verify which server process is actually running.
+  - Prefer the repo-owned server, not the upstream vendor runtime server.
+- Repo-owned server is running but synthesis still aborts:
+  - Check whether the server returns `StreamingResponse`.
+  - For Speechify, prefer buffering the generated PCM and returning a full `Response`.
+- Backend returns `500 Internal Server Error` with a prompt-audio assertion:
+  - CosyVoice zero-shot prompt audio must be 30 seconds or shorter.
+  - Speechify should normalize reference media to mono 16 kHz WAV and trim it before synthesis.
+  - If this still happens, refresh the normalized cache by re-saving or re-selecting the reference media.
+- Backend times out around 120 seconds on short text:
+  - Do not assume the text chunk is too long.
+  - Check server logs for `first audio chunk after ...ms`; local zero-shot can take more than two minutes before first audio.
+  - Raise `speechify.cosyVoiceRequestTimeoutSeconds` for local CosyVoice before changing chunking logic.
+
+## Expected repo contract
+
+- `scripts/run-cosyvoice-server.sh` launches `scripts/cosyvoice_fastapi_server.py`
+- `scripts/cosyvoice_fastapi_server.py` returns complete binary audio responses, not streamed chunks
+- `SpeechProviderService` retries once with a freshly normalized prompt clip when the backend reports the 30-second prompt limit
+- `SpeechProviderService` uses a local CosyVoice-specific request timeout, defaulting to 300 seconds
+- Unit tests should lock both rules:
+  - startup wiring
+  - server response contract
+  - prompt-audio refresh and user-facing error contract
+  - timeout configuration and timeout-context contract
+
+## Validation
+
+Run:
+
+```bash
+npm run compile
+npm run test:unit
+```
+
+Then verify manually:
+
+1. Start the backend from the repo entrypoint.
+2. Open `http://127.0.0.1:50000/docs`.
+3. Retry `Local CosyVoice: Generate Audio` in VS Code.
+
+## Do not do
+
+- Do not assume the running CosyVoice server came from the current repo.
+- Do not debug extension HTTP code before verifying the real backend process path.
+- Do not leave startup instructions in README or GitHub Pages that are not backed by `package.json`.
