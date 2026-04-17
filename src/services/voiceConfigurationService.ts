@@ -8,6 +8,7 @@ import { I18n } from '../i18n';
 import { buildVisionConfigGuidance } from './visionGuidance';
 import { CosyVoiceReferenceService } from './cosyVoiceReferenceService';
 import { CosyVoiceRecorderPanel } from '../webview/cosyVoiceRecorderPanel';
+import { ReferenceMediaService } from './referenceMediaService';
 
 export class VoiceConfigurationService {
   private static extensionContext: vscode.ExtensionContext | null = null;
@@ -128,7 +129,7 @@ export class VoiceConfigurationService {
       return;
     }
 
-    await ConfigManager.updateWorkspaceConfig('speechProvider', providerChoice.provider);
+    await ConfigManager.updateProjectConfig('speechProvider', providerChoice.provider);
 
     if (providerChoice.provider === 'cosyvoice') {
       await this.configureCosyVoiceSettings();
@@ -260,6 +261,10 @@ export class VoiceConfigurationService {
     await fs.mkdir(path.dirname(saveUri.fsPath), { recursive: true });
     await fs.writeFile(saveUri.fsPath, recorded.audioBuffer);
 
+    if (recorded.referenceText.trim()) {
+      await ConfigManager.updateProjectConfig('cosyVoicePromptText', recorded.referenceText.trim());
+    }
+
     await this.updateCosyVoiceReferenceAudio(saveUri.fsPath);
   }
 
@@ -270,9 +275,9 @@ export class VoiceConfigurationService {
       canSelectMany: false,
       openLabel: I18n.t('actions.selectReferenceAudio'),
       filters: {
-        Audio: ['wav', 'mp3', 'm4a', 'flac', 'aac', 'ogg']
+        Media: ['wav', 'mp3', 'm4a', 'flac', 'aac', 'ogg', 'mp4', 'mov', 'mkv', 'avi', 'webm', 'm4v']
       },
-      title: I18n.t('config.prompts.cosyVoiceSelectReferenceAudio')
+      title: this.getCosyVoiceSelectReferenceMediaTitle()
     });
 
     const selected = picked?.[0];
@@ -280,7 +285,22 @@ export class VoiceConfigurationService {
       return;
     }
 
-    await this.updateCosyVoiceReferenceAudio(selected.fsPath);
+    const selectedPath = selected.fsPath;
+    const selectedWasVideo = ReferenceMediaService.isVideoFile(selectedPath);
+    const resolvedAudioPath = await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: this.getCosyVoicePrepareReferenceMediaTitle(),
+        cancellable: false
+      },
+      async () => ReferenceMediaService.resolveReferenceAudioPath(selectedPath)
+    );
+
+    await this.updateCosyVoiceReferenceAudio(resolvedAudioPath);
+
+    if (selectedWasVideo) {
+      await this.transcribeVideoReferenceAndOpenSettings(resolvedAudioPath);
+    }
   }
 
   private static async autoTranscribeCosyVoiceReferenceAudio(): Promise<void> {
@@ -317,7 +337,7 @@ export class VoiceConfigurationService {
         })
     );
 
-    await ConfigManager.updateWorkspaceConfig('cosyVoicePromptText', transcript);
+    await ConfigManager.updateProjectConfig('cosyVoicePromptText', transcript);
     vscode.window.showInformationMessage(I18n.t('notifications.success.referenceTranscriptUpdated', transcript));
   }
 
@@ -333,7 +353,7 @@ export class VoiceConfigurationService {
       return;
     }
 
-    await ConfigManager.updateWorkspaceConfig('cosyVoicePromptText', promptText.trim());
+    await ConfigManager.updateProjectConfig('cosyVoicePromptText', promptText.trim());
     vscode.window.showInformationMessage(I18n.t('notifications.success.referenceTranscriptUpdated', promptText.trim() || I18n.t('settings.no')));
   }
 
@@ -349,7 +369,7 @@ export class VoiceConfigurationService {
       return;
     }
 
-    await ConfigManager.updateWorkspaceConfig('cosyVoiceBaseUrl', baseUrl.trim());
+    await ConfigManager.updateProjectConfig('cosyVoiceBaseUrl', baseUrl.trim());
   }
 
   private static toWorkspaceSettingPath(filePath: string): string {
@@ -368,7 +388,7 @@ export class VoiceConfigurationService {
 
   private static async updateCosyVoiceReferenceAudio(filePath: string): Promise<void> {
     const storedPath = this.toWorkspaceSettingPath(filePath);
-    await ConfigManager.updateWorkspaceConfig('cosyVoicePromptAudioPath', storedPath);
+    await ConfigManager.updateProjectConfig('cosyVoicePromptAudioPath', storedPath);
 
     const autoTranscribeLabel = I18n.t('actions.autoTranscribeReference');
     const revealLabel = I18n.t('actions.showInExplorer');
@@ -386,6 +406,31 @@ export class VoiceConfigurationService {
 
     if (selectedAction === revealLabel) {
       await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(filePath));
+    }
+  }
+
+  private static async transcribeVideoReferenceAndOpenSettings(audioPath: string): Promise<void> {
+    try {
+      const transcript = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: this.getCosyVoiceAutoTranscribeVideoTitle(),
+          cancellable: false
+        },
+        async () =>
+          CosyVoiceReferenceService.transcribeReferenceAudio(audioPath, {
+            language: 'auto'
+          })
+      );
+
+      await ConfigManager.updateProjectConfig('cosyVoicePromptText', transcript);
+      await this.openProjectSettingsAtKey('speechify.cosyVoicePromptText');
+      vscode.window.showInformationMessage(this.getCosyVoiceVideoTranscriptionReadyMessage());
+    } catch (error) {
+      await this.openProjectSettingsAtKey('speechify.cosyVoicePromptText');
+      vscode.window.showWarningMessage(
+        error instanceof Error ? error.message : I18n.t('errors.failedToTranscribeReferenceAudio')
+      );
     }
   }
 
@@ -409,6 +454,58 @@ export class VoiceConfigurationService {
     return vscode.env.language.toLowerCase().startsWith('zh')
       ? '保存 CosyVoice 参考音频'
       : 'Save CosyVoice Reference Audio';
+  }
+
+  private static getCosyVoiceSelectReferenceMediaTitle(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? '选择用于声音克隆的参考音频或视频'
+      : 'Select reference audio or video for voice cloning';
+  }
+
+  private static getCosyVoicePrepareReferenceMediaTitle(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? '正在准备参考媒体...'
+      : 'Preparing reference media...';
+  }
+
+  private static getCosyVoiceAutoTranscribeVideoTitle(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? '正在从视频参考中转录文本...'
+      : 'Transcribing text from reference video...';
+  }
+
+  private static getCosyVoiceVideoTranscriptionReadyMessage(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? '已自动转录参考视频，并打开工作区设置供你修改参考文本。'
+      : 'Reference video transcribed. Workspace settings are open so you can edit the reference text.';
+  }
+
+  private static async openProjectSettingsAtKey(settingKey: string): Promise<void> {
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!workspaceRoot) {
+      await vscode.commands.executeCommand('workbench.action.openSettingsJson');
+      return;
+    }
+
+    const settingsPath = path.join(workspaceRoot, '.vscode', 'settings.json');
+    await fs.mkdir(path.dirname(settingsPath), { recursive: true });
+
+    try {
+      await fs.access(settingsPath);
+    } catch {
+      await fs.writeFile(settingsPath, '{}\n');
+    }
+
+    const document = await vscode.workspace.openTextDocument(settingsPath);
+    const editor = await vscode.window.showTextDocument(document, {
+      preview: false
+    });
+
+    const settingIndex = document.getText().indexOf(`"${settingKey}"`);
+    const position = settingIndex >= 0 ? document.positionAt(settingIndex) : new vscode.Position(0, 0);
+    const selection = new vscode.Selection(position, position);
+    editor.selection = selection;
+    editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
   }
 
   public static async configureVisionSettings(): Promise<void> {

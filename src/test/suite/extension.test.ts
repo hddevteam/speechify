@@ -24,7 +24,8 @@ suite('Extension Integration Tests', () => {
         const commands = await vscode.commands.getCommands();
         
         const expectedCommands = [
-            'extension.speechify',
+            'extension.generateAzureAudio',
+            'extension.generateLocalAudio',
             'extension.showSpeechifyVoiceSettings',
             'extension.configureSpeechifyVoiceSettings',
             'extension.configureSpeechifyAzureSettings',
@@ -76,7 +77,7 @@ suite('Extension Integration Tests', () => {
         
         try {
             // Execute the command - it should not throw
-            await vscode.commands.executeCommand('extension.speechify');
+            await vscode.commands.executeCommand('extension.generateAzureAudio');
             
             // If we get here, the command executed without throwing
             assert.ok(true, 'Main speechify command should execute without throwing');
@@ -154,7 +155,7 @@ suite('Extension Integration Tests', () => {
         
         try {
             // Try to execute speechify command with no active editor
-            await vscode.commands.executeCommand('extension.speechify');
+            await vscode.commands.executeCommand('extension.generateAzureAudio');
             
             // Should not reach here, should throw an error
             assert.fail('Command should throw error when no editor is active');
@@ -187,7 +188,7 @@ suite('Extension Integration Tests', () => {
         
         try {
             // Try to execute speechify command with no selection
-            await vscode.commands.executeCommand('extension.speechify');
+            await vscode.commands.executeCommand('extension.generateAzureAudio');
             
             // Should not reach here, should throw an error
             assert.fail('Command should throw error when no text is selected');

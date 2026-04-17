@@ -1,9 +1,13 @@
+import * as fs from 'fs/promises';
+import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { LocalAudioRecorderService } from '../services/localAudioRecorderService';
 
 export interface CosyVoiceRecordingResult {
   suggestedFileName: string;
   audioBuffer: Uint8Array;
+  referenceText: string;
 }
 
 interface RecorderLabels {
@@ -19,6 +23,9 @@ interface RecorderLabels {
   save: string;
   close: string;
   preview: string;
+  scriptLabel: string;
+  scriptHint: string;
+  scriptUpdated: string;
   permissionHint: string;
   microphoneError: string;
 }
@@ -26,12 +33,22 @@ interface RecorderLabels {
 interface RecorderInitState {
   labels: RecorderLabels;
   suggestedFileNamePrefix: string;
+  hostAppName: string;
+  defaultReferenceText: string;
 }
 
 type RecorderMessage =
   | { type: 'cancel' }
-  | { type: 'error'; message?: string }
-  | { type: 'save-recording'; fileName?: string; audioBase64?: string };
+  | { type: 'start-recording' }
+  | { type: 'stop-recording' }
+  | { type: 'save-recording'; referenceText?: string }
+  | { type: 'reference-text-changed'; referenceText?: string };
+
+type RecorderHostMessage =
+  | { type: 'recording-started' }
+  | { type: 'recording-stopped'; audioSrc: string }
+  | { type: 'recording-reset' }
+  | { type: 'recording-error'; message: string };
 
 export class CosyVoiceRecorderPanel {
   public static async record(context: vscode.ExtensionContext): Promise<CosyVoiceRecordingResult | null> {
@@ -42,7 +59,7 @@ export class CosyVoiceRecorderPanel {
       {
         enableScripts: true,
         retainContextWhenHidden: false,
-        localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'media'))]
+        localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'media')), vscode.Uri.file(os.tmpdir())]
       }
     );
 
@@ -55,60 +72,141 @@ export class CosyVoiceRecorderPanel {
 
     const initState: RecorderInitState = {
       labels: this.getLabels(),
-      suggestedFileNamePrefix: 'cosyvoice-reference'
+      suggestedFileNamePrefix: 'cosyvoice-reference',
+      hostAppName: vscode.env.appName || 'VS Code',
+      defaultReferenceText: this.getDefaultReferenceText()
     };
 
     panel.webview.html = this.getHtml(panel.webview, initState, styleUri, scriptUri);
 
     return new Promise(resolve => {
       let settled = false;
+      let tempRecordingPath = '';
+      let latestReferenceText = initState.defaultReferenceText;
 
-      const finish = (result: CosyVoiceRecordingResult | null): void => {
+      const finish = async (result: CosyVoiceRecordingResult | null): Promise<void> => {
         if (settled) {
           return;
         }
 
         settled = true;
+        await LocalAudioRecorderService.cancelRecording();
+
+        if (tempRecordingPath) {
+          try {
+            await fs.unlink(tempRecordingPath);
+          } catch {
+            // Ignore temp cleanup failures.
+          }
+        }
+
         resolve(result);
         panel.dispose();
       };
 
       panel.onDidDispose(() => {
-        finish(null);
+        void finish(null);
       });
 
-      panel.webview.onDidReceiveMessage((message: RecorderMessage) => {
+      panel.webview.onDidReceiveMessage(async (message: RecorderMessage) => {
+        if (message.type === 'reference-text-changed') {
+          latestReferenceText = (message.referenceText || '').trim() || initState.defaultReferenceText;
+          return;
+        }
+
         if (message.type === 'cancel') {
-          finish(null);
+          await finish(null);
           return;
         }
 
-        if (message.type === 'error') {
-          vscode.window.showErrorMessage(message.message || this.getLabels().microphoneError);
+        if (message.type === 'start-recording') {
+          try {
+            if (tempRecordingPath) {
+              try {
+                await fs.unlink(tempRecordingPath);
+              } catch {
+                // Ignore temp cleanup failures.
+              }
+              tempRecordingPath = '';
+            }
+
+            await LocalAudioRecorderService.cancelRecording();
+            tempRecordingPath = await LocalAudioRecorderService.startRecording();
+            await panel.webview.postMessage({ type: 'recording-started' } satisfies RecorderHostMessage);
+          } catch (error) {
+            await panel.webview.postMessage({
+              type: 'recording-error',
+              message: this.normalizeRecorderError(error, initState.hostAppName)
+            } satisfies RecorderHostMessage);
+          }
           return;
         }
 
-        if (message.type !== 'save-recording' || !message.audioBase64) {
+        if (message.type === 'stop-recording') {
+          try {
+            tempRecordingPath = await LocalAudioRecorderService.stopRecording();
+            const audioSrc = panel.webview.asWebviewUri(vscode.Uri.file(tempRecordingPath)).toString();
+            await panel.webview.postMessage({
+              type: 'recording-stopped',
+              audioSrc
+            } satisfies RecorderHostMessage);
+          } catch (error) {
+            await panel.webview.postMessage({
+              type: 'recording-error',
+              message: this.normalizeRecorderError(error, initState.hostAppName)
+            } satisfies RecorderHostMessage);
+          }
           return;
         }
 
-        const fileName = this.normalizeFileName(message.fileName);
-        finish({
-          suggestedFileName: fileName,
-          audioBuffer: Uint8Array.from(Buffer.from(message.audioBase64, 'base64'))
-        });
+        if (message.type !== 'save-recording') {
+          return;
+        }
+
+        if (!tempRecordingPath) {
+          await panel.webview.postMessage({
+            type: 'recording-error',
+            message: initState.labels.microphoneError
+          } satisfies RecorderHostMessage);
+          return;
+        }
+
+        try {
+          const preparedAudioPath = await LocalAudioRecorderService.cleanupRecordingForReference(tempRecordingPath);
+          if (preparedAudioPath !== tempRecordingPath) {
+            tempRecordingPath = preparedAudioPath;
+          }
+
+          const audioBuffer = await fs.readFile(tempRecordingPath);
+          const referenceText = (message.referenceText || latestReferenceText || initState.defaultReferenceText).trim();
+          await finish({
+            suggestedFileName: `${this.createTimestampFileStem()}.wav`,
+            audioBuffer: Uint8Array.from(audioBuffer),
+            referenceText
+          });
+        } catch (error) {
+          await panel.webview.postMessage({
+            type: 'recording-error',
+            message: this.normalizeRecorderError(error, initState.hostAppName)
+          } satisfies RecorderHostMessage);
+        }
       });
     });
   }
 
-  private static normalizeFileName(input?: string): string {
-    const fallback = `${this.createTimestampFileStem()}.wav`;
-    if (!input) {
-      return fallback;
+  private static normalizeRecorderError(error: unknown, hostAppName: string): string {
+    const message = error instanceof Error ? error.message : String(error);
+    const normalized = message.toLowerCase();
+
+    if (normalized.includes('operation not permitted') || normalized.includes('permission denied')) {
+      return `麦克风权限被 ${hostAppName} 或其录音后端拒绝。请确认“系统设置 -> 隐私与安全性 -> 麦克风”里允许 ${hostAppName}，然后完全退出并重开应用后再试。`;
     }
 
-    const baseName = path.basename(input);
-    return baseName.toLowerCase().endsWith('.wav') ? baseName : `${baseName}.wav`;
+    if (normalized.includes('input/output error') || normalized.includes('not found')) {
+      return '没有拿到可用的麦克风输入设备。请确认系统默认输入设备可用后再试。';
+    }
+
+    return message;
   }
 
   private static createTimestampFileStem(): string {
@@ -122,12 +220,20 @@ export class CosyVoiceRecorderPanel {
     return `cosyvoice-reference-${year}${month}${day}-${hours}${minutes}${seconds}`;
   }
 
+  private static getDefaultReferenceText(): string {
+    if (vscode.env.language.toLowerCase().startsWith('zh')) {
+      return '你好，我正在使用 Speechify 在 VS Code 里录制参考音频。这段话会作为 CosyVoice 的声音克隆样本，请用自然、清晰、稳定的语速朗读。';
+    }
+
+    return 'Hello, I am recording a reference clip for Speechify inside VS Code. This sentence will be used as a CosyVoice voice cloning sample, so please read it clearly and at a steady pace.';
+  }
+
   private static getLabels(): RecorderLabels {
     const isChinese = vscode.env.language.toLowerCase().startsWith('zh');
     if (isChinese) {
       return {
         title: '录制 CosyVoice 参考音频',
-        subtitle: '在 VS Code 里直接录一小段清晰人声，保存后就能作为本地声音克隆参考。',
+        subtitle: '面板里会显示一段建议朗读文案。你可以直接照着读，录完后这段文字会自动保存为参考文本。',
         idle: '准备开始录音',
         recording: '正在录音',
         processing: '正在整理音频',
@@ -138,14 +244,17 @@ export class CosyVoiceRecorderPanel {
         save: '保存为参考音频',
         close: '关闭',
         preview: '录音预览',
-        permissionHint: '首次使用时，macOS 可能会要求给 VS Code 麦克风权限。',
-        microphoneError: '录制参考音频失败。请检查麦克风权限后重试。'
+        scriptLabel: '参考朗读文案',
+        scriptHint: '建议直接朗读这段文字；也可以先改成你想读的内容。',
+        scriptUpdated: '参考文案已更新',
+        permissionHint: '当前录音走 VS Code 宿主侧原生录音，不再依赖 webview 麦克风权限。',
+        microphoneError: '录制参考音频失败。请检查麦克风权限和默认输入设备后重试。'
       };
     }
 
     return {
       title: 'Record CosyVoice Reference Audio',
-      subtitle: 'Capture a short clean voice sample directly in VS Code and save it as your local cloning reference.',
+      subtitle: 'A suggested script is shown below. Read it directly and the same text will be saved as the reference transcript.',
       idle: 'Ready to record',
       recording: 'Recording',
       processing: 'Processing audio',
@@ -156,8 +265,11 @@ export class CosyVoiceRecorderPanel {
       save: 'Save as Reference Audio',
       close: 'Close',
       preview: 'Preview',
-      permissionHint: 'On first use, macOS may ask you to grant microphone access to VS Code.',
-      microphoneError: 'Failed to record reference audio. Check microphone permission and try again.'
+      scriptLabel: 'Reference Script',
+      scriptHint: 'Read this text as-is, or edit it before you start recording.',
+      scriptUpdated: 'Reference script updated',
+      permissionHint: 'Recording now uses a host-side native recorder instead of webview microphone APIs.',
+      microphoneError: 'Failed to record reference audio. Check microphone permission and the default input device.'
     };
   }
 
@@ -199,6 +311,15 @@ export class CosyVoiceRecorderPanel {
         <div class="pulse-wrap">
           <div id="pulse" class="pulse idle"></div>
         </div>
+      </div>
+
+      <div class="script-card">
+        <div class="script-head">
+          <div class="preview-label">${initState.labels.scriptLabel}</div>
+          <div id="scriptState" class="script-state">${initState.labels.scriptUpdated}</div>
+        </div>
+        <textarea id="referenceText" class="script-textarea">${initState.defaultReferenceText}</textarea>
+        <div class="script-hint">${initState.labels.scriptHint}</div>
       </div>
 
       <div class="actions">

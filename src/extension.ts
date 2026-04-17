@@ -142,6 +142,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     // Register commands
     const commands = [
         vscode.commands.registerCommand('extension.speechify', convertTextToSpeech),
+        vscode.commands.registerCommand('extension.generateAzureAudio', () => convertTextToSpeechWithProvider('azure')),
+        vscode.commands.registerCommand('extension.generateLocalAudio', () => convertTextToSpeechWithProvider('cosyvoice')),
         vscode.commands.registerCommand('extension.showSpeechifyVoiceSettings', showVoiceSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyVoiceSettings', configureSpeechifyVoiceSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyAzureSettings', configureSpeechifyAzureSettings),
@@ -190,6 +192,13 @@ export function deactivate(): void {
  * Convert selected text to speech
  */
 async function convertTextToSpeech(uri?: vscode.Uri): Promise<void> {
+    await convertTextToSpeechWithProvider(undefined, uri);
+}
+
+async function convertTextToSpeechWithProvider(
+    providerOverride?: 'azure' | 'cosyvoice',
+    uri?: vscode.Uri
+): Promise<void> {
     try {
         const editor = vscode.window.activeTextEditor;
 
@@ -232,13 +241,17 @@ async function convertTextToSpeech(uri?: vscode.Uri): Promise<void> {
         }
 
         // Check configuration
-        if (!ConfigManager.isConfigurationComplete()) {
+        if (!ConfigManager.isConfigurationComplete(providerOverride)) {
             await SpeechService.showConfigurationWizard();
             return;
         }
 
         // Convert text to speech
-        const result = await SpeechService.convertTextToSpeech(selectedText, sourceFilePath);
+        const result = await SpeechService.convertTextToSpeech(
+            selectedText,
+            sourceFilePath,
+            providerOverride ? { providerOverride } : {}
+        );
         
         if (result.success) {
             const message = result.processedChunks === 1 
@@ -289,23 +302,14 @@ async function showVoiceSettings(): Promise<void> {
     try {
         const config = ConfigManager.getWorkspaceConfig();
         const voiceSettings = ConfigManager.getVoiceSettings();
-        const provider = ConfigManager.getSpeechProvider();
-        const settingsInfo = provider === 'cosyvoice'
-            ? [
-                `${I18n.t('settings.provider')}: CosyVoice`,
-                `${I18n.t('settings.voiceName')}: ${voiceSettings.name}`,
-                `${I18n.t('settings.backendUrl')}: ${config.cosyVoiceBaseUrl || '-'}`,
-                `${I18n.t('settings.referenceAudio')}: ${config.cosyVoicePromptAudioPath || '-'}`,
-                `${I18n.t('settings.referenceText')}: ${config.cosyVoicePromptText ? I18n.t('settings.yes') : I18n.t('settings.no')}`
-            ].join('\\n')
-            : [
-                `${I18n.t('settings.provider')}: Azure Speech`,
-                `${I18n.t('settings.voiceName')}: ${voiceSettings.name}`,
-                `${I18n.t('settings.voiceGender')}: ${voiceSettings.gender}`,
-                `${I18n.t('settings.voiceStyle')}: ${voiceSettings.style}`,
-                `${I18n.t('settings.region')}: ${config.speechServicesRegion}`,
-                `${I18n.t('settings.hasApiKey')}: ${config.azureSpeechServicesKey ? I18n.t('settings.yes') : I18n.t('settings.no')}`
-            ].join('\\n');
+        
+        const settingsInfo = [
+            `${I18n.t('settings.voiceName')}: ${voiceSettings.name}`,
+            `${I18n.t('settings.voiceGender')}: ${voiceSettings.gender}`,
+            `${I18n.t('settings.voiceStyle')}: ${voiceSettings.style}`,
+            `${I18n.t('settings.region')}: ${config.speechServicesRegion}`,
+            `${I18n.t('settings.hasApiKey')}: ${config.azureSpeechServicesKey ? I18n.t('settings.yes') : I18n.t('settings.no')}`
+        ].join('\\n');
         
         const action = await vscode.window.showInformationMessage(
             I18n.t('messages.currentSettings', settingsInfo),
@@ -332,9 +336,7 @@ async function configureSpeechifyVoiceSettings(): Promise<void> {
         await SpeechService.configureVoiceSettings();
     } catch (error) {
         console.error('Failed to configure voice settings:', error);
-        vscode.window.showErrorMessage(
-            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
-        );
+        vscode.window.showErrorMessage(I18n.t('errors.failedToConfigureVoice'));
     }
 }
 
@@ -346,9 +348,7 @@ async function configureSpeechifyAzureSettings(): Promise<void> {
         await SpeechService.configureAzureSettings();
     } catch (error) {
         console.error('Failed to configure Azure settings:', error);
-        vscode.window.showErrorMessage(
-            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureAzure')
-        );
+        vscode.window.showErrorMessage(I18n.t('errors.failedToConfigureAzure'));
     }
 }
 
@@ -357,9 +357,7 @@ async function configureSpeechifyCosyVoiceSettings(): Promise<void> {
         await SpeechService.configureCosyVoiceSettings();
     } catch (error) {
         console.error('Failed to configure CosyVoice settings:', error);
-        vscode.window.showErrorMessage(
-            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
-        );
+        vscode.window.showErrorMessage(I18n.t('errors.failedToConfigureVoice'));
     }
 }
 

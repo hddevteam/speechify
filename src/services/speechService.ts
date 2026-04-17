@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ProcessingResult, VideoProcessingResult, VoiceListItem } from '../types';
+import { ProcessingResult, SpeechExecutionOptions, VideoProcessingResult, VoiceListItem } from '../types';
 import { ConfigManager } from '../utils/config';
 import { AudioUtils } from '../utils/audio';
 import { SubtitleUtils } from '../utils/subtitle';
@@ -8,6 +8,7 @@ import { I18n } from '../i18n';
 import { PipelineStep, VisionPipelineService } from './visionPipelineService';
 import { VoiceConfigurationService } from './voiceConfigurationService';
 import { SpeechProviderService } from './speechProviderService';
+import { CosyVoiceReferenceService } from './cosyVoiceReferenceService';
 
 /**
  * Main speech synthesis service facade
@@ -16,9 +17,13 @@ export class SpeechService {
   private static readonly MAX_CHUNK_SIZE = 3000;
   private static readonly PROCESSING_DELAY = 500;
 
-  public static async convertTextToSpeech(text: string, sourceFilePath: string): Promise<ProcessingResult> {
+  public static async convertTextToSpeech(
+    text: string,
+    sourceFilePath: string,
+    options: SpeechExecutionOptions = {}
+  ): Promise<ProcessingResult> {
     try {
-      if (!ConfigManager.isConfigurationComplete()) {
+      if (!ConfigManager.isConfigurationComplete(options.providerOverride)) {
         throw new Error(I18n.t('errors.configurationIncomplete'));
       }
 
@@ -29,7 +34,7 @@ export class SpeechService {
       }
 
       const chunks = SpeechProviderService.splitTextIntoChunks(cleanText, this.MAX_CHUNK_SIZE);
-      return await this.processTextChunks(chunks, sourceFilePath);
+      return await this.processTextChunks(chunks, sourceFilePath, options);
     } catch (error) {
       console.error('Speech conversion failed:', error);
       throw error;
@@ -103,7 +108,8 @@ export class SpeechService {
 
   private static async processTextChunks(
     chunks: string[],
-    sourceFilePath: string
+    sourceFilePath: string,
+    options: SpeechExecutionOptions = {}
   ): Promise<ProcessingResult> {
     const result: ProcessingResult = {
       success: false,
@@ -130,8 +136,8 @@ export class SpeechService {
           });
 
           try {
-            const voiceSettings = ConfigManager.getVoiceSettings();
-            const outputFormat = SpeechProviderService.getPreferredOutputFormat();
+            const voiceSettings = ConfigManager.getVoiceSettings(options.providerOverride);
+            const outputFormat = SpeechProviderService.getPreferredOutputFormat(options);
             const outputPath = AudioUtils.generateOutputPath(
               sourceFilePath,
               chunks.length > 1 ? i : undefined,
@@ -139,7 +145,7 @@ export class SpeechService {
               outputFormat
             );
 
-            const { audioBuffer } = await SpeechProviderService.synthesizeSpeech(chunk, voiceSettings);
+            const { audioBuffer } = await SpeechProviderService.synthesizeSpeech(chunk, voiceSettings, options);
             await AudioUtils.saveAudioFile(audioBuffer, outputPath);
 
             result.outputPaths.push(outputPath);
@@ -163,6 +169,7 @@ export class SpeechService {
   public static setExtensionContext(context: vscode.ExtensionContext): void {
     VisionPipelineService.setExtensionContext(context);
     VoiceConfigurationService.setExtensionContext(context);
+    CosyVoiceReferenceService.setExtensionContext(context);
   }
 
   public static async openAlignmentEditorForVideo(inputPath: string): Promise<void> {
