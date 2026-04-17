@@ -220,6 +220,10 @@ export class SpeechService {
     await VoiceConfigurationService.recordCosyVoiceReferenceAudio();
   }
 
+  public static async openSpeechifySettingsJson(): Promise<void> {
+    await VoiceConfigurationService.openSpeechifySettingsJson();
+  }
+
   public static async configureVisionSettings(): Promise<void> {
     await VoiceConfigurationService.configureVisionSettings();
   }

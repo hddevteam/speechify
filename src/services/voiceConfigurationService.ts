@@ -4,6 +4,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { VoiceListItem } from '../types';
 import { ConfigManager } from '../utils/config';
+import { upsertSpeechifyWorkspaceSettingsJsonText } from '../utils/speechifySettings';
 import { I18n } from '../i18n';
 import { buildVisionConfigGuidance } from './visionGuidance';
 import { CosyVoiceReferenceService } from './cosyVoiceReferenceService';
@@ -506,6 +507,33 @@ export class VoiceConfigurationService {
     const selection = new vscode.Selection(position, position);
     editor.selection = selection;
     editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+  }
+
+  public static async openSpeechifySettingsJson(): Promise<void> {
+    await this.seedSpeechifyWorkspaceSettings();
+    await this.openProjectSettingsAtKey('speechify.speechProvider');
+  }
+
+  private static async seedSpeechifyWorkspaceSettings(): Promise<void> {
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!workspaceRoot) {
+      return;
+    }
+
+    const settingsPath = path.join(workspaceRoot, '.vscode', 'settings.json');
+    await fs.mkdir(path.dirname(settingsPath), { recursive: true });
+
+    let currentText = '{}\n';
+    try {
+      currentText = await fs.readFile(settingsPath, 'utf8');
+    } catch {
+      await fs.writeFile(settingsPath, currentText);
+    }
+
+    const nextText = upsertSpeechifyWorkspaceSettingsJsonText(currentText, ConfigManager.getWorkspaceConfig());
+    if (nextText !== currentText) {
+      await fs.writeFile(settingsPath, nextText, 'utf8');
+    }
   }
 
   public static async configureVisionSettings(): Promise<void> {

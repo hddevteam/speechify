@@ -30,6 +30,7 @@ suite('Extension Integration Tests', () => {
             'extension.configureSpeechifyVoiceSettings',
             'extension.configureSpeechifyAzureSettings',
             'extension.configureSpeechifyCosyVoiceSettings',
+            'extension.openSpeechifySettingsJson',
             'extension.recordSpeechifyCosyVoiceReference'
         ];
         

@@ -42,6 +42,7 @@
     "onCommand:extension.configureSpeechifyVoiceSettings",
     "onCommand:extension.configureSpeechifyAzureSettings",
     "onCommand:extension.configureSpeechifyCosyVoiceSettings",
+    "onCommand:extension.openSpeechifySettingsJson",
     "onCommand:extension.recordSpeechifyCosyVoiceReference",
     "onCommand:extension.configureSpeechifyVisionSettings",
     "onCommand:extension.selectSpeechifyVoiceStyle",
@@ -95,6 +96,10 @@
       {
         "command": "extension.configureSpeechifyCosyVoiceSettings",
         "title": "%speechify.command.configureCosyVoice%"
+      },
+      {
+        "command": "extension.openSpeechifySettingsJson",
+        "title": "%speechify.command.openSettingsJson%"
       },
       {
         "command": "extension.recordSpeechifyCosyVoiceReference",
@@ -192,13 +197,18 @@
           "when": "resourceExtname == .mp4 || resourceExtname == .mov || (resourceExtname == .json && editorTextFocus && speechify.activeEditorCanSynthesizeTimingJson) || (resourceExtname == .json && !editorTextFocus && resourceFilename == 'timing.json')"
         },
         {
-          "command": "extension.configureSpeechifyVisionSettings",
+          "command": "extension.openSpeechifySettingsJson",
           "group": "3_settings@1",
+          "when": "editorTextFocus || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown || resourceExtname == .mp4 || resourceExtname == .mov || resourceExtname == .json"
+        },
+        {
+          "command": "extension.configureSpeechifyVisionSettings",
+          "group": "3_settings@2",
           "when": "editorTextFocus"
         },
         {
           "command": "extension.showSpeechifyVoiceSettings",
-          "group": "3_settings@2",
+          "group": "3_settings@3",
           "when": "editorTextFocus"
         }
       ],
@@ -371,7 +381,7 @@
     "test": "node ./scripts/test-runner.js",
     "test:stable": "node ./scripts/test-runner.js",
     "test:full": "SPEECHIFY_TEST_PROFILE=full node ./scripts/test-runner.js",
-    "test:unit": "npm run compile-tests && mocha --ui tdd \"out/test/suite/refineScript.unit.test.js\" \"out/test/suite/speechServiceRefactor.unit.test.js\" \"out/test/suite/cosyVoiceStartup.unit.test.js\" \"out/test/suite/cosyVoiceServer.unit.test.js\" \"out/test/suite/cosyVoiceAudio.unit.test.js\" \"out/test/suite/textSource.test.js\"",
+    "test:unit": "npm run compile-tests && mocha --ui tdd \"out/test/suite/refineScript.unit.test.js\" \"out/test/suite/speechServiceRefactor.unit.test.js\" \"out/test/suite/cosyVoiceStartup.unit.test.js\" \"out/test/suite/cosyVoiceServer.unit.test.js\" \"out/test/suite/cosyVoiceAudio.unit.test.js\" \"out/test/suite/speechifySettings.unit.test.js\" \"out/test/suite/textSource.test.js\"",
     "test:integration": "node ./scripts/test-runner.js",
     "test:local": "node ./out/test/runTest.js"
   },

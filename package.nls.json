@@ -8,6 +8,7 @@
   "speechify.command.configureVoice": "Azure: Set Voice & Language",
   "speechify.command.configureAzure": "Azure: Set Backend",
   "speechify.command.configureCosyVoice": "Local CosyVoice: Set Reference Voice",
+  "speechify.command.openSettingsJson": "Open Speechify Settings (JSON)",
   "speechify.command.recordCosyVoice": "Local CosyVoice: Record Reference Audio",
   "speechify.command.configureVision": "Set Azure OpenAI (Vision)",
   "speechify.command.selectStyle": "Switch Voice Style",

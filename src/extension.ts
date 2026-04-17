@@ -148,6 +148,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('extension.configureSpeechifyVoiceSettings', configureSpeechifyVoiceSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyAzureSettings', configureSpeechifyAzureSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyCosyVoiceSettings', configureSpeechifyCosyVoiceSettings),
+        vscode.commands.registerCommand('extension.openSpeechifySettingsJson', openSpeechifySettingsJson),
         vscode.commands.registerCommand('extension.recordSpeechifyCosyVoiceReference', recordSpeechifyCosyVoiceReference),
         vscode.commands.registerCommand('extension.configureSpeechifyVisionSettings', configureSpeechifyVisionSettings),
         vscode.commands.registerCommand('extension.selectSpeechifyVoiceStyle', selectVoiceStyle),
@@ -358,6 +359,17 @@ async function configureSpeechifyCosyVoiceSettings(): Promise<void> {
     } catch (error) {
         console.error('Failed to configure CosyVoice settings:', error);
         vscode.window.showErrorMessage(I18n.t('errors.failedToConfigureVoice'));
+    }
+}
+
+async function openSpeechifySettingsJson(): Promise<void> {
+    try {
+        await SpeechService.openSpeechifySettingsJson();
+    } catch (error) {
+        console.error('Failed to open Speechify settings JSON:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
+        );
     }
 }
 

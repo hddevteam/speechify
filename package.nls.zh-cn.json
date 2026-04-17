@@ -8,6 +8,7 @@
   "speechify.command.configureVoice": "Azure：切换配音/语言", 
   "speechify.command.configureAzure": "Azure：设置后端",
   "speechify.command.configureCosyVoice": "本地 CosyVoice：设置参考音频",
+  "speechify.command.openSettingsJson": "打开 Speechify 设置（JSON）",
   "speechify.command.recordCosyVoice": "本地 CosyVoice：录制参考音频",
   "speechify.command.configureVision": "设置 Azure OpenAI（Vision）",
   "speechify.command.selectStyle": "切换语音风格",
