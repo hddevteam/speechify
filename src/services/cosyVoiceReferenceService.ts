@@ -7,6 +7,7 @@ import { readSpeechifySettingValue } from '../utils/speechifySettings';
 export interface CosyVoiceTranscriptionOptions {
   language?: 'zh' | 'en' | 'auto';
   model?: string;
+  pythonPath?: string;
 }
 
 export class CosyVoiceReferenceService {
@@ -19,13 +20,7 @@ export class CosyVoiceReferenceService {
   }
 
   public static getCosyVoicePythonPath(): string | null {
-    const configuredPath = this.getConfiguredPythonPath();
-    if (configuredPath && fs.existsSync(configuredPath)) {
-      return configuredPath;
-    }
-
-    const candidates = this.getCosyVoicePythonCandidates();
-
+    const candidates = this.getConfiguredPythonCandidates();
     for (const candidate of candidates) {
       if (fs.existsSync(candidate)) {
         return candidate;
@@ -43,9 +38,9 @@ export class CosyVoiceReferenceService {
       throw new Error(`Reference audio file not found: ${audioPath}`);
     }
 
-    const pythonPath = this.getCosyVoicePythonPath();
+    const pythonPath = this.resolvePythonPath(options.pythonPath);
     if (!pythonPath) {
-      const searched = this.getCosyVoicePythonCandidates().join(', ');
+      const searched = this.getConfiguredPythonCandidates(options.pythonPath).join(', ');
       throw new Error(`CosyVoice Python runtime not found. Searched: ${searched}`);
     }
 
@@ -154,6 +149,18 @@ export class CosyVoiceReferenceService {
     });
   }
 
+  private static resolvePythonPath(explicitPath?: string): string | null {
+    const candidates = this.getConfiguredPythonCandidates(explicitPath);
+
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
   private static getCosyVoicePythonCandidates(): string[] {
     const folders = vscode.workspace.workspaceFolders;
     const workspaceRoots = folders ? folders.map(folder => folder.uri.fsPath) : [];
@@ -169,31 +176,53 @@ export class CosyVoiceReferenceService {
     const uniqueRoots = [...new Set(roots)];
     const candidates = uniqueRoots.flatMap(root => [
       path.join(root, 'vendor/CosyVoice/.venv310/bin/python'),
-      path.join(root, 'vendor/CosyVoice/.venv/bin/python')
+      path.join(root, 'vendor/CosyVoice/.venv/bin/python'),
+      path.join(root, 'vendor/Qwen3-TTS/.venv312/bin/python'),
+      path.join(root, 'vendor/Qwen3-TTS/.venv311/bin/python'),
+      path.join(root, 'vendor/Qwen3-TTS/.venv310/bin/python'),
+      path.join(root, 'vendor/Qwen3-TTS/.venv/bin/python'),
+      path.join(root, 'vendor/Qwen3TTS/.venv312/bin/python'),
+      path.join(root, 'vendor/Qwen3TTS/.venv311/bin/python'),
+      path.join(root, 'vendor/Qwen3TTS/.venv310/bin/python'),
+      path.join(root, 'vendor/Qwen3TTS/.venv/bin/python'),
+      path.join(root, '.venv312/bin/python'),
+      path.join(root, '.venv311/bin/python'),
+      path.join(root, '.venv310/bin/python'),
+      path.join(root, '.venv/bin/python')
     ]);
 
     return [...new Set(candidates)];
   }
 
-  private static getConfiguredPythonPath(): string {
-    const configured = readSpeechifySettingValue<string>(
-      vscode.workspace.getConfiguration('speechify'),
-      'cosyVoicePythonPath',
-      ''
-    ).trim();
-    if (!configured) {
-      return '';
-    }
+  private static getConfiguredPythonCandidates(explicitPath?: string): string[] {
+    const configuredPaths = [
+      explicitPath || '',
+      readSpeechifySettingValue<string>(
+        vscode.workspace.getConfiguration('speechify'),
+        'qwenTtsPythonPath',
+        ''
+      ).trim(),
+      readSpeechifySettingValue<string>(
+        vscode.workspace.getConfiguration('speechify'),
+        'cosyVoicePythonPath',
+        ''
+      ).trim()
+    ].filter(Boolean);
 
-    if (path.isAbsolute(configured)) {
-      return configured;
-    }
+    const resolvedConfiguredPaths = configuredPaths.map(configured => {
+      if (path.isAbsolute(configured)) {
+        return configured;
+      }
 
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    if (workspaceRoot) {
-      return path.resolve(workspaceRoot, configured);
-    }
+      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      if (workspaceRoot) {
+        return path.resolve(workspaceRoot, configured);
+      }
 
-    return path.resolve(configured);
+      return path.resolve(configured);
+    });
+
+    return [...resolvedConfiguredPaths, ...this.getCosyVoicePythonCandidates()];
   }
+
 }

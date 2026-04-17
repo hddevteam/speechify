@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { AzureConfig, CosyVoiceConfig, SpeechProviderType, SpeechifyConfig, TestConfig, VoiceSettings } from '../types';
+import { AzureConfig, CosyVoiceConfig, QwenTtsConfig, SpeechProviderType, SpeechifyConfig, TestConfig, VoiceSettings } from '../types';
 import { getSpeechifyPrimaryRelativeKey, readSpeechifySettingValue } from './speechifySettings';
 
 export interface VisionConfigValidationResult {
@@ -43,6 +43,11 @@ export class ConfigManager {
       cosyVoicePromptAudioPath: readSpeechifySettingValue<string>(config, 'cosyVoicePromptAudioPath', ''),
       cosyVoicePromptText: readSpeechifySettingValue<string>(config, 'cosyVoicePromptText', ''),
       cosyVoiceRequestTimeoutSeconds: readSpeechifySettingValue<number>(config, 'cosyVoiceRequestTimeoutSeconds', 900),
+      qwenTtsPythonPath: readSpeechifySettingValue<string>(config, 'qwenTtsPythonPath', ''),
+      qwenTtsModel: readSpeechifySettingValue<string>(config, 'qwenTtsModel', 'mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16'),
+      qwenTtsPromptAudioPath: readSpeechifySettingValue<string>(config, 'qwenTtsPromptAudioPath', ''),
+      qwenTtsPromptText: readSpeechifySettingValue<string>(config, 'qwenTtsPromptText', ''),
+      qwenTtsRequestTimeoutSeconds: readSpeechifySettingValue<number>(config, 'qwenTtsRequestTimeoutSeconds', 900),
       visionApiKey: readSpeechifySettingValue<string>(config, 'visionApiKey', ''),
       visionEndpoint: readSpeechifySettingValue<string>(config, 'visionEndpoint', ''),
       visionDeployment: readSpeechifySettingValue<string>(config, 'visionDeployment', 'gpt-5.2'),
@@ -83,9 +88,22 @@ export class ConfigManager {
   public static getVoiceSettings(providerOverride?: SpeechProviderType): VoiceSettings {
     const config = this.getWorkspaceConfig();
 
-    if (this.getSpeechProvider(providerOverride) === 'cosyvoice') {
+    const activeProvider = this.getSpeechProvider(providerOverride);
+
+    if (activeProvider === 'cosyvoice') {
       const promptPath = config.cosyVoicePromptAudioPath || '';
       const inferredName = promptPath ? path.basename(promptPath, path.extname(promptPath)) : 'CosyVoice Clone';
+      return {
+        name: inferredName,
+        gender: 'Neutral',
+        style: 'general',
+        locale: 'zh-CN'
+      };
+    }
+
+    if (activeProvider === 'qwen3-tts') {
+      const promptPath = config.qwenTtsPromptAudioPath || '';
+      const inferredName = promptPath ? path.basename(promptPath, path.extname(promptPath)) : 'Qwen3-TTS Clone';
       return {
         name: inferredName,
         gender: 'Neutral',
@@ -134,7 +152,26 @@ export class ConfigManager {
     };
   }
 
+  public static getQwenTtsConfig(): QwenTtsConfig {
+    const config = this.getWorkspaceConfig();
+    const promptAudioPath = this.resolveWorkspacePath((config.qwenTtsPromptAudioPath || '').trim());
+    const pythonPath = this.resolveWorkspacePath((config.qwenTtsPythonPath || '').trim());
+
+    return {
+      pythonPath,
+      model: (config.qwenTtsModel || '').trim() || 'mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16',
+      promptAudioPath,
+      promptText: (config.qwenTtsPromptText || '').trim(),
+      requestTimeoutSeconds: this.normalizeQwenTtsRequestTimeoutSeconds(config.qwenTtsRequestTimeoutSeconds)
+    };
+  }
+
   private static normalizeCosyVoiceRequestTimeoutSeconds(value: number | undefined): number {
+    const normalized = Number.isFinite(value) ? Math.round(value as number) : 900;
+    return Math.max(30, normalized);
+  }
+
+  private static normalizeQwenTtsRequestTimeoutSeconds(value: number | undefined): number {
     const normalized = Number.isFinite(value) ? Math.round(value as number) : 900;
     return Math.max(30, normalized);
   }
@@ -334,12 +371,22 @@ export class ConfigManager {
     return !!(config.baseUrl && config.promptAudioPath);
   }
 
+  public static validateQwenTtsConfig(config: QwenTtsConfig): boolean {
+    return !!(config.pythonPath && config.model && config.promptAudioPath);
+  }
+
   /**
    * Check if configuration is complete
    */
   public static isConfigurationComplete(providerOverride?: SpeechProviderType): boolean {
-    if (this.getSpeechProvider(providerOverride) === 'cosyvoice') {
+    const provider = this.getSpeechProvider(providerOverride);
+
+    if (provider === 'cosyvoice') {
       return this.validateCosyVoiceConfig(this.getCosyVoiceConfig());
+    }
+
+    if (provider === 'qwen3-tts') {
+      return this.validateQwenTtsConfig(this.getQwenTtsConfig());
     }
 
     const config = this.getAzureConfigForTesting();
@@ -362,6 +409,11 @@ export class ConfigManager {
     await this.updateWorkspaceConfig('cosyVoicePromptAudioPath', '');
     await this.updateWorkspaceConfig('cosyVoicePromptText', '');
     await this.updateWorkspaceConfig('cosyVoiceRequestTimeoutSeconds', 900);
+    await this.updateWorkspaceConfig('qwenTtsPythonPath', '');
+    await this.updateWorkspaceConfig('qwenTtsModel', 'mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16');
+    await this.updateWorkspaceConfig('qwenTtsPromptAudioPath', '');
+    await this.updateWorkspaceConfig('qwenTtsPromptText', '');
+    await this.updateWorkspaceConfig('qwenTtsRequestTimeoutSeconds', 900);
     await this.updateWorkspaceConfig('visionApiKey', '');
     await this.updateWorkspaceConfig('visionEndpoint', '');
     await this.updateWorkspaceConfig('visionDeployment', 'gpt-5.2');

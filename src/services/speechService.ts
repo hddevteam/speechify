@@ -204,8 +204,8 @@ export class SpeechService {
     return VoiceConfigurationService.createVoiceQuickPickItems(voiceList, attribute, defaultValue);
   }
 
-  public static async showConfigurationWizard(): Promise<void> {
-    await VoiceConfigurationService.showConfigurationWizard();
+  public static async showConfigurationWizard(providerOverride?: SpeechExecutionOptions['providerOverride']): Promise<void> {
+    await VoiceConfigurationService.showConfigurationWizard(providerOverride);
   }
 
   public static async configureAzureSettings(): Promise<void> {
@@ -216,8 +216,16 @@ export class SpeechService {
     await VoiceConfigurationService.configureCosyVoiceSettings();
   }
 
+  public static async configureQwenTtsSettings(): Promise<void> {
+    await VoiceConfigurationService.configureQwenTtsSettings();
+  }
+
   public static async recordCosyVoiceReferenceAudio(): Promise<void> {
     await VoiceConfigurationService.recordCosyVoiceReferenceAudio();
+  }
+
+  public static async recordQwenTtsReferenceAudio(): Promise<void> {
+    await VoiceConfigurationService.recordQwenTtsReferenceAudio();
   }
 
   public static async openSpeechifySettingsJson(): Promise<void> {

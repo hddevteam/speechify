@@ -3,6 +3,7 @@ import * as path from 'path';
 import { SpeechService } from './services/speechService';
 import { ConfigManager } from './utils/config';
 import { I18n } from './i18n';
+import { SpeechProviderType } from './types';
 import { resolveSpeechText } from './utils/textSource';
 
 const TIMING_JSON_MAX_CHARS = 2_000_000;
@@ -144,12 +145,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('extension.speechify', convertTextToSpeech),
         vscode.commands.registerCommand('extension.generateAzureAudio', () => convertTextToSpeechWithProvider('azure')),
         vscode.commands.registerCommand('extension.generateLocalAudio', () => convertTextToSpeechWithProvider('cosyvoice')),
+        vscode.commands.registerCommand('extension.generateQwenAudio', () => convertTextToSpeechWithProvider('qwen3-tts')),
         vscode.commands.registerCommand('extension.showSpeechifyVoiceSettings', showVoiceSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyVoiceSettings', configureSpeechifyVoiceSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyAzureSettings', configureSpeechifyAzureSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyCosyVoiceSettings', configureSpeechifyCosyVoiceSettings),
+        vscode.commands.registerCommand('extension.configureSpeechifyQwenTtsSettings', configureSpeechifyQwenTtsSettings),
         vscode.commands.registerCommand('extension.openSpeechifySettingsJson', openSpeechifySettingsJson),
         vscode.commands.registerCommand('extension.recordSpeechifyCosyVoiceReference', recordSpeechifyCosyVoiceReference),
+        vscode.commands.registerCommand('extension.recordSpeechifyQwenTtsReference', recordSpeechifyQwenTtsReference),
         vscode.commands.registerCommand('extension.configureSpeechifyVisionSettings', configureSpeechifyVisionSettings),
         vscode.commands.registerCommand('extension.selectSpeechifyVoiceStyle', selectVoiceStyle),
         vscode.commands.registerCommand('extension.selectSpeechifyVoiceRole', selectVoiceRole),
@@ -197,7 +201,7 @@ async function convertTextToSpeech(uri?: vscode.Uri): Promise<void> {
 }
 
 async function convertTextToSpeechWithProvider(
-    providerOverride?: 'azure' | 'cosyvoice',
+    providerOverride?: SpeechProviderType,
     uri?: vscode.Uri
 ): Promise<void> {
     try {
@@ -243,7 +247,7 @@ async function convertTextToSpeechWithProvider(
 
         // Check configuration
         if (!ConfigManager.isConfigurationComplete(providerOverride)) {
-            await SpeechService.showConfigurationWizard();
+            await SpeechService.showConfigurationWizard(providerOverride);
             return;
         }
 
@@ -362,6 +366,15 @@ async function configureSpeechifyCosyVoiceSettings(): Promise<void> {
     }
 }
 
+async function configureSpeechifyQwenTtsSettings(): Promise<void> {
+    try {
+        await SpeechService.configureQwenTtsSettings();
+    } catch (error) {
+        console.error('Failed to configure Qwen3-TTS settings:', error);
+        vscode.window.showErrorMessage(I18n.t('errors.failedToConfigureVoice'));
+    }
+}
+
 async function openSpeechifySettingsJson(): Promise<void> {
     try {
         await SpeechService.openSpeechifySettingsJson();
@@ -378,6 +391,17 @@ async function recordSpeechifyCosyVoiceReference(): Promise<void> {
         await SpeechService.recordCosyVoiceReferenceAudio();
     } catch (error) {
         console.error('Failed to record CosyVoice reference audio:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
+        );
+    }
+}
+
+async function recordSpeechifyQwenTtsReference(): Promise<void> {
+    try {
+        await SpeechService.recordQwenTtsReferenceAudio();
+    } catch (error) {
+        console.error('Failed to record Qwen3-TTS reference audio:', error);
         vscode.window.showErrorMessage(
             error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
         );

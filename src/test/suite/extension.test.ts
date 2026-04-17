@@ -26,12 +26,15 @@ suite('Extension Integration Tests', () => {
         const expectedCommands = [
             'extension.generateAzureAudio',
             'extension.generateLocalAudio',
+            'extension.generateQwenAudio',
             'extension.showSpeechifyVoiceSettings',
             'extension.configureSpeechifyVoiceSettings',
             'extension.configureSpeechifyAzureSettings',
             'extension.configureSpeechifyCosyVoiceSettings',
+            'extension.configureSpeechifyQwenTtsSettings',
             'extension.openSpeechifySettingsJson',
-            'extension.recordSpeechifyCosyVoiceReference'
+            'extension.recordSpeechifyCosyVoiceReference',
+            'extension.recordSpeechifyQwenTtsReference'
         ];
         
         for (const command of expectedCommands) {

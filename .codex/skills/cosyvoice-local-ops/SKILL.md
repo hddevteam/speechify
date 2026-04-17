@@ -53,10 +53,12 @@ Use this when Speechify local CosyVoice generation fails or behaves inconsistent
   - Keep `AI Smart Align`, `Set Azure OpenAI (Vision)`, and `View Azure Configuration` under Azure.
   - Within the Azure submenu, keep `AI Smart Align` in the action/generation block near `Generate Voiceover`, not mixed into settings.
   - Within the Local CosyVoice submenu, keep `Record Reference Audio` in the action/generation block near `Generate Voiceover`.
+  - If another local provider exists, give it its own submenu and its own provider-labeled commands. Do not reuse a CosyVoice-labeled recorder or setup command for a different engine.
   - Keep `Open Speechify Settings (JSON)` as the single top-level global settings entry. Do not duplicate it inside provider submenus.
   - Use command labels that match the actual local workflow scope. If the user can record in VS Code or pick audio/video media, prefer `Set Reference Voice` over a narrower `Set Reference Audio`.
   - Audio commands should use the current naming contract: `Generate Voiceover`, not `Generate Audio`.
   - When these labels change, update GitHub Pages and README examples in the same sprint.
+  - If a provider-specific generation command is missing config, route the user into that same provider's setup flow instead of a generic or wrong-provider wizard.
 
 ## Expected repo contract
 
@@ -71,6 +73,12 @@ Use this when Speechify local CosyVoice generation fails or behaves inconsistent
   - `speechify.cosyVoice.promptAudioPath`
   - `speechify.cosyVoice.promptText`
   - `speechify.cosyVoice.requestTimeoutSeconds`
+- If the repo carries a second local provider, mirror the same contract discipline there:
+  - provider enum/type
+  - grouped settings
+  - provider-specific command ids
+  - menu placement tests
+  - provider-routing tests
 - Unit tests should lock both rules:
   - startup wiring
   - server response contract

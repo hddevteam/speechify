@@ -11,7 +11,7 @@ const chineseMessages: Messages = {
   'commands.selectRole.title': 'Speechify: 选择语音角色',
   'commands.selectRole.description': '为神经语音选择角色扮演角色',
   'commands.configureAzure.title': 'Speechify: 配置语音后端',
-  'commands.configureAzure.description': '配置 Azure Speech 或本地 CosyVoice 后端设置',
+  'commands.configureAzure.description': '配置 Azure Speech、本地 CosyVoice 或本地 Qwen3-TTS 后端设置',
   'commands.convertToVideo.title': 'Speechify: AI 智能对齐',
   'commands.convertToVideo.description': '将文字转换为语音，并使用 AI 智能对齐画面与字幕',
   'commands.alignmentEditor.title': 'Speechify: 音画手工对齐',

@@ -11,7 +11,7 @@ const englishMessages: Messages = {
   'commands.selectRole.title': 'Speechify: Select Voice Role',
   'commands.selectRole.description': 'Select voice roleplay character for neural voices',
   'commands.configureAzure.title': 'Speechify: Configure Speech Backend',
-  'commands.configureAzure.description': 'Configure Azure Speech or local CosyVoice backend settings',
+  'commands.configureAzure.description': 'Configure Azure Speech, local CosyVoice, or local Qwen3-TTS backend settings',
   'commands.convertToVideo.title': 'Speechify: AI Smart Align',
   'commands.convertToVideo.description': 'Convert text to speech and use AI to smart align audio-visual content',
   'commands.alignmentEditor.title': 'Speechify: Manual Realignment',

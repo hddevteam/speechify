@@ -24,6 +24,11 @@ suite('Speechify Settings Workspace Seeding', () => {
     cosyVoicePromptAudioPath: '${workspaceFolder}/.speechify/reference-audio/me.wav',
     cosyVoicePromptText: '示例文本',
     cosyVoiceRequestTimeoutSeconds: 900,
+    qwenTtsPythonPath: '${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python',
+    qwenTtsModel: 'mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16',
+    qwenTtsPromptAudioPath: '${workspaceFolder}/.speechify/reference-audio/me-qwen.wav',
+    qwenTtsPromptText: 'Qwen 示例文本',
+    qwenTtsRequestTimeoutSeconds: 900,
     visionApiKey: '',
     visionEndpoint: '',
     visionDeployment: 'gpt-5.2',
@@ -54,6 +59,7 @@ suite('Speechify Settings Workspace Seeding', () => {
     assert.ok(!map.has('cosyVoicePromptText'), 'existing workspace prompt text should not be overwritten');
     assert.strictEqual(map.get('azureSpeechServicesKey'), 'azure-key');
     assert.strictEqual(map.get('cosyVoiceRequestTimeoutSeconds'), 900);
+    assert.strictEqual(map.get('qwenTtsRequestTimeoutSeconds'), 900);
     assert.strictEqual(map.get('visionEndpoint'), 'https://example.openai.azure.com');
     assert.strictEqual(map.get('autoTrimVideo'), true);
   });
@@ -81,10 +87,11 @@ suite('Speechify Settings Workspace Seeding', () => {
     assert.ok(!('speechify.speechProvider' in parsed));
     assert.ok(!('speechify.cosyVoicePromptText' in parsed));
     assert.ok(nextSettings.includes('// Speechify quick start:'), 'settings template should include quick-start guidance');
-    assert.ok(nextSettings.includes('// Options: "azure" | "cosyvoice".'), 'provider options should be explained inline');
+    assert.ok(nextSettings.includes('// Options: "azure" | "cosyvoice" | "qwen3-tts".'), 'provider options should be explained inline');
     assert.ok(nextSettings.includes('// 2. Current provider: cosyvoice. Read that section first.'), 'current provider should be called out in the template');
     assert.ok(nextSettings.includes('// Can be a recorded sample, an audio file, or extracted audio from a video.'), 'local reference media guidance should be explicit');
-    assert.ok(nextSettings.indexOf('// Local CosyVoice voice cloning') < nextSettings.indexOf('// Azure voiceover'), 'active provider section should be shown before the inactive provider section');
+    assert.ok(nextSettings.indexOf('// Local CosyVoice voice cloning') < nextSettings.indexOf('// Local Qwen3-TTS + MLX-Audio voice cloning'), 'active local provider section should be shown before the other local provider section');
+    assert.ok(nextSettings.indexOf('// Local Qwen3-TTS + MLX-Audio voice cloning') < nextSettings.indexOf('// Azure voiceover'), 'other local provider should still appear before inactive cloud provider');
   });
 
   test('should migrate legacy keys without overwriting existing grouped keys', () => {
@@ -149,7 +156,21 @@ suite('Speechify Settings Workspace Seeding', () => {
     assert.ok(nextSettings.includes('zh-CN-YunyangNeural'), 'template should include common Chinese Azure voice examples');
     assert.ok(nextSettings.includes('zh-CN-XiaoxiaoNeural'), 'template should include multiple Azure Chinese voice candidates');
     assert.ok(nextSettings.includes('// Start here for your current provider.'), 'active provider section should be highlighted');
-    assert.ok(nextSettings.indexOf('// Azure voiceover') < nextSettings.indexOf('// Local CosyVoice voice cloning'), 'azure section should come first when Azure is active');
+    assert.ok(nextSettings.indexOf('// Azure voiceover') < nextSettings.indexOf('// Local CosyVoice voice cloning'), 'azure section should come before local providers when Azure is active');
+    assert.ok(nextSettings.indexOf('// Local CosyVoice voice cloning') < nextSettings.indexOf('// Local Qwen3-TTS + MLX-Audio voice cloning'), 'CosyVoice should appear before Qwen when Azure is active');
+  });
+
+  test('should order the Qwen3-TTS section first when it is the active provider', () => {
+    const qwenValues: SpeechifyConfig = {
+      ...effectiveValues,
+      speechProvider: 'qwen3-tts'
+    };
+
+    const nextSettings = upsertSpeechifyWorkspaceSettingsJsonText('{}\n', qwenValues);
+
+    assert.ok(nextSettings.includes('// 2. Current provider: qwen3-tts. Read that section first.'));
+    assert.ok(nextSettings.indexOf('// Local Qwen3-TTS + MLX-Audio voice cloning') < nextSettings.indexOf('// Local CosyVoice voice cloning'));
+    assert.ok(nextSettings.indexOf('// Local Qwen3-TTS + MLX-Audio voice cloning') < nextSettings.indexOf('// Azure voiceover'));
   });
 
   test('should keep the local CosyVoice timeout default aligned at 900 seconds', () => {

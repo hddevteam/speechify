@@ -141,6 +141,7 @@ Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/item
 Speechify now supports two speech backends:
 - **Azure Speech**: cloud TTS with full Azure voice catalog and accurate word boundaries
 - **CosyVoice (Local)**: local FastAPI backend for zero-shot voice cloning, better suited for private/local Chinese workflows
+- **Qwen3-TTS + MLX-Audio (Local)**: local Apple Silicon-friendly voice cloning without a long-running backend server
 
 #### Azure Setup
 
@@ -177,6 +178,19 @@ Notes:
 - Example prompt transcript: `希望你以后能够做的比我还好呦。`
 - CosyVoice zero-shot prompt audio must stay within 30 seconds. Speechify normalizes selected reference media to mono 16 kHz WAV and trims it to a safe length before local synthesis.
 - If the backend still reports that the prompt audio is too long, re-save or re-select the reference media once so Speechify can refresh the normalized cache.
+
+#### Local Qwen3-TTS + MLX-Audio Setup
+
+1. Create a dedicated Python 3.12 environment for MLX-Audio
+2. Install `mlx-audio` inside that environment
+3. Set `speechify.qwenTts.pythonPath` to that environment's Python executable
+4. Set `speechify.qwenTts.model` to a Qwen3-TTS MLX model id or local model path
+
+Notes:
+- This local path does not require a persistent FastAPI server. Speechify invokes MLX-Audio directly through Python.
+- The recommended starting model is `mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16`.
+- Reference audio plus transcript gives the best voice cloning quality. If the transcript is empty, Speechify falls back to embedding-only cloning.
+- On macOS, reference-media transcription still prefers Whisper MLX first when available.
 
 ### 2.1 Azure OpenAI Configuration (Vision)
 
@@ -248,9 +262,13 @@ Convert entire markdown documents, code comments, or any text-based content into
 - **Voice Style**: Speaking style (friendly, newscast, cheerful, etc.)
 - **Voice Role**: Character role for roleplay-enabled voices
 
+### Shared Local Provider Selection
+- `speechify.provider`
+  Purpose: selects the speech backend. Set it to `cosyvoice` for the local CosyVoice pipeline or `qwen3-tts` for the local Qwen3-TTS + MLX-Audio pipeline.
+
 ### CosyVoice Settings
 - `speechify.provider`
-  Purpose: selects the speech backend. Set it to `cosyvoice` when you want to use the local CosyVoice pipeline.
+  Purpose: set this to `cosyvoice` when you want Speechify to use the local CosyVoice path.
 - `speechify.cosyVoice.baseUrl`
   Purpose: points to your local CosyVoice FastAPI server. The default value is `http://127.0.0.1:50000`.
 - `speechify.cosyVoice.promptAudioPath`
@@ -281,6 +299,38 @@ Behavior notes:
 - CosyVoice returns raw PCM audio, so Speechify wraps it as `.wav`
 - CosyVoice does not provide Azure-style word timestamps in this path; subtitle boundaries are approximated from text and audio duration
 - Local zero-shot generation can exceed two minutes on some machines. If you still see request timeouts, raise `speechify.cosyVoice.requestTimeoutSeconds` before assuming the text chunk is too long.
+
+### Qwen3-TTS + MLX-Audio Settings
+- `speechify.provider`
+  Purpose: set this to `qwen3-tts` when you want Speechify to use the local Qwen3-TTS + MLX-Audio path.
+- `speechify.qwenTts.pythonPath`
+  Purpose: points to the Python executable in the environment where `mlx-audio` is installed.
+- `speechify.qwenTts.model`
+  Purpose: selects the Qwen3-TTS MLX model id or local model path. A good starting point is `mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16`.
+- `speechify.qwenTts.promptAudioPath`
+  Purpose: points to the reference audio file, or to audio extracted from a reference video, used for voice cloning.
+- `speechify.qwenTts.promptText`
+  Purpose: stores the transcript for the reference audio. Recommended for best cloning quality. If empty, Speechify falls back to embedding-only cloning.
+- `speechify.qwenTts.requestTimeoutSeconds`
+  Purpose: sets the local Qwen3-TTS request timeout. The default is `900`.
+
+Recommended workspace settings example:
+
+```json
+{
+  "speechify.provider": "qwen3-tts",
+  "speechify.qwenTts.pythonPath": "${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python",
+  "speechify.qwenTts.model": "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16",
+  "speechify.qwenTts.promptAudioPath": "${workspaceFolder}/.speechify/reference-audio/my-voice.wav",
+  "speechify.qwenTts.promptText": "This is my local Qwen3-TTS reference transcript.",
+  "speechify.qwenTts.requestTimeoutSeconds": 900
+}
+```
+
+Behavior notes:
+- Speechify invokes MLX-Audio directly through Python and saves the generated speech as `.wav`
+- Subtitle boundaries are still approximated from text and audio duration in this local path
+- If reference transcription auto-detection misses your runtime, set `speechify.qwenTts.pythonPath` explicitly
 
 ### File Output Settings
 - **Format**: Audio format (MP3, WAV, OGG)

@@ -5,7 +5,7 @@ export interface SpeechifySettingDescriptor {
   configKey: keyof SpeechifyConfig;
   settingPath: string;
   legacySettingPaths: string[];
-  section: 'general' | 'azure' | 'cosyvoice' | 'vision' | 'video';
+  section: 'general' | 'azure' | 'cosyvoice' | 'qwentts' | 'vision' | 'video';
   helpLines: string[];
 }
 
@@ -15,7 +15,7 @@ export const SPEECHIFY_SETTING_DESCRIPTORS: SpeechifySettingDescriptor[] = [
     settingPath: 'speechify.provider',
     legacySettingPaths: ['speechify.speechProvider'],
     section: 'general',
-    helpLines: ['Speech backend.', 'Options: "azure" | "cosyvoice".']
+    helpLines: ['Speech backend.', 'Options: "azure" | "cosyvoice" | "qwen3-tts".']
   },
   {
     configKey: 'azureSpeechServicesKey',
@@ -97,6 +97,41 @@ export const SPEECHIFY_SETTING_DESCRIPTORS: SpeechifySettingDescriptor[] = [
     legacySettingPaths: ['speechify.cosyVoiceRequestTimeoutSeconds'],
     section: 'cosyvoice',
     helpLines: ['Local request timeout in seconds.', 'Default: 900. Increase this first if local zero-shot feels slow.']
+  },
+  {
+    configKey: 'qwenTtsPythonPath',
+    settingPath: 'speechify.qwenTts.pythonPath',
+    legacySettingPaths: [],
+    section: 'qwentts',
+    helpLines: ['Local Python path used to run MLX-Audio for Qwen3-TTS.', 'Point this to the Python environment where mlx-audio is installed.']
+  },
+  {
+    configKey: 'qwenTtsModel',
+    settingPath: 'speechify.qwenTts.model',
+    legacySettingPaths: [],
+    section: 'qwentts',
+    helpLines: ['Qwen3-TTS MLX model id or local model path.', 'Recommended default: mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16']
+  },
+  {
+    configKey: 'qwenTtsPromptAudioPath',
+    settingPath: 'speechify.qwenTts.promptAudioPath',
+    legacySettingPaths: [],
+    section: 'qwentts',
+    helpLines: ['Reference media path for Qwen3-TTS voice cloning.', 'Can be a recorded sample, an audio file, or extracted audio from a video.']
+  },
+  {
+    configKey: 'qwenTtsPromptText',
+    settingPath: 'speechify.qwenTts.promptText',
+    legacySettingPaths: [],
+    section: 'qwentts',
+    helpLines: ['Transcript for the Qwen3-TTS reference media.', 'Recommended. If empty, Speechify falls back to embedding-only cloning.']
+  },
+  {
+    configKey: 'qwenTtsRequestTimeoutSeconds',
+    settingPath: 'speechify.qwenTts.requestTimeoutSeconds',
+    legacySettingPaths: [],
+    section: 'qwentts',
+    helpLines: ['Local request timeout in seconds.', 'Default: 900. Raise this first on slower Apple Silicon machines.']
   },
   {
     configKey: 'visionApiKey',
@@ -317,7 +352,7 @@ function stringifySettingsJsonc(value: Record<string, unknown>): string {
   }
 
   lines.push('  // Speechify quick start:');
-  lines.push('  // 1. Set speechify.provider to "azure" or "cosyvoice".');
+  lines.push('  // 1. Set speechify.provider to "azure", "cosyvoice", or "qwen3-tts".');
   lines.push(`  // 2. Current provider: ${currentProvider}. Read that section first.`);
   lines.push('  // 3. Fill only the provider section you actually use.');
   lines.push('  // 4. For local voice cloning, reference media can come from recording, audio, or video.');
@@ -327,6 +362,7 @@ function stringifySettingsJsonc(value: Record<string, unknown>): string {
     general: 'General',
     azure: 'Azure voiceover',
     cosyvoice: 'Local CosyVoice voice cloning',
+    qwentts: 'Local Qwen3-TTS + MLX-Audio voice cloning',
     vision: 'Azure Vision / AI Smart Align',
     video: 'Video export'
   };
@@ -359,14 +395,16 @@ function stringifySettingsJsonc(value: Record<string, unknown>): string {
   return lines.join('\n');
 }
 
-function normalizeProviderValue(value: unknown): 'azure' | 'cosyvoice' {
-  return value === 'cosyvoice' ? 'cosyvoice' : 'azure';
+function normalizeProviderValue(value: unknown): 'azure' | 'cosyvoice' | 'qwen3-tts' {
+  return value === 'cosyvoice' || value === 'qwen3-tts' ? value : 'azure';
 }
 
-function orderDescriptorsForProvider(provider: 'azure' | 'cosyvoice'): SpeechifySettingDescriptor[] {
+function orderDescriptorsForProvider(provider: 'azure' | 'cosyvoice' | 'qwen3-tts'): SpeechifySettingDescriptor[] {
   const sectionOrder: SpeechifySettingDescriptor['section'][] = provider === 'cosyvoice'
-    ? ['general', 'cosyvoice', 'azure', 'vision', 'video']
-    : ['general', 'azure', 'vision', 'cosyvoice', 'video'];
+    ? ['general', 'cosyvoice', 'qwentts', 'azure', 'vision', 'video']
+    : provider === 'qwen3-tts'
+      ? ['general', 'qwentts', 'cosyvoice', 'azure', 'vision', 'video']
+      : ['general', 'azure', 'vision', 'cosyvoice', 'qwentts', 'video'];
 
   return sectionOrder.flatMap(section =>
     SPEECHIFY_SETTING_DESCRIPTORS.filter(descriptor => descriptor.section === section)
@@ -375,14 +413,16 @@ function orderDescriptorsForProvider(provider: 'azure' | 'cosyvoice'): Speechify
 
 function isPrimarySectionForProvider(
   section: SpeechifySettingDescriptor['section'],
-  provider: 'azure' | 'cosyvoice'
+  provider: 'azure' | 'cosyvoice' | 'qwen3-tts'
 ): boolean {
-  return (provider === 'azure' && section === 'azure') || (provider === 'cosyvoice' && section === 'cosyvoice');
+  return (provider === 'azure' && section === 'azure') ||
+    (provider === 'cosyvoice' && section === 'cosyvoice') ||
+    (provider === 'qwen3-tts' && section === 'qwentts');
 }
 
 function isSecondarySectionForProvider(
   section: SpeechifySettingDescriptor['section'],
-  provider: 'azure' | 'cosyvoice'
+  provider: 'azure' | 'cosyvoice' | 'qwen3-tts'
 ): boolean {
   if (provider === 'azure') {
     return section === 'vision' || section === 'video';

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Speechify 3.1.0 - AI video creation and text-to-speech extension for VS Code with Azure Speech, local CosyVoice voice cloning, and vision-aware alignment.">
-    <meta name="keywords" content="VS Code extension, AI video creation, text-to-speech, Vision AI, video alignment, Azure Speech Services, CosyVoice, voice cloning, demo video automation, content creation">
+    <meta name="description" content="Speechify 3.1.0 - AI video creation and text-to-speech extension for VS Code with Azure Speech, local CosyVoice or Qwen3-TTS voice cloning, and vision-aware alignment.">
+    <meta name="keywords" content="VS Code extension, AI video creation, text-to-speech, Vision AI, video alignment, Azure Speech Services, CosyVoice, Qwen3-TTS, MLX-Audio, voice cloning, demo video automation, content creation">
     <meta name="author" content="Speechify Extension Team">
     <meta name="robots" content="index, follow">
     
@@ -19,7 +19,7 @@
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Speechify - VS Code Text-to-Speech Extension">
-    <meta name="twitter:description" content="Transform text into high-quality speech with Azure voices or local CosyVoice cloning inside VS Code.">
+    <meta name="twitter:description" content="Transform text into high-quality speech with Azure voices, local CosyVoice cloning, or local Qwen3-TTS + MLX-Audio inside VS Code.">
     <meta name="twitter:image" content="./assets/images/icon-256.png">
     
     <!-- Additional SEO Tags -->
@@ -33,7 +33,7 @@
       "@type": "SoftwareApplication",
       "name": "Speechify",
     "version": "3.1.0",
-      "description": "AI-powered video creation and text-to-speech extension for VS Code with Azure Speech, local CosyVoice cloning, and Vision-Aware Alignment",
+      "description": "AI-powered video creation and text-to-speech extension for VS Code with Azure Speech, local CosyVoice or Qwen3-TTS cloning, and Vision-Aware Alignment",
       "url": "https://hddevteam.github.io/speechify/",
       "downloadUrl": "https://marketplace.visualstudio.com/items?itemName=luckyXmobile.speechify",
       "applicationCategory": "DeveloperApplication",
@@ -82,7 +82,7 @@
                 <a href="#voices" class="nav-link">Voices</a>
                 <a href="#use-cases" class="nav-link">Use Cases</a>
                 <a href="#installation" class="nav-link">Installation</a>
-                <a href="#local-cosyvoice" class="nav-link">Local CosyVoice</a>
+                <a href="#local-cosyvoice" class="nav-link">Local Voice Cloning</a>
                 <a href="#support" class="nav-link">Support</a>
                 <div class="language-switcher">
                     <button class="lang-btn active" data-lang="en">EN</button>
@@ -101,14 +101,14 @@
             <div class="hero-content">
                 <div class="hero-badge">
                     <i class="fas fa-video"></i>
-                    New v3.1.0 - Local CosyVoice Voiceover & Guided Settings!
+                    New v3.1.0 - Local Voice Cloning & Guided Settings!
                 </div>
                 <h1 class="hero-title">
                     From Script to Video: <span class="highlight">Integrated AI Video Creation</span>
                 </h1>
                 <p class="hero-description">
                     Stay in VS Code and transform your transcripts into professional demo videos. 
-                    Speechify 3.1.0 combines Azure Speech, local CosyVoice voice cloning, and guided configuration
+                    Speechify 3.1.0 combines Azure Speech, local CosyVoice and Qwen3-TTS voice cloning, and guided configuration
                     to automate alignment, edit timing, and generate synced audio-visual content in one workflow.
                 </p>
                 <div class="hero-buttons">
@@ -302,9 +302,9 @@
                     <div class="feature-icon">
                         <i class="fas fa-microphone-alt"></i>
                     </div>
-                    <h3 class="feature-title">Azure + Local CosyVoice</h3>
+                    <h3 class="feature-title">Azure + Local Voice Cloning</h3>
                     <p class="feature-description">
-                        Choose between Azure neural voices and a fully local CosyVoice backend with
+                        Choose between Azure neural voices, a fully local CosyVoice backend, or local Qwen3-TTS + MLX-Audio voice cloning
                         reference-audio voice cloning directly inside VS Code.
                     </p>
                 </div>
@@ -459,7 +459,7 @@
                     <div class="step-content">
                         <h3 class="step-title">Choose a Speech Backend</h3>
                         <p class="step-description">
-                            Open Speechify settings in VS Code and choose Azure Speech or CosyVoice (Local) as your generation backend.
+                            Open Speechify settings in VS Code and choose Azure Speech, CosyVoice (Local), or Qwen3-TTS + MLX-Audio (Local) as your generation backend.
                         </p>
                     </div>
                 </div>
@@ -469,7 +469,7 @@
                     <div class="step-content">
                         <h3 class="step-title">Generate Voiceover</h3>
                         <p class="step-description">
-                            Select text and use the context menu or <kbd>Ctrl+Shift+P</kbd> to run either <strong>Azure: Generate Voiceover</strong> or <strong>Local CosyVoice: Generate Voiceover</strong>.
+                            Select text and use the context menu or <kbd>Ctrl+Shift+P</kbd> to run <strong>Azure: Generate Voiceover</strong>, <strong>Local CosyVoice: Generate Voiceover</strong>, or <strong>Local Qwen3-TTS: Generate Voiceover</strong>.
                         </p>
                     </div>
                 </div>
@@ -487,33 +487,33 @@
     <section id="local-cosyvoice" class="why-speechify" style="background-color: var(--bg-secondary); padding: 80px 0;">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">Local CosyVoice Workflow</h2>
+                <h2 class="section-title">Local Voice Cloning Workflows</h2>
                 <p class="section-description">
                     Voice cloning, reference recording, and local transcription without leaving VS Code
                 </p>
             </div>
             <div class="comparison-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin-top: 40px;">
                 <div class="comparison-card" style="background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow-sm);">
-                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-server"></i> 1. Run the local backend</h3>
-                    <p>Deploy CosyVoice locally and start the FastAPI server at <code>speechify.cosyVoice.baseUrl</code> (default: <code>http://127.0.0.1:50000</code>).</p>
-                    <p>If your Python runtime lives outside the auto-detected location, set <code>speechify.cosyVoice.pythonPath</code> so Speechify can transcribe reference media reliably.</p>
+                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-server"></i> 1. Choose the local engine</h3>
+                    <p>CosyVoice runs through a local FastAPI backend at <code>speechify.cosyVoice.baseUrl</code> (default: <code>http://127.0.0.1:50000</code>).</p>
+                    <p>Qwen3-TTS runs directly through <code>mlx-audio</code> and a local Python environment configured by <code>speechify.qwenTts.pythonPath</code>, so no long-running server is required.</p>
                 </div>
                 <div class="comparison-card" style="background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow-sm);">
                     <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-microphone"></i> 2. Set a reference voice</h3>
-                    <p>Use <strong>Local CosyVoice: Set Reference Voice</strong> to record a sample in VS Code or select an existing audio or video file as reference media.</p>
+                    <p>Use <strong>Local CosyVoice: Set Reference Voice</strong> or <strong>Local Qwen3-TTS: Set Reference Voice</strong> to record a sample in VS Code or select an existing audio or video file as reference media.</p>
                     <p>When you choose a video, Speechify extracts the audio automatically and can open workspace settings so you can review and edit the reference transcript.</p>
                 </div>
                 <div class="comparison-card" style="background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow-sm);">
                     <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-wave-square"></i> 3. Generate cloned speech</h3>
-                    <p>Right-click your text and choose <strong>Local CosyVoice: Generate Voiceover</strong>. Speechify uses the configured reference audio for cloning and saves the generated result into your project workflow.</p>
-                    <p>Reference text is optional, but recommended. With reference audio plus transcript, CosyVoice can use zero-shot cloning; with audio only, Speechify falls back to the audio-only path.</p>
+                    <p>Right-click your text and choose <strong>Local CosyVoice: Generate Voiceover</strong> or <strong>Local Qwen3-TTS: Generate Voiceover</strong>. Speechify uses the configured reference audio for cloning and saves the generated result into your project workflow.</p>
+                    <p>Reference text is optional, but recommended. CosyVoice and Qwen3-TTS both produce better cloning quality when the reference audio also has a matching transcript.</p>
                 </div>
             </div>
             <div class="comparison-card" style="background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow-sm); margin-top: 30px;">
                 <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-gear"></i> Local setup notes</h3>
                 <p>Reference-media transcription runs locally. On macOS, Speechify tries Whisper MLX first for faster Apple Silicon inference, then falls back to a local Python Whisper runtime when MLX is unavailable.</p>
-                <p>In your workspace settings, make sure you configure the local backend address, the reference audio path, and the reference transcript. If auto-detection cannot find the local Python runtime, set an explicit Python path as well.</p>
-                <p>The full list of CosyVoice configuration keys, what each one does, and a complete <code>settings.json</code> example are documented in the project README.</p>
+                <p>In your workspace settings, make sure you configure the local backend address or Python path, the reference audio path, and the reference transcript for the provider you actually use.</p>
+                <p>The full list of CosyVoice and Qwen3-TTS configuration keys, what each one does, and complete <code>settings.json</code> examples are documented in the project README.</p>
             </div>
         </div>
     </section>
@@ -550,7 +550,7 @@
                     </div>
                     <h3 class="support-title">Documentation</h3>
                     <p class="support-description">
-                        Comprehensive guides for Azure Speech, local CosyVoice setup, reference-media configuration,
+                        Comprehensive guides for Azure Speech, local CosyVoice and Qwen3-TTS setup, reference-media configuration,
                         and development documentation in multiple languages.
                     </p>
                     <a href="https://github.com/hddevteam/speechify#readme" class="support-link" target="_blank" rel="noopener">
@@ -587,7 +587,7 @@
                         <span>Speechify</span>
                     </div>
                     <p class="footer-description">
-                        Transform your text into high-quality speech with Azure voices or local CosyVoice cloning.
+                        Transform your text into high-quality speech with Azure voices, local CosyVoice cloning, or local Qwen3-TTS cloning.
                         Professional text-to-speech extension for VS Code with advanced voice and reference-media workflows.
                     </p>
                 </div>

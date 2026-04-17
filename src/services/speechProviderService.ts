@@ -16,6 +16,7 @@ import {
 } from '../types';
 import { SpeechTextUtils } from '../utils/speechText';
 import { pcm16MonoToWavBuffer } from '../utils/wav';
+import { QwenTtsService } from './qwenTtsService';
 import { ReferenceMediaService } from './referenceMediaService';
 
 export class SpeechProviderService {
@@ -37,7 +38,8 @@ export class SpeechProviderService {
   }
 
   public static getPreferredOutputFormat(options: SpeechExecutionOptions = {}): AudioFormat {
-    return this.getActiveProvider(options.providerOverride) === 'cosyvoice' ? 'wav' : 'mp3';
+    const provider = this.getActiveProvider(options.providerOverride);
+    return provider === 'cosyvoice' || provider === 'qwen3-tts' ? 'wav' : 'mp3';
   }
 
   public static supportsVoiceCatalog(providerOverride?: SpeechProviderType): boolean {
@@ -57,7 +59,8 @@ export class SpeechProviderService {
     voice: VoiceSettings,
     options: SpeechExecutionOptions = {}
   ): { extension: 'ssml' | 'txt'; content: string } {
-    if (this.getActiveProvider(options.providerOverride) === 'cosyvoice') {
+    const provider = this.getActiveProvider(options.providerOverride);
+    if (provider === 'cosyvoice' || provider === 'qwen3-tts') {
       return {
         extension: 'txt',
         content: text
@@ -75,7 +78,8 @@ export class SpeechProviderService {
     voice: VoiceSettings,
     options: SpeechExecutionOptions = {}
   ): Promise<{ audioBuffer: Buffer; audioFormat: AudioFormat }> {
-    if (this.getActiveProvider(options.providerOverride) === 'cosyvoice') {
+    const provider = this.getActiveProvider(options.providerOverride);
+    if (provider === 'cosyvoice' || provider === 'qwen3-tts') {
       const result = await this.synthesizeWithMetadata(text, voice, options);
       return {
         audioBuffer: result.audioBuffer,
@@ -96,8 +100,13 @@ export class SpeechProviderService {
     voice: VoiceSettings,
     options: SpeechExecutionOptions = {}
   ): Promise<SpeechSynthesisResult> {
-    if (this.getActiveProvider(options.providerOverride) === 'cosyvoice') {
+    const provider = this.getActiveProvider(options.providerOverride);
+    if (provider === 'cosyvoice') {
       return this.synthesizeWithCosyVoice(text);
+    }
+
+    if (provider === 'qwen3-tts') {
+      return this.synthesizeWithQwenTts(text);
     }
 
     const azureConfig = ConfigManager.getAzureConfigForTesting();
@@ -113,6 +122,10 @@ export class SpeechProviderService {
       debugArtifactExtension: 'ssml',
       debugArtifactContent: AzureSpeechService.createSSML(text, voice)
     };
+  }
+
+  private static async synthesizeWithQwenTts(text: string): Promise<SpeechSynthesisResult> {
+    return QwenTtsService.synthesize(text, ConfigManager.getQwenTtsConfig());
   }
 
   private static async synthesizeWithCosyVoice(text: string): Promise<SpeechSynthesisResult> {

@@ -7,7 +7,7 @@ export interface AzureConfig {
   region?: string;
 }
 
-export const SPEECH_PROVIDERS = ['azure', 'cosyvoice'] as const;
+export const SPEECH_PROVIDERS = ['azure', 'cosyvoice', 'qwen3-tts'] as const;
 export type SpeechProviderType = typeof SPEECH_PROVIDERS[number];
 
 export interface CosyVoiceConfig {
@@ -15,6 +15,14 @@ export interface CosyVoiceConfig {
   promptAudioPath: string;
   promptText?: string;
   pythonPath?: string;
+  requestTimeoutSeconds?: number;
+}
+
+export interface QwenTtsConfig {
+  pythonPath: string;
+  model: string;
+  promptAudioPath: string;
+  promptText?: string;
   requestTimeoutSeconds?: number;
 }
 
@@ -59,6 +67,11 @@ export interface SpeechifyConfig {
   cosyVoicePromptAudioPath?: string;
   cosyVoicePromptText?: string;
   cosyVoiceRequestTimeoutSeconds?: number;
+  qwenTtsPythonPath?: string;
+  qwenTtsModel?: string;
+  qwenTtsPromptAudioPath?: string;
+  qwenTtsPromptText?: string;
+  qwenTtsRequestTimeoutSeconds?: number;
   enableTransitions?: boolean;
   transitionType?: string;
   autoTrimVideo?: boolean;

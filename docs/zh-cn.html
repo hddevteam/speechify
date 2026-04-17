@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Speechify 3.1.0 - 集 AI 视频创作与文本转语音于一体的 VS Code 扩展，支持 Azure 语音、本地 CosyVoice 声音克隆与视觉感知对齐。">
-    <meta name="keywords" content="VS Code 扩展, AI 视频制作, 文本转语音, 视觉 AI, 演示视频自动化, Azure 语音服务, CosyVoice, 声音克隆, 内容创作, 视频对齐">
+    <meta name="description" content="Speechify 3.1.0 - 集 AI 视频创作与文本转语音于一体的 VS Code 扩展，支持 Azure 语音、本地 CosyVoice 或 Qwen3-TTS 声音克隆与视觉感知对齐。">
+    <meta name="keywords" content="VS Code 扩展, AI 视频制作, 文本转语音, 视觉 AI, 演示视频自动化, Azure 语音服务, CosyVoice, Qwen3-TTS, MLX-Audio, 声音克隆, 内容创作, 视频对齐">
     <meta name="author" content="Speechify 扩展团队">
     <meta name="robots" content="index, follow">
     
@@ -19,7 +19,7 @@
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Speechify - VS Code 文本转语音扩展">
-    <meta name="twitter:description" content="在 VS Code 中使用 Azure 语音或本地 CosyVoice 声音克隆生成高质量语音。">
+    <meta name="twitter:description" content="在 VS Code 中使用 Azure 语音、本地 CosyVoice，或本地 Qwen3-TTS + MLX-Audio 生成高质量语音。">
     <meta name="twitter:image" content="./assets/images/icon-256.png">
     
     <!-- Additional SEO Tags -->
@@ -33,7 +33,7 @@
       "@type": "SoftwareApplication",
       "name": "Speechify",
     "version": "3.1.0",
-      "description": "集 AI 视频创作与文本转语音于一体的 VS Code 扩展，支持 Azure 语音、本地 CosyVoice 声音克隆与视觉感知对齐",
+      "description": "集 AI 视频创作与文本转语音于一体的 VS Code 扩展，支持 Azure 语音、本地 CosyVoice 或 Qwen3-TTS 声音克隆与视觉感知对齐",
       "url": "https://hddevteam.github.io/speechify/zh-cn.html",
       "downloadUrl": "https://marketplace.visualstudio.com/items?itemName=luckyXmobile.speechify",
       "applicationCategory": "DeveloperApplication",
@@ -82,7 +82,7 @@
                 <a href="#voices" class="nav-link">语音预览</a>
                 <a href="#use-cases" class="nav-link">应用场景</a>
                 <a href="#installation" class="nav-link">安装指南</a>
-                <a href="#local-cosyvoice" class="nav-link">本地 CosyVoice</a>
+                <a href="#local-cosyvoice" class="nav-link">本地声音克隆</a>
                 <a href="#support" class="nav-link">支持</a>
                 <div class="language-switcher">
                     <button class="lang-btn" data-lang="en">EN</button>
@@ -101,14 +101,14 @@
             <div class="hero-content">
                 <div class="hero-badge">
                     <i class="fas fa-video"></i>
-                    新版本 v3.1.0 - 本地 CosyVoice 配音与引导式设置！
+                    新版本 v3.1.0 - 本地声音克隆与引导式设置！
                 </div>
                 <h1 class="hero-title">
                     从脚本到视频：<span class="highlight">集成式 AI 视频创作</span>
                 </h1>
                 <p class="hero-description">
                     无需离开 VS Code，即可将脚本转换为专业的 Demo 演示视频。
-                    Speechify 3.1.0 融合 Azure 语音、本地 CosyVoice 声音克隆与引导式配置体验，实现自动对齐、时间轴编辑与音画同步生成。
+                    Speechify 3.1.0 融合 Azure 语音、本地 CosyVoice 与 Qwen3-TTS 声音克隆，以及引导式配置体验，实现自动对齐、时间轴编辑与音画同步生成。
                 </p>
                 <div class="hero-buttons">
                     <a href="vscode:extension/luckyXmobile.speechify" class="btn btn-primary">
@@ -297,9 +297,9 @@
                     <div class="feature-icon">
                         <i class="fas fa-microphone-alt"></i>
                     </div>
-                    <h3 class="feature-title">Azure + 本地 CosyVoice</h3>
+                    <h3 class="feature-title">Azure + 本地声音克隆</h3>
                     <p class="feature-description">
-                        同时支持 Azure 神经语音和本地 CosyVoice 参考音频克隆，直接在 VS Code 中完成配置与生成。
+                        同时支持 Azure 神经语音、本地 CosyVoice，以及本地 Qwen3-TTS + MLX-Audio 参考音频克隆，直接在 VS Code 中完成配置与生成。
                     </p>
                 </div>
                 
@@ -446,7 +446,7 @@
                     <div class="step-content">
                         <h3 class="step-title">选择语音后端</h3>
                         <p class="step-description">
-                            在 VS Code 设置中选择使用 Azure Speech，或切换到 CosyVoice（本地）作为生成后端。
+                            在 VS Code 设置中选择使用 Azure Speech，或切换到 CosyVoice（本地）/ Qwen3-TTS + MLX-Audio（本地）作为生成后端。
                         </p>
                     </div>
                 </div>
@@ -456,7 +456,7 @@
                     <div class="step-content">
                         <h3 class="step-title">开始生成音频</h3>
                         <p class="step-description">
-                            选中文本后，可通过右键菜单或 <kbd>Ctrl+Shift+P</kbd> 运行 <strong>Azure：生成配音</strong> 或 <strong>本地 CosyVoice：生成配音</strong>。
+                            选中文本后，可通过右键菜单或 <kbd>Ctrl+Shift+P</kbd> 运行 <strong>Azure：生成配音</strong>、<strong>本地 CosyVoice：生成配音</strong> 或 <strong>本地 Qwen3-TTS：生成配音</strong>。
                         </p>
                     </div>
                 </div>
@@ -474,33 +474,33 @@
     <section id="local-cosyvoice" class="why-speechify" style="background-color: var(--bg-secondary); padding: 80px 0;">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">本地 CosyVoice 使用流程</h2>
+                <h2 class="section-title">本地声音克隆使用流程</h2>
                 <p class="section-description">
                     在 VS Code 内完成声音克隆、参考录音和本地转录
                 </p>
             </div>
             <div class="comparison-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin-top: 40px;">
                 <div class="comparison-card" style="background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow-sm);">
-                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-server"></i> 1. 启动本地后端</h3>
-                    <p>先在本机部署 CosyVoice，并启动 FastAPI 服务。Speechify 默认读取 <code>speechify.cosyVoice.baseUrl</code>，默认值为 <code>http://127.0.0.1:50000</code>。</p>
-                    <p>如果 Python 运行时不在自动探测位置，请显式设置 <code>speechify.cosyVoice.pythonPath</code>，这样参考媒体转录时就能稳定找到本地运行时。</p>
+                    <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-server"></i> 1. 选择本地引擎</h3>
+                    <p>CosyVoice 通过本地 FastAPI 服务运行，默认读取 <code>speechify.cosyVoice.baseUrl</code>，默认值为 <code>http://127.0.0.1:50000</code>。</p>
+                    <p>Qwen3-TTS 则直接通过 <code>mlx-audio</code> 和本地 Python 环境运行，使用 <code>speechify.qwenTts.pythonPath</code> 指定，不需要常驻服务。</p>
                 </div>
                 <div class="comparison-card" style="background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow-sm);">
                     <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-microphone"></i> 2. 配置参考音色</h3>
-                    <p>使用 <strong>本地 CosyVoice：设置参考声音</strong>，可以直接在 VS Code 里录制参考音频，也可以选择已有音频或视频文件。</p>
+                    <p>使用 <strong>本地 CosyVoice：设置参考声音</strong> 或 <strong>本地 Qwen3-TTS：设置参考声音</strong>，可以直接在 VS Code 里录制参考音频，也可以选择已有音频或视频文件。</p>
                     <p>如果选择视频，Speechify 会先自动抽取音轨，再打开工作区设置，方便你检查和编辑参考文本。</p>
                 </div>
                 <div class="comparison-card" style="background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow-sm);">
                     <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-wave-square"></i> 3. 生成克隆语音</h3>
-                    <p>右键选中文本后，使用 <strong>本地 CosyVoice：生成配音</strong>。Speechify 会读取你配置的参考音频，并把生成结果接入当前项目工作流。</p>
-                    <p>参考文本不是强制项，但强烈建议填写。参考音频加参考文本时会走 zero-shot 克隆；只有音频时则退回到纯音频参考路径。</p>
+                    <p>右键选中文本后，使用 <strong>本地 CosyVoice：生成配音</strong> 或 <strong>本地 Qwen3-TTS：生成配音</strong>。Speechify 会读取你配置的参考音频，并把生成结果接入当前项目工作流。</p>
+                    <p>参考文本不是强制项，但强烈建议填写。无论是 CosyVoice 还是 Qwen3-TTS，参考音频加参考文本都会带来更好的克隆质量。</p>
                 </div>
             </div>
             <div class="comparison-card" style="background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow-sm); margin-top: 30px;">
                 <h3 style="color: var(--primary-color); margin-bottom: 15px;"><i class="fas fa-gear"></i> 本地配置说明</h3>
                 <p>参考媒体的转录完全在本地执行。在 macOS 上，Speechify 会优先尝试 Whisper MLX，以更好利用 Apple Silicon；如果不可用，会自动回退到本地 Python Whisper。</p>
-                <p>在工作区设置里，至少要配置本地后端地址、参考音频路径和参考文本。如果自动探测不到本地 Python 运行时，再额外显式指定 Python 路径。</p>
-                <p>每个 CosyVoice 配置项的键名、用途说明，以及完整的 <code>settings.json</code> 示例，已经放在项目 README 中。</p>
+                <p>在工作区设置里，请按你实际使用的 provider 配置本地后端地址或 Python 路径、参考音频路径和参考文本。</p>
+                <p>每个 CosyVoice / Qwen3-TTS 配置项的键名、用途说明，以及完整的 <code>settings.json</code> 示例，已经放在项目 README 中。</p>
             </div>
         </div>
     </section>
@@ -536,7 +536,7 @@
                     </div>
                     <h3 class="support-title">文档</h3>
                     <p class="support-description">
-                        包含 Azure Speech、本地 CosyVoice、参考媒体配置和多语言开发说明的完整文档。
+                        包含 Azure Speech、本地 CosyVoice / Qwen3-TTS、参考媒体配置和多语言开发说明的完整文档。
                     </p>
                     <a href="https://github.com/hddevteam/speechify/blob/main/README.zh-CN.md" class="support-link" target="_blank" rel="noopener">
                         <i class="fas fa-external-link-alt"></i>
@@ -571,7 +571,7 @@
                         <span>Speechify</span>
                     </div>
                     <p class="footer-description">
-                        使用 Azure 语音或本地 CosyVoice 将文本转换为高质量语音。
+                        使用 Azure 语音、本地 CosyVoice 或本地 Qwen3-TTS 将文本转换为高质量语音。
                         专业的 VS Code 文本转语音与 Demo 视频扩展，支持更清晰的本地配置工作流。
                     </p>
                 </div>
