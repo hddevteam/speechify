@@ -8,17 +8,14 @@ import { upsertSpeechifyWorkspaceSettingsJsonText } from '../utils/speechifySett
 import { I18n } from '../i18n';
 import { buildVisionConfigGuidance } from './visionGuidance';
 import { CosyVoiceReferenceService } from './cosyVoiceReferenceService';
-import { CosyVoiceRecorderPanel } from '../webview/cosyVoiceRecorderPanel';
 import {
-  LocalReferenceWorkbenchAction,
   LocalReferenceWorkbenchFieldId,
   LocalReferenceWorkbenchPanel,
-  LocalReferenceWorkbenchState,
-  LocalReferenceWorkbenchTarget
+  LocalReferenceWorkbenchState
 } from '../webview/localReferenceWorkbenchPanel';
 import { ReferenceMediaService } from './referenceMediaService';
 
-type LocalReferenceTarget = LocalReferenceWorkbenchTarget;
+type LocalReferenceTarget = 'cosyvoice' | 'qwen3-tts' | 'both';
 
 export class VoiceConfigurationService {
   private static extensionContext: vscode.ExtensionContext | null = null;
@@ -232,23 +229,17 @@ export class VoiceConfigurationService {
     }
 
     await LocalReferenceWorkbenchPanel.open(this.extensionContext, {
-      getState: async target => this.getLocalReferenceWorkbenchState(target),
-      performAction: async (action, target) => this.performLocalReferenceWorkbenchAction(action, target),
+      getState: async () => this.getLocalReferenceWorkbenchState(),
+      selectMedia: async (pid) => this.selectReferenceAudioForTarget(pid),
+      transcribe: async (pid) => this.autoTranscribeReferenceAudioForTarget(pid),
+      saveRecording: async (pid, buf, text) => this.saveInlineRecording(pid, buf, text),
+      saveReferenceText: async (pid, text) => this.saveReferenceTextForProvider(pid, text),
       saveField: async (fieldId, value) => this.saveLocalReferenceWorkbenchField(fieldId, value)
     });
   }
 
-  public static async recordLocalReferenceAudio(targetOverride?: LocalReferenceTarget): Promise<void> {
-    const target = targetOverride ?? await this.chooseLocalReferenceTarget({
-      allowBoth: true,
-      placeHolder: this.getLocalReferenceTargetPlaceholder('record')
-    });
-
-    if (!target) {
-      return;
-    }
-
-    await this.recordReferenceAudioForTarget(target);
+  public static async recordLocalReferenceAudio(_targetOverride?: LocalReferenceTarget): Promise<void> {
+    await this.openLocalReferenceWorkbench();
   }
 
   public static async selectLocalReferenceAudio(targetOverride?: LocalReferenceTarget): Promise<void> {
@@ -290,19 +281,20 @@ export class VoiceConfigurationService {
     await this.openReferenceTextSettingsForTarget(target);
   }
 
-  private static async getLocalReferenceWorkbenchState(
-    target: LocalReferenceWorkbenchTarget
-  ): Promise<LocalReferenceWorkbenchState> {
+  private static async getLocalReferenceWorkbenchState(): Promise<LocalReferenceWorkbenchState> {
     const cosyVoiceConfig = ConfigManager.getCosyVoiceConfig();
     const qwenTtsConfig = ConfigManager.getQwenTtsConfig();
+    const defaultReferenceText = this.getLocalReferencePromptTextPlaceholder();
 
     return {
-      target,
       labels: this.getLocalReferenceWorkbenchLabels(),
       providers: [
         {
           id: 'cosyvoice',
           title: 'CosyVoice',
+          promptAudioPath: cosyVoiceConfig.promptAudioPath || '',
+          promptText: cosyVoiceConfig.promptText || '',
+          defaultReferenceText,
           editableFields: [
             {
               id: 'cosyvoice-base-url',
@@ -311,20 +303,15 @@ export class VoiceConfigurationService {
               placeholder: I18n.t('config.prompts.cosyVoiceBaseUrlPlaceholder'),
               submitLabel: this.getLocalReferenceWorkbenchSubmitLabel(),
               mono: true
-            },
-            {
-              id: 'cosyvoice-prompt-text',
-              label: this.isChineseLocale() ? '参考文本' : 'Reference Text',
-              value: cosyVoiceConfig.promptText || '',
-              placeholder: this.getLocalReferencePromptTextPlaceholder(),
-              submitLabel: this.getLocalReferenceWorkbenchSubmitLabel(),
-              multiline: true
             }
           ]
         },
         {
           id: 'qwen3-tts',
           title: 'Qwen3-TTS',
+          promptAudioPath: qwenTtsConfig.promptAudioPath || '',
+          promptText: qwenTtsConfig.promptText || '',
+          defaultReferenceText,
           editableFields: [
             {
               id: 'qwen-python-path',
@@ -341,14 +328,6 @@ export class VoiceConfigurationService {
               placeholder: this.getQwenTtsDefaultModelValue(),
               submitLabel: this.getLocalReferenceWorkbenchSubmitLabel(),
               mono: true
-            },
-            {
-              id: 'qwen-prompt-text',
-              label: this.isChineseLocale() ? '参考文本' : 'Reference Text',
-              value: qwenTtsConfig.promptText || '',
-              placeholder: this.getLocalReferencePromptTextPlaceholder(),
-              submitLabel: this.getLocalReferenceWorkbenchSubmitLabel(),
-              multiline: true
             }
           ]
         }
@@ -356,20 +335,46 @@ export class VoiceConfigurationService {
     };
   }
 
-  private static async performLocalReferenceWorkbenchAction(
-    action: LocalReferenceWorkbenchAction,
-    target: LocalReferenceWorkbenchTarget
+  private static async saveInlineRecording(
+    providerId: 'cosyvoice' | 'qwen3-tts',
+    audioBuffer: Uint8Array,
+    referenceText: string
   ): Promise<void> {
-    switch (action) {
-      case 'record':
-        await this.recordLocalReferenceAudio(target);
-        return;
-      case 'select-media':
-        await this.selectLocalReferenceAudio(target);
-        return;
-      case 'transcribe':
-        await this.autoTranscribeLocalReferenceAudio(target);
-        return;
+    const suggestedFileName = `${providerId}-reference-${this.createTimestampFileStem()}.wav`;
+    const defaultPath = providerId === 'qwen3-tts'
+      ? this.getDefaultQwenTtsReferenceAudioPath(suggestedFileName)
+      : this.getDefaultCosyVoiceReferenceAudioPath(suggestedFileName);
+
+    const saveUri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(defaultPath),
+      filters: { Audio: ['wav'] },
+      saveLabel: this.getRecordReferenceAudioLabel(),
+      title: providerId === 'qwen3-tts' ? this.getQwenTtsSaveAudioTitle() : this.getCosyVoiceSaveAudioTitle()
+    });
+
+    if (!saveUri) {
+      return;
+    }
+
+    await fs.mkdir(path.dirname(saveUri.fsPath), { recursive: true });
+    await fs.writeFile(saveUri.fsPath, audioBuffer);
+
+    if (referenceText.trim()) {
+      await this.updateReferenceTranscriptForTarget(providerId, referenceText.trim());
+    }
+
+    await this.updateReferenceAudioForTarget(providerId, saveUri.fsPath);
+  }
+
+  private static async saveReferenceTextForProvider(
+    providerId: 'cosyvoice' | 'qwen3-tts',
+    text: string
+  ): Promise<void> {
+    const trimmed = text.trim();
+    if (providerId === 'cosyvoice') {
+      await ConfigManager.updateProjectConfig('cosyVoicePromptText', trimmed);
+    } else {
+      await ConfigManager.updateProjectConfig('qwenTtsPromptText', trimmed);
     }
   }
 
@@ -383,118 +388,21 @@ export class VoiceConfigurationService {
       case 'cosyvoice-base-url':
         await ConfigManager.updateProjectConfig('cosyVoiceBaseUrl', trimmedValue || 'http://127.0.0.1:50000');
         return;
-      case 'cosyvoice-prompt-text':
-        await ConfigManager.updateProjectConfig('cosyVoicePromptText', trimmedValue);
-        return;
       case 'qwen-python-path':
         await ConfigManager.updateProjectConfig('qwenTtsPythonPath', trimmedValue || this.getQwenTtsDefaultPythonPathValue());
         return;
       case 'qwen-model':
         await ConfigManager.updateProjectConfig('qwenTtsModel', trimmedValue || this.getQwenTtsDefaultModelValue());
         return;
-      case 'qwen-prompt-text':
-        await ConfigManager.updateProjectConfig('qwenTtsPromptText', trimmedValue);
-        return;
     }
   }
 
   public static async recordCosyVoiceReferenceAudio(): Promise<void> {
-    if (!this.extensionContext) {
-      throw new Error(this.getExtensionContextNotInitializedMessage());
-    }
-
-    const recorded = await CosyVoiceRecorderPanel.record(this.extensionContext);
-    if (!recorded) {
-      return;
-    }
-
-    const saveUri = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file(this.getDefaultCosyVoiceReferenceAudioPath(recorded.suggestedFileName)),
-      filters: {
-        Audio: ['wav']
-      },
-      saveLabel: this.getRecordReferenceAudioLabel(),
-      title: this.getCosyVoiceSaveAudioTitle()
-    });
-
-    if (!saveUri) {
-      return;
-    }
-
-    await fs.mkdir(path.dirname(saveUri.fsPath), { recursive: true });
-    await fs.writeFile(saveUri.fsPath, recorded.audioBuffer);
-
-    if (recorded.referenceText.trim()) {
-      await ConfigManager.updateProjectConfig('cosyVoicePromptText', recorded.referenceText.trim());
-    }
-
-    await this.updateCosyVoiceReferenceAudio(saveUri.fsPath);
+    await this.openLocalReferenceWorkbench();
   }
 
   public static async recordQwenTtsReferenceAudio(): Promise<void> {
-    if (!this.extensionContext) {
-      throw new Error(this.getExtensionContextNotInitializedMessage());
-    }
-
-    const recorded = await CosyVoiceRecorderPanel.record(this.extensionContext);
-    if (!recorded) {
-      return;
-    }
-
-    const saveUri = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file(this.getDefaultQwenTtsReferenceAudioPath(recorded.suggestedFileName)),
-      filters: {
-        Audio: ['wav']
-      },
-      saveLabel: this.getQwenTtsRecordReferenceAudioLabel(),
-      title: this.getQwenTtsSaveAudioTitle()
-    });
-
-    if (!saveUri) {
-      return;
-    }
-
-    await fs.mkdir(path.dirname(saveUri.fsPath), { recursive: true });
-    await fs.writeFile(saveUri.fsPath, recorded.audioBuffer);
-
-    if (recorded.referenceText.trim()) {
-      await ConfigManager.updateProjectConfig('qwenTtsPromptText', recorded.referenceText.trim());
-    }
-
-    await this.updateQwenTtsReferenceAudio(saveUri.fsPath);
-  }
-
-  private static async recordReferenceAudioForTarget(target: LocalReferenceTarget): Promise<void> {
-    if (!this.extensionContext) {
-      throw new Error(this.getExtensionContextNotInitializedMessage());
-    }
-
-    const recorded = await CosyVoiceRecorderPanel.record(this.extensionContext);
-    if (!recorded) {
-      return;
-    }
-
-    const saveUri = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file(this.getDefaultReferenceAudioPath(target, recorded.suggestedFileName)),
-      filters: {
-        Audio: ['wav']
-      },
-      saveLabel: this.getLocalReferenceSaveLabel(target),
-      title: this.getLocalReferenceSaveTitle(target)
-    });
-
-    if (!saveUri) {
-      return;
-    }
-
-    await fs.mkdir(path.dirname(saveUri.fsPath), { recursive: true });
-    await fs.writeFile(saveUri.fsPath, recorded.audioBuffer);
-
-    if (recorded.referenceText.trim()) {
-      await this.updateReferenceTranscriptForTarget(target, recorded.referenceText.trim());
-    }
-
-    await this.updateReferenceAudioForTarget(target, saveUri.fsPath);
+    await this.openLocalReferenceWorkbench();
   }
 
   private static async selectReferenceAudioForTarget(target: LocalReferenceTarget): Promise<void> {
@@ -747,52 +655,6 @@ export class VoiceConfigurationService {
     return filePath;
   }
 
-  private static async updateCosyVoiceReferenceAudio(filePath: string): Promise<void> {
-    const storedPath = this.toWorkspaceSettingPath(filePath);
-    await ConfigManager.updateProjectConfig('cosyVoicePromptAudioPath', storedPath);
-
-    const autoTranscribeLabel = I18n.t('actions.autoTranscribeReference');
-    const revealLabel = I18n.t('actions.showInExplorer');
-    const selectedAction = await vscode.window.showInformationMessage(
-      I18n.t('notifications.success.referenceAudioUpdated'),
-      autoTranscribeLabel,
-      revealLabel,
-      I18n.t('actions.ok')
-    );
-
-    if (selectedAction === autoTranscribeLabel) {
-      await this.autoTranscribeCosyVoiceReferenceAudio();
-      return;
-    }
-
-    if (selectedAction === revealLabel) {
-      await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(filePath));
-    }
-  }
-
-  private static async updateQwenTtsReferenceAudio(filePath: string): Promise<void> {
-    const storedPath = this.toWorkspaceSettingPath(filePath);
-    await ConfigManager.updateProjectConfig('qwenTtsPromptAudioPath', storedPath);
-
-    const autoTranscribeLabel = I18n.t('actions.autoTranscribeReference');
-    const revealLabel = I18n.t('actions.showInExplorer');
-    const selectedAction = await vscode.window.showInformationMessage(
-      this.getQwenTtsReferenceAudioUpdatedMessage(),
-      autoTranscribeLabel,
-      revealLabel,
-      I18n.t('actions.ok')
-    );
-
-    if (selectedAction === autoTranscribeLabel) {
-      await this.autoTranscribeQwenTtsReferenceAudio();
-      return;
-    }
-
-    if (selectedAction === revealLabel) {
-      await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(filePath));
-    }
-  }
-
   private static async updateReferenceAudioForTarget(target: LocalReferenceTarget, filePath: string): Promise<void> {
     const storedPath = this.toWorkspaceSettingPath(filePath);
 
@@ -1001,6 +863,12 @@ export class VoiceConfigurationService {
     return {};
   }
 
+  private static createTimestampFileStem(): string {
+    const now = new Date();
+    const pad = (n: number, len = 2): string => String(n).padStart(len, '0');
+    return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  }
+
   private static getDefaultCosyVoiceReferenceAudioPath(suggestedFileName: string): string {
     const normalizedName = suggestedFileName.toLowerCase().endsWith('.wav')
       ? suggestedFileName
@@ -1025,24 +893,7 @@ export class VoiceConfigurationService {
     return path.join(baseDir, normalizedName.replace(/^cosyvoice-reference/, 'qwen3-tts-reference'));
   }
 
-  private static getDefaultReferenceAudioPath(target: LocalReferenceTarget, suggestedFileName: string): string {
-    if (target === 'qwen3-tts') {
-      return this.getDefaultQwenTtsReferenceAudioPath(suggestedFileName);
-    }
-
-    if (target === 'both') {
-      const sharedName = suggestedFileName.replace(/^cosyvoice-reference/i, 'local-reference');
-      return this.getDefaultCosyVoiceReferenceAudioPath(sharedName);
-    }
-
-    return this.getDefaultCosyVoiceReferenceAudioPath(suggestedFileName);
-  }
-
   private static getRecordReferenceAudioLabel(): string {
-    return vscode.env.language.toLowerCase().startsWith('zh') ? '录制参考音频' : 'Record Reference Audio';
-  }
-
-  private static getQwenTtsRecordReferenceAudioLabel(): string {
     return vscode.env.language.toLowerCase().startsWith('zh') ? '录制参考音频' : 'Record Reference Audio';
   }
 
@@ -1056,32 +907,6 @@ export class VoiceConfigurationService {
     return vscode.env.language.toLowerCase().startsWith('zh')
       ? '保存 Qwen3-TTS 参考音频'
       : 'Save Qwen3-TTS Reference Audio';
-  }
-
-  private static getLocalReferenceSaveTitle(target: LocalReferenceTarget): string {
-    if (target === 'cosyvoice') {
-      return this.getCosyVoiceSaveAudioTitle();
-    }
-
-    if (target === 'qwen3-tts') {
-      return this.getQwenTtsSaveAudioTitle();
-    }
-
-    return this.isChineseLocale()
-      ? '保存本地模型共享参考音频'
-      : 'Save Shared Local Reference Audio';
-  }
-
-  private static getLocalReferenceSaveLabel(target: LocalReferenceTarget): string {
-    if (target === 'cosyvoice') {
-      return this.getRecordReferenceAudioLabel();
-    }
-
-    if (target === 'qwen3-tts') {
-      return this.getQwenTtsRecordReferenceAudioLabel();
-    }
-
-    return this.isChineseLocale() ? '保存为共享参考音频' : 'Save Shared Reference Audio';
   }
 
   private static getCosyVoiceSelectReferenceMediaTitle(): string {
@@ -1791,43 +1616,45 @@ export class VoiceConfigurationService {
     if (this.isChineseLocale()) {
       return {
         title: '配置本地模型',
-        subtitle: '在同一个控制台里配置 CosyVoice 与 Qwen3-TTS 的关键参数，并统一管理录音、参考音频/视频和参考文本。',
-        targetLabel: '应用目标',
-        actionLabel: '参考声音操作',
+        subtitle: '在同一控制台里配置 CosyVoice 与 Qwen3-TTS 的关键参数，并统一管理录音、参考音频和参考文本。',
         providerLabel: '本地模型配置',
         record: '录制参考音频',
+        stopRecording: '停止录制',
+        retryRecording: '重录',
+        saveRecording: '保存录音',
         selectMedia: '选择音频/视频',
         transcribe: '自动转录',
-        cosyVoice: 'CosyVoice',
-        qwenTts: 'Qwen3-TTS',
-        both: '同时应用到两个',
-        targetHint: '先选目标，再执行操作。',
-        statusReady: '准备就绪',
-        workingRecord: '正在打开录音界面...',
-        workingSelectMedia: '正在选择参考媒体...',
-        workingTranscribe: '正在转录参考媒体...',
-        workingSaveField: '正在保存本地模型配置...'
+        idle: '空闲',
+        recording: '录制中',
+        processing: '处理中',
+        ready: '已就绪',
+        preview: '试听',
+        referenceTextLabel: '参考文本',
+        referenceTextSave: '保存',
+        noAudioConfigured: '尚未配置参考音频',
+        microphoneError: '录制失败，请检查麦克风权限和默认输入设备后重试。'
       };
     }
 
     return {
       title: 'Configure Local Models',
-      subtitle: 'Configure CosyVoice and Qwen3-TTS in one control center, while also managing recording, reference audio or video, and reference text in the same place.',
-      targetLabel: 'Apply To',
-      actionLabel: 'Reference Actions',
+      subtitle: 'Configure CosyVoice and Qwen3-TTS in one place, while managing recording, reference audio, and reference text.',
       providerLabel: 'Local Model Settings',
-      record: 'Record Reference Audio',
+      record: 'Record',
+      stopRecording: 'Stop',
+      retryRecording: 'Retry',
+      saveRecording: 'Save Recording',
       selectMedia: 'Select Audio / Video',
       transcribe: 'Auto-Transcribe',
-      cosyVoice: 'CosyVoice',
-      qwenTts: 'Qwen3-TTS',
-      both: 'Apply to Both',
-      targetHint: 'Choose a target first, then run an action.',
-      statusReady: 'Ready',
-      workingRecord: 'Opening the recorder...',
-      workingSelectMedia: 'Selecting reference media...',
-      workingTranscribe: 'Transcribing reference media...',
-      workingSaveField: 'Saving local model settings...'
+      idle: 'Idle',
+      recording: 'Recording',
+      processing: 'Processing',
+      ready: 'Ready',
+      preview: 'Preview',
+      referenceTextLabel: 'Reference Text',
+      referenceTextSave: 'Save',
+      noAudioConfigured: 'No reference audio configured',
+      microphoneError: 'Recording failed. Check microphone permission and default input device.'
     };
   }
 
