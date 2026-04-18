@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Speechify 3.1.0 - AI video creation and text-to-speech extension for VS Code with Azure Speech, local CosyVoice or Qwen3-TTS voice cloning, and vision-aware alignment.">
+    <meta name="description" content="Speechify 3.2.0 - AI video creation and text-to-speech extension for VS Code with Azure Speech, local CosyVoice or Qwen3-TTS voice cloning, and vision-aware alignment.">
     <meta name="keywords" content="VS Code extension, AI video creation, text-to-speech, Vision AI, video alignment, Azure Speech Services, CosyVoice, Qwen3-TTS, MLX-Audio, voice cloning, demo video automation, content creation">
     <meta name="author" content="Speechify Extension Team">
     <meta name="robots" content="index, follow">
     
     <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="Speechify 3.1.0 - AI Video Creation & TTS VS Code Extension">
+    <meta property="og:title" content="Speechify 3.2.0 - AI Video Creation &amp; TTS VS Code Extension">
     <meta property="og:description" content="Transform scripts into professional demo videos directly in VS Code. Featuring Vision-Aware Alignment, interactive timeline editing, and automatic video generation.">
     <meta property="og:image" content="./assets/images/icon-256.png">
     <meta property="og:url" content="https://hddevteam.github.io/speechify/">
@@ -32,7 +32,7 @@
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "Speechify",
-    "version": "3.1.0",
+    "version": "3.2.0",
       "description": "AI-powered video creation and text-to-speech extension for VS Code with Azure Speech, local CosyVoice or Qwen3-TTS cloning, and Vision-Aware Alignment",
       "url": "https://hddevteam.github.io/speechify/",
       "downloadUrl": "https://marketplace.visualstudio.com/items?itemName=luckyXmobile.speechify",
@@ -101,14 +101,14 @@
             <div class="hero-content">
                 <div class="hero-badge">
                     <i class="fas fa-video"></i>
-                    New v3.1.0 - Local Voice Cloning & Guided Settings!
+                    New v3.2.0 - Local Voice Cloning & Guided Settings!
                 </div>
                 <h1 class="hero-title">
                     From Script to Video: <span class="highlight">Integrated AI Video Creation</span>
                 </h1>
                 <p class="hero-description">
                     Stay in VS Code and transform your transcripts into professional demo videos. 
-                    Speechify 3.1.0 combines Azure Speech, local CosyVoice and Qwen3-TTS voice cloning, and guided configuration
+                    Speechify 3.2.0 combines Azure Speech, local CosyVoice and Qwen3-TTS voice cloning, and guided configuration
                     to automate alignment, edit timing, and generate synced audio-visual content in one workflow.
                 </p>
                 <div class="hero-buttons">
@@ -118,7 +118,7 @@
                     </a>
                     <a href="https://demoforgithub.blob.core.windows.net/videos/speechify_3_en.mp4" class="btn btn-secondary" target="_blank" rel="noopener">
                         <i class="fas fa-circle-play"></i>
-                        Watch 3.1.0 Demo
+                        Watch 3.2.0 Demo
                     </a>
                 </div>
                 <div class="hero-stats">
@@ -359,7 +359,7 @@
             <div class="section-header">
                 <h2 class="section-title">Designed For Efficiency</h2>
                 <p class="section-description">
-                    Speechify 3.1.0 scales from simple audio conversion to complex video production
+                    Speechify 3.2.0 scales from simple audio conversion to complex video production
                 </p>
             </div>
             
@@ -514,6 +514,11 @@
                 <p>Reference-media transcription runs locally. On macOS, Speechify tries Whisper MLX first for faster Apple Silicon inference, then falls back to a local Python Whisper runtime when MLX is unavailable.</p>
                 <p>In your workspace settings, make sure you configure the local backend address or Python path, the reference audio path, and the reference transcript for the provider you actually use.</p>
                 <p>The full list of CosyVoice and Qwen3-TTS configuration keys, what each one does, and complete <code>settings.json</code> examples are documented in the project README.</p>
+                <p style="margin-top: 16px;"><strong>Local engine repositories:</strong></p>
+                <ul style="margin: 8px 0 0 0; padding-left: 20px; line-height: 2;">
+                    <li><i class="fab fa-github" style="margin-right: 6px;"></i><strong>CosyVoice</strong> — <a href="https://github.com/FunAudioLLM/CosyVoice" target="_blank" rel="noopener">github.com/FunAudioLLM/CosyVoice</a></li>
+                    <li><i class="fab fa-github" style="margin-right: 6px;"></i><strong>Qwen3-TTS (mlx-audio)</strong> — <a href="https://github.com/Blaizzy/mlx-audio" target="_blank" rel="noopener">github.com/Blaizzy/mlx-audio</a></li>
+                </ul>
             </div>
         </div>
     </section>
