@@ -238,7 +238,7 @@ export class VoiceConfigurationService {
     });
   }
 
-  public static async recordLocalReferenceAudio(_targetOverride?: LocalReferenceTarget): Promise<void> {
+  public static async recordLocalReferenceAudio(): Promise<void> {
     await this.openLocalReferenceWorkbench();
   }
 
