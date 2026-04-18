@@ -5,13 +5,16 @@ All notable changes to the **Speechify** extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.1.0] - 2026-04-17
+## [3.1.0] - 2026-04-18
 
 ### ✨ Added
 - **Local CosyVoice Workflow**: Added a local provider path with reference-voice setup, in-editor recording, and local voiceover generation from the right-click Speechify menu.
+- **Unified Local Model Workbench**: Merged the separate recorder panel into the "Configure Local Models" workbench. Each provider card now has an inline recording widget — start/stop/preview/save all happen without leaving the workbench panel.
+- **Qwen3-TTS Local Provider**: Added a second local provider (`qwen3-tts`) with its own reference audio and transcript configuration, selectable from the same workbench.
 - **Guided Speechify Settings JSON**: "Open Speechify Settings (JSON)" now generates a commented JSONC template with grouped provider sections, examples, and migration away from legacy flat keys.
 
 ### 🔧 Changed
+- **Webview UI — VS Code Native Design**: Redesigned the Local Model Workbench and Recorder webview panels to use VS Code semantic color tokens (`--vscode-*`) instead of hardcoded colors, so they automatically adapt to any VS Code theme (dark, light, high-contrast).
 - **Provider-Focused Menu Layout**: Reorganized Speechify actions so Azure-only actions live under Azure, local capture/generation actions live under Local CosyVoice, and the global settings entry appears only once at the top-level Speechify menu.
 - **Configuration Grouping**: Standardized configuration on `speechify.provider`, `speechify.azure.*`, `speechify.cosyVoice.*`, and `speechify.vision.*` with legacy fallback support.
 
