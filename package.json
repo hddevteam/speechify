@@ -45,6 +45,11 @@
     "onCommand:extension.configureSpeechifyCosyVoiceSettings",
     "onCommand:extension.configureSpeechifyQwenTtsSettings",
     "onCommand:extension.openSpeechifySettingsJson",
+    "onCommand:extension.openSpeechifyLocalReferenceWorkbench",
+    "onCommand:extension.recordSpeechifyLocalReference",
+    "onCommand:extension.selectSpeechifyLocalReference",
+    "onCommand:extension.autoTranscribeSpeechifyLocalReference",
+    "onCommand:extension.editSpeechifyLocalReferenceText",
     "onCommand:extension.recordSpeechifyCosyVoiceReference",
     "onCommand:extension.recordSpeechifyQwenTtsReference",
     "onCommand:extension.configureSpeechifyVisionSettings",
@@ -113,6 +118,26 @@
         "title": "%speechify.command.openSettingsJson%"
       },
       {
+        "command": "extension.openSpeechifyLocalReferenceWorkbench",
+        "title": "%speechify.command.openLocalReferenceWorkbench%"
+      },
+      {
+        "command": "extension.recordSpeechifyLocalReference",
+        "title": "%speechify.command.recordLocalReference%"
+      },
+      {
+        "command": "extension.selectSpeechifyLocalReference",
+        "title": "%speechify.command.selectLocalReference%"
+      },
+      {
+        "command": "extension.autoTranscribeSpeechifyLocalReference",
+        "title": "%speechify.command.autoTranscribeLocalReference%"
+      },
+      {
+        "command": "extension.editSpeechifyLocalReferenceText",
+        "title": "%speechify.command.editLocalReferenceText%"
+      },
+      {
         "command": "extension.recordSpeechifyCosyVoiceReference",
         "title": "%speechify.command.recordCosyVoice%"
       },
@@ -155,12 +180,8 @@
         "label": "%speechify.menu.azure%"
       },
       {
-        "id": "speechify.localSubmenu",
-        "label": "%speechify.menu.local%"
-      },
-      {
-        "id": "speechify.qwenSubmenu",
-        "label": "%speechify.menu.qwen%"
+        "id": "speechify.localModelsSubmenu",
+        "label": "%speechify.menu.localModels%"
       }
     ],
     "menus": {
@@ -196,13 +217,8 @@
           "when": "editorTextFocus || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
         },
         {
-          "submenu": "speechify.localSubmenu",
+          "submenu": "speechify.localModelsSubmenu",
           "group": "1_audio@2",
-          "when": "editorTextFocus || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
-        },
-        {
-          "submenu": "speechify.qwenSubmenu",
-          "group": "1_audio@3",
           "when": "editorTextFocus || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
         },
         {
@@ -263,36 +279,19 @@
           "when": "editorTextFocus"
         }
       ],
-      "speechify.localSubmenu": [
+      "speechify.localModelsSubmenu": [
         {
           "command": "extension.generateLocalAudio",
           "group": "1_generate@1",
           "when": "editorTextFocus"
         },
         {
-          "command": "extension.recordSpeechifyCosyVoiceReference",
-          "group": "1_generate@2",
-          "when": "editorTextFocus"
-        },
-        {
-          "command": "extension.configureSpeechifyCosyVoiceSettings",
-          "group": "2_settings@1",
-          "when": "editorTextFocus"
-        }
-      ],
-      "speechify.qwenSubmenu": [
-        {
           "command": "extension.generateQwenAudio",
-          "group": "1_generate@1",
-          "when": "editorTextFocus"
-        },
-        {
-          "command": "extension.recordSpeechifyQwenTtsReference",
           "group": "1_generate@2",
           "when": "editorTextFocus"
         },
         {
-          "command": "extension.configureSpeechifyQwenTtsSettings",
+          "command": "extension.openSpeechifyLocalReferenceWorkbench",
           "group": "2_settings@1",
           "when": "editorTextFocus"
         }
@@ -546,7 +545,7 @@
     "test": "node ./scripts/test-runner.js",
     "test:stable": "node ./scripts/test-runner.js",
     "test:full": "SPEECHIFY_TEST_PROFILE=full node ./scripts/test-runner.js",
-    "test:unit": "npm run compile-tests && mocha --ui tdd \"out/test/suite/refineScript.unit.test.js\" \"out/test/suite/speechServiceRefactor.unit.test.js\" \"out/test/suite/cosyVoiceStartup.unit.test.js\" \"out/test/suite/cosyVoiceServer.unit.test.js\" \"out/test/suite/cosyVoiceAudio.unit.test.js\" \"out/test/suite/cosyVoiceRecorderPanel.unit.test.js\" \"out/test/suite/qwenTtsAudio.unit.test.js\" \"out/test/suite/extensionCommandRouting.unit.test.js\" \"out/test/suite/configManager.unit.test.js\" \"out/test/suite/voiceConfigurationService.unit.test.js\" \"out/test/suite/speechifySettings.unit.test.js\" \"out/test/suite/packageManifest.unit.test.js\" \"out/test/suite/releaseMetadata.unit.test.js\" \"out/test/suite/textSource.test.js\"",
+    "test:unit": "npm run compile-tests && mocha --ui tdd \"out/test/suite/refineScript.unit.test.js\" \"out/test/suite/speechServiceRefactor.unit.test.js\" \"out/test/suite/cosyVoiceStartup.unit.test.js\" \"out/test/suite/cosyVoiceServer.unit.test.js\" \"out/test/suite/cosyVoiceAudio.unit.test.js\" \"out/test/suite/cosyVoiceRecorderPanel.unit.test.js\" \"out/test/suite/localReferenceWorkbenchPanel.unit.test.js\" \"out/test/suite/qwenTtsAudio.unit.test.js\" \"out/test/suite/extensionCommandRouting.unit.test.js\" \"out/test/suite/configManager.unit.test.js\" \"out/test/suite/voiceConfigurationService.unit.test.js\" \"out/test/suite/speechifySettings.unit.test.js\" \"out/test/suite/packageManifest.unit.test.js\" \"out/test/suite/releaseMetadata.unit.test.js\" \"out/test/suite/textSource.test.js\"",
     "test:integration": "node ./scripts/test-runner.js",
     "test:local": "node ./out/test/runTest.js"
   },

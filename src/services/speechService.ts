@@ -235,6 +235,26 @@ export class SpeechService {
     await VoiceConfigurationService.recordQwenTtsReferenceAudio();
   }
 
+  public static async recordLocalReferenceAudio(): Promise<void> {
+    await VoiceConfigurationService.recordLocalReferenceAudio();
+  }
+
+  public static async openLocalReferenceWorkbench(): Promise<void> {
+    await VoiceConfigurationService.openLocalReferenceWorkbench();
+  }
+
+  public static async selectLocalReferenceAudio(): Promise<void> {
+    await VoiceConfigurationService.selectLocalReferenceAudio();
+  }
+
+  public static async autoTranscribeLocalReferenceAudio(): Promise<void> {
+    await VoiceConfigurationService.autoTranscribeLocalReferenceAudio();
+  }
+
+  public static async openLocalReferenceTextSettings(): Promise<void> {
+    await VoiceConfigurationService.openLocalReferenceTextSettings();
+  }
+
   public static async openSpeechifySettingsJson(): Promise<void> {
     await VoiceConfigurationService.openSpeechifySettingsJson();
   }

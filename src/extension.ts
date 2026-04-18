@@ -152,6 +152,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('extension.configureSpeechifyCosyVoiceSettings', configureSpeechifyCosyVoiceSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyQwenTtsSettings', configureSpeechifyQwenTtsSettings),
         vscode.commands.registerCommand('extension.openSpeechifySettingsJson', openSpeechifySettingsJson),
+        vscode.commands.registerCommand('extension.openSpeechifyLocalReferenceWorkbench', openSpeechifyLocalReferenceWorkbench),
+        vscode.commands.registerCommand('extension.recordSpeechifyLocalReference', recordSpeechifyLocalReference),
+        vscode.commands.registerCommand('extension.selectSpeechifyLocalReference', selectSpeechifyLocalReference),
+        vscode.commands.registerCommand('extension.autoTranscribeSpeechifyLocalReference', autoTranscribeSpeechifyLocalReference),
+        vscode.commands.registerCommand('extension.editSpeechifyLocalReferenceText', editSpeechifyLocalReferenceText),
         vscode.commands.registerCommand('extension.recordSpeechifyCosyVoiceReference', recordSpeechifyCosyVoiceReference),
         vscode.commands.registerCommand('extension.recordSpeechifyQwenTtsReference', recordSpeechifyQwenTtsReference),
         vscode.commands.registerCommand('extension.configureSpeechifyVisionSettings', configureSpeechifyVisionSettings),
@@ -458,6 +463,61 @@ async function openSpeechifySettingsJson(): Promise<void> {
         await SpeechService.openSpeechifySettingsJson();
     } catch (error) {
         console.error('Failed to open Speechify settings JSON:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
+        );
+    }
+}
+
+async function openSpeechifyLocalReferenceWorkbench(): Promise<void> {
+    try {
+        await SpeechService.openLocalReferenceWorkbench();
+    } catch (error) {
+        console.error('Failed to open the local reference workbench:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
+        );
+    }
+}
+
+async function recordSpeechifyLocalReference(): Promise<void> {
+    try {
+        await SpeechService.recordLocalReferenceAudio();
+    } catch (error) {
+        console.error('Failed to record shared local reference audio:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
+        );
+    }
+}
+
+async function selectSpeechifyLocalReference(): Promise<void> {
+    try {
+        await SpeechService.selectLocalReferenceAudio();
+    } catch (error) {
+        console.error('Failed to select shared local reference media:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
+        );
+    }
+}
+
+async function autoTranscribeSpeechifyLocalReference(): Promise<void> {
+    try {
+        await SpeechService.autoTranscribeLocalReferenceAudio();
+    } catch (error) {
+        console.error('Failed to auto-transcribe shared local reference media:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
+        );
+    }
+}
+
+async function editSpeechifyLocalReferenceText(): Promise<void> {
+    try {
+        await SpeechService.openLocalReferenceTextSettings();
+    } catch (error) {
+        console.error('Failed to open shared local reference text settings:', error);
         vscode.window.showErrorMessage(
             error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
         );

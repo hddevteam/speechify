@@ -33,8 +33,13 @@ suite('Extension Integration Tests', () => {
             'extension.configureSpeechifyCosyVoiceSettings',
             'extension.configureSpeechifyQwenTtsSettings',
             'extension.openSpeechifySettingsJson',
+            'extension.openSpeechifyLocalReferenceWorkbench',
             'extension.recordSpeechifyCosyVoiceReference',
-            'extension.recordSpeechifyQwenTtsReference'
+            'extension.recordSpeechifyQwenTtsReference',
+            'extension.recordSpeechifyLocalReference',
+            'extension.selectSpeechifyLocalReference',
+            'extension.autoTranscribeSpeechifyLocalReference',
+            'extension.editSpeechifyLocalReferenceText'
         ];
         
         for (const command of expectedCommands) {

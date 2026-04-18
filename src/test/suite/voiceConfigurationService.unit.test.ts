@@ -24,7 +24,8 @@ async function withVscodeMock<T>(
     state?: MockState;
   } = {}
 ): Promise<T> {
-  const configuredKeys = new Set((options.configValues || new Map<string, unknown>()).keys());
+  const configValues = options.configValues || new Map<string, unknown>();
+  const configuredKeys = new Set(configValues.keys());
   const workspaceRoot = options.workspaceRoot;
   const state = options.state;
   const vscodeMock = {
@@ -32,14 +33,18 @@ async function withVscodeMock<T>(
       workspaceFolders: workspaceRoot ? [{ uri: { fsPath: workspaceRoot } }] : undefined,
       getConfiguration: () => ({
         get: <Value>(section: string, defaultValue: Value) =>
-          ((options.configValues || new Map<string, unknown>()).has(section)
-            ? (options.configValues || new Map<string, unknown>()).get(section)
+          (configValues.has(section)
+            ? configValues.get(section)
             : defaultValue) as Value,
         inspect: (section: string): { workspaceValue?: unknown } | undefined =>
           configuredKeys.has(section)
-            ? { workspaceValue: (options.configValues || new Map<string, unknown>()).get(section) }
+            ? { workspaceValue: configValues.get(section) }
             : undefined,
-        update: async () => undefined
+        update: async (section: string, value: unknown) => {
+          configValues.set(section, value);
+          configuredKeys.add(section);
+          return undefined;
+        }
       }),
       openTextDocument: async (filePath: string) => {
         const text = fs.readFileSync(filePath, 'utf8');
@@ -83,6 +88,10 @@ async function withVscodeMock<T>(
     TextEditorRevealType: {
       InCenter: 0
     },
+    ConfigurationTarget: {
+      Global: 1,
+      Workspace: 2
+    },
     commands: {
       executeCommand: async () => undefined
     }
@@ -104,6 +113,87 @@ async function withVscodeMock<T>(
 }
 
 suite('Voice Configuration Service Provider Routing', () => {
+  test('should expose inline editable fields in the local model workbench state', async () => {
+    const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'speechify-local-workbench-'));
+    const detectedPythonPath = path.join(workspaceRoot, 'vendor', 'Qwen3-TTS', '.venv312', 'bin', 'python');
+    fs.mkdirSync(path.dirname(detectedPythonPath), { recursive: true });
+    fs.writeFileSync(detectedPythonPath, '');
+    const configValues = new Map<string, unknown>([
+      ['provider', 'qwen3-tts'],
+      ['cosyVoice.baseUrl', 'http://127.0.0.1:50000'],
+      ['qwenTts.pythonPath', ''],
+      ['qwenTts.model', 'mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16']
+    ]);
+
+    try {
+      await withVscodeMock(async () => {
+        delete require.cache[require.resolve('../../services/voiceConfigurationService')];
+        delete require.cache[require.resolve('../../utils/config')];
+        const { VoiceConfigurationService } = require('../../services/voiceConfigurationService') as typeof import('../../services/voiceConfigurationService');
+
+        const serviceStub = VoiceConfigurationService as unknown as {
+          getLocalReferenceWorkbenchState: (target: 'cosyvoice' | 'qwen3-tts' | 'both') => Promise<{
+            providers: Array<{
+              id: string;
+              editableFields: Array<{ id: string; value: string; placeholder?: string }>;
+            }>;
+          }>;
+        };
+
+        const state = await serviceStub.getLocalReferenceWorkbenchState('both');
+        const cosyVoice = state.providers.find(provider => provider.id === 'cosyvoice');
+        const qwen = state.providers.find(provider => provider.id === 'qwen3-tts');
+
+        assert.ok(cosyVoice, 'CosyVoice provider card should exist');
+        assert.ok(qwen, 'Qwen3-TTS provider card should exist');
+        assert.deepStrictEqual(
+          cosyVoice?.editableFields.map(field => field.id),
+          ['cosyvoice-base-url', 'cosyvoice-prompt-text']
+        );
+        assert.deepStrictEqual(
+          qwen?.editableFields.map(field => field.id),
+          ['qwen-python-path', 'qwen-model', 'qwen-prompt-text']
+        );
+        assert.strictEqual(
+          qwen?.editableFields.find(field => field.id === 'qwen-python-path')?.value,
+          '${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python'
+        );
+      }, { workspaceRoot, configValues });
+    } finally {
+      fs.rmSync(workspaceRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('should save workbench fields directly into project configuration', async () => {
+    const configValues = new Map<string, unknown>([
+      ['provider', 'qwen3-tts'],
+      ['cosyVoice.baseUrl', 'http://127.0.0.1:50000'],
+      ['qwenTts.pythonPath', '${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python'],
+      ['qwenTts.model', 'mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16']
+    ]);
+
+    await withVscodeMock(async () => {
+      delete require.cache[require.resolve('../../services/voiceConfigurationService')];
+      delete require.cache[require.resolve('../../utils/config')];
+      const { VoiceConfigurationService } = require('../../services/voiceConfigurationService') as typeof import('../../services/voiceConfigurationService');
+
+      const serviceStub = VoiceConfigurationService as unknown as {
+        saveLocalReferenceWorkbenchField: (
+          fieldId: 'cosyvoice-base-url' | 'cosyvoice-prompt-text' | 'qwen-python-path' | 'qwen-model' | 'qwen-prompt-text',
+          value: string
+        ) => Promise<void>;
+      };
+
+      await serviceStub.saveLocalReferenceWorkbenchField('qwen-python-path', '/tmp/qwen-python');
+      await serviceStub.saveLocalReferenceWorkbenchField('qwen-model', 'mlx-community/Qwen3-TTS-4B-Instruct-bf16');
+      await serviceStub.saveLocalReferenceWorkbenchField('cosyvoice-prompt-text', '新的参考文本');
+
+      assert.strictEqual(configValues.get('qwenTts.pythonPath'), '/tmp/qwen-python');
+      assert.strictEqual(configValues.get('qwenTts.model'), 'mlx-community/Qwen3-TTS-4B-Instruct-bf16');
+      assert.strictEqual(configValues.get('cosyVoice.promptText'), '新的参考文本');
+    }, { configValues });
+  });
+
   test('should route the configuration wizard directly to Qwen3-TTS when requested', async () => {
     await withVscodeMock(async () => {
       delete require.cache[require.resolve('../../services/voiceConfigurationService')];

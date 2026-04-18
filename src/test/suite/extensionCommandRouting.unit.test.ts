@@ -269,4 +269,99 @@ suite('Extension Command Routing', () => {
       ModuleInternals._load = originalModuleLoad;
     }
   });
+
+  test('should route the local reference workbench command through the shared SpeechService entrypoint', async () => {
+    const registeredCommands = new Map<string, (...args: unknown[]) => Promise<void> | void>();
+    let openLocalReferenceWorkbenchCalls = 0;
+
+    const vscodeMock = {
+      window: {
+        activeTextEditor: undefined,
+        showErrorMessage: async () => undefined,
+        showInformationMessage: async () => undefined,
+        onDidChangeActiveTextEditor: () => ({ dispose: () => undefined })
+      },
+      workspace: {
+        onDidSaveTextDocument: () => ({ dispose: () => undefined }),
+        onDidOpenTextDocument: () => ({ dispose: () => undefined }),
+        openTextDocument: async () => ({
+          getText: () => ''
+        })
+      },
+      commands: {
+        registerCommand: (command: string, callback: (...args: unknown[]) => Promise<void> | void) => {
+          registeredCommands.set(command, callback);
+          return { dispose: () => undefined };
+        },
+        executeCommand: async () => undefined
+      },
+      env: {
+        openExternal: async () => undefined
+      },
+      Uri: {
+        file: (fsPath: string) => ({ fsPath })
+      }
+    };
+
+    const speechServiceMock = {
+      SpeechService: {
+        setExtensionContext: () => undefined,
+        openLocalReferenceWorkbench: async () => {
+          openLocalReferenceWorkbenchCalls += 1;
+        }
+      }
+    };
+
+    const configMock = {
+      ConfigManager: {
+        requiresPreflightConfiguration: () => false,
+        isConfigurationComplete: () => false
+      }
+    };
+
+    const i18nMock = {
+      I18n: {
+        t: (key: string, ...args: string[]) => `${key}:${args.join('|')}`
+      }
+    };
+
+    ModuleInternals._load = function patchedLoad(request: string, parent: NodeModule | null, isMain: boolean): unknown {
+      if (request === 'vscode') {
+        return vscodeMock;
+      }
+
+      if (request === './services/speechService') {
+        return speechServiceMock;
+      }
+
+      if (request === './utils/config') {
+        return configMock;
+      }
+
+      if (request === './i18n') {
+        return i18nMock;
+      }
+
+      return originalModuleLoad.call(this, request, parent, isMain);
+    };
+
+    try {
+      delete require.cache[require.resolve('../../extension')];
+      const extension = require('../../extension') as typeof import('../../extension');
+      await extension.activate({ subscriptions: [] } as never);
+
+      const command = registeredCommands.get('extension.openSpeechifyLocalReferenceWorkbench');
+      assert.ok(command, 'Local reference workbench command should be registered');
+
+      await command?.();
+
+      assert.strictEqual(
+        openLocalReferenceWorkbenchCalls,
+        1,
+        'Opening the local reference workbench should delegate to SpeechService once'
+      );
+    } finally {
+      ModuleInternals._load = originalModuleLoad;
+    }
+  });
 });
