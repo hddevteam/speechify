@@ -118,26 +118,10 @@ export class VoiceConfigurationService {
   public static async configureAzureSettings(): Promise<void> {
     const currentProvider = ConfigManager.getSpeechProvider();
     const providerChoice = await vscode.window.showQuickPick(
-      [
-        {
-          label: 'Azure Speech',
-          description: currentProvider === 'azure' ? I18n.t('settings.current') : '',
-          provider: 'azure' as const
-        },
-        {
-          label: 'CosyVoice (Local)',
-          description: currentProvider === 'cosyvoice' ? I18n.t('settings.current') : '',
-          provider: 'cosyvoice' as const
-        },
-        {
-          label: 'Qwen3-TTS + MLX-Audio (Local)',
-          description: currentProvider === 'qwen3-tts' ? I18n.t('settings.current') : '',
-          provider: 'qwen3-tts' as const
-        }
-      ],
+      this.getSpeechProviderQuickPickItems(currentProvider),
       {
-        title: 'Select Speech Backend',
-        placeHolder: 'Choose the speech backend to configure'
+        title: this.getSpeechProviderPickerTitle(),
+        placeHolder: this.getSpeechProviderPickerPlaceholder()
       }
     );
 
@@ -218,7 +202,7 @@ export class VoiceConfigurationService {
           }
         ],
         {
-          title: 'CosyVoice',
+          title: this.getCosyVoiceMenuTitle(),
           placeHolder: I18n.t('config.prompts.cosyVoiceSelectAction')
         }
       );
@@ -294,7 +278,7 @@ export class VoiceConfigurationService {
           }
         ],
         {
-          title: 'Qwen3-TTS + MLX-Audio',
+          title: this.getQwenTtsMenuTitle(),
           placeHolder: this.getQwenTtsSelectActionPlaceholder()
         }
       );
@@ -339,7 +323,7 @@ export class VoiceConfigurationService {
 
   public static async recordCosyVoiceReferenceAudio(): Promise<void> {
     if (!this.extensionContext) {
-      throw new Error('Speechify extension context is not initialized.');
+      throw new Error(this.getExtensionContextNotInitializedMessage());
     }
 
     const recorded = await CosyVoiceRecorderPanel.record(this.extensionContext);
@@ -372,7 +356,7 @@ export class VoiceConfigurationService {
 
   public static async recordQwenTtsReferenceAudio(): Promise<void> {
     if (!this.extensionContext) {
-      throw new Error('Speechify extension context is not initialized.');
+      throw new Error(this.getExtensionContextNotInitializedMessage());
     }
 
     const recorded = await CosyVoiceRecorderPanel.record(this.extensionContext);
@@ -500,13 +484,9 @@ export class VoiceConfigurationService {
     }
 
     const languageChoice = await vscode.window.showQuickPick(
-      [
-        { label: '中文 (Recommended)', language: 'zh' as const },
-        { label: 'Auto Detect', language: 'auto' as const },
-        { label: 'English', language: 'en' as const }
-      ],
+      this.getReferenceTranscriptionLanguageItems(),
       {
-        title: 'CosyVoice',
+        title: this.getCosyVoiceMenuTitle(),
         placeHolder: I18n.t('config.prompts.cosyVoiceSelectTranscriptionLanguage')
       }
     );
@@ -538,13 +518,9 @@ export class VoiceConfigurationService {
     }
 
     const languageChoice = await vscode.window.showQuickPick(
-      [
-        { label: '中文 (Recommended)', language: 'zh' as const },
-        { label: 'Auto Detect', language: 'auto' as const },
-        { label: 'English', language: 'en' as const }
-      ],
+      this.getReferenceTranscriptionLanguageItems(),
       {
-        title: 'Qwen3-TTS + MLX-Audio',
+        title: this.getQwenTtsMenuTitle(),
         placeHolder: this.getQwenTtsSelectTranscriptionLanguagePlaceholder()
       }
     );
@@ -1174,7 +1150,10 @@ export class VoiceConfigurationService {
       return;
     }
 
-    const styleItems = currentVoice.StyleList.map(style => ({ label: style, description: '' }));
+    const styleItems = currentVoice.StyleList.map(style => ({
+      label: style,
+      description: this.getStyleDescription(style)
+    }));
     const currentStyleIndex = styleItems.findIndex(item => item.label === voiceSettings.style);
     if (currentStyleIndex !== -1) {
       const [currentStyleItem] = styleItems.splice(currentStyleIndex, 1);
@@ -1186,7 +1165,7 @@ export class VoiceConfigurationService {
 
     const selectedStyleItem = await vscode.window.showQuickPick(styleItems, {
       placeHolder: I18n.t('config.prompts.selectStyle'),
-      title: `Select style for ${currentVoice.DisplayName}`
+      title: this.getSelectStylePlaceholder(currentVoice.DisplayName)
     });
 
     if (!selectedStyleItem) return;
@@ -1266,7 +1245,7 @@ export class VoiceConfigurationService {
         return {
           label: localeName,
           description: voice?.Locale || '',
-          detail: `${voiceList.filter(v => v.LocaleName === localeName).length} voices available`
+          detail: this.getVoiceCountDetail(voiceList.filter(v => v.LocaleName === localeName).length)
         };
       })
       .sort((a, b) => a.label.localeCompare(b.label));
@@ -1284,7 +1263,7 @@ export class VoiceConfigurationService {
 
     const selectedLocale = await vscode.window.showQuickPick(localeItems, {
       placeHolder: I18n.t('config.prompts.selectLanguage'),
-      title: 'Step 1/3: Select Language'
+      title: this.getSelectLanguageStepTitle()
     });
 
     return selectedLocale?.label.startsWith('★ ')
@@ -1305,8 +1284,8 @@ export class VoiceConfigurationService {
         description: voice.ShortName,
         detail:
           voice.StyleList && voice.StyleList.length > 0
-            ? `Styles: ${voice.StyleList.join(', ')}`
-            : 'Default style only',
+            ? this.getVoiceStylesDetail(voice.StyleList)
+            : this.getDefaultStyleOnlyDetail(),
         voice
       }))
       .sort((a, b) => {
@@ -1327,7 +1306,7 @@ export class VoiceConfigurationService {
 
     const selectedVoiceItem = await vscode.window.showQuickPick(voiceItems, {
       placeHolder: I18n.t('config.prompts.selectVoice'),
-      title: `Step 2/3: Select Voice for ${localeName}`
+      title: this.getSelectVoiceStepTitle(localeName)
     });
 
     return selectedVoiceItem?.voice;
@@ -1356,8 +1335,8 @@ export class VoiceConfigurationService {
     }
 
     const selectedStyleItem = await vscode.window.showQuickPick(styleItems, {
-      placeHolder: `Select style for ${voice.DisplayName}`,
-      title: 'Step 3/3: Select Voice Style'
+      placeHolder: this.getSelectStylePlaceholder(voice.DisplayName),
+      title: this.getSelectVoiceStyleStepTitle()
     });
 
     const selectedStyle = selectedStyleItem?.label.startsWith('★ ')
@@ -1368,6 +1347,29 @@ export class VoiceConfigurationService {
   }
 
   private static getStyleDescription(style: string): string {
+    if (this.isChineseLocale()) {
+      const chineseStyleDescriptions: { [key: string]: string } = {
+        general: '默认中性风格',
+        cheerful: '轻快愉悦',
+        sad: '低沉伤感',
+        angry: '生气严厉',
+        fearful: '紧张害怕',
+        disgruntled: '抱怨不满',
+        serious: '严肃有力',
+        affectionate: '温暖亲切',
+        gentle: '温和礼貌',
+        calm: '冷静平稳',
+        newscast: '正式播报风格',
+        customerservice: '客服式友好风格',
+        assistant: '数字助手风格',
+        chat: '日常对话风格',
+        hopeful: '积极鼓舞',
+        excited: '热情兴奋'
+      };
+
+      return chineseStyleDescriptions[style] || '语音风格';
+    }
+
     const styleDescriptions: { [key: string]: string } = {
       general: 'Default neutral style',
       cheerful: 'Happy and upbeat',
@@ -1388,5 +1390,110 @@ export class VoiceConfigurationService {
     };
 
     return styleDescriptions[style] || 'Voice style';
+  }
+
+  private static getSpeechProviderQuickPickItems(currentProvider: SpeechProviderType): Array<{
+    label: string;
+    description: string;
+    provider: 'azure' | 'cosyvoice' | 'qwen3-tts';
+  }> {
+    return [
+      {
+        label: this.isChineseLocale() ? 'Azure Speech' : 'Azure Speech',
+        description: currentProvider === 'azure' ? I18n.t('settings.current') : '',
+        provider: 'azure'
+      },
+      {
+        label: this.isChineseLocale() ? 'CosyVoice（本地）' : 'CosyVoice (Local)',
+        description: currentProvider === 'cosyvoice' ? I18n.t('settings.current') : '',
+        provider: 'cosyvoice'
+      },
+      {
+        label: this.isChineseLocale() ? 'Qwen3-TTS + MLX-Audio（本地）' : 'Qwen3-TTS + MLX-Audio (Local)',
+        description: currentProvider === 'qwen3-tts' ? I18n.t('settings.current') : '',
+        provider: 'qwen3-tts'
+      }
+    ];
+  }
+
+  private static getSpeechProviderPickerTitle(): string {
+    return this.isChineseLocale() ? '选择语音后端' : 'Select Speech Backend';
+  }
+
+  private static getSpeechProviderPickerPlaceholder(): string {
+    return this.isChineseLocale()
+      ? '选择要配置的语音后端'
+      : 'Choose the speech backend to configure';
+  }
+
+  private static getCosyVoiceMenuTitle(): string {
+    return this.isChineseLocale() ? 'CosyVoice（本地）' : 'CosyVoice';
+  }
+
+  private static getQwenTtsMenuTitle(): string {
+    return this.isChineseLocale() ? 'Qwen3-TTS + MLX-Audio（本地）' : 'Qwen3-TTS + MLX-Audio';
+  }
+
+  private static getReferenceTranscriptionLanguageItems(): Array<{
+    label: string;
+    language: 'zh' | 'auto' | 'en';
+  }> {
+    if (this.isChineseLocale()) {
+      return [
+        { label: '中文（推荐）', language: 'zh' },
+        { label: '自动检测', language: 'auto' },
+        { label: 'English', language: 'en' }
+      ];
+    }
+
+    return [
+      { label: 'Chinese (Recommended)', language: 'zh' },
+      { label: 'Auto Detect', language: 'auto' },
+      { label: 'English', language: 'en' }
+    ];
+  }
+
+  private static getSelectLanguageStepTitle(): string {
+    return this.isChineseLocale() ? '第 1/3 步：选择语言' : 'Step 1/3: Select Language';
+  }
+
+  private static getSelectVoiceStepTitle(localeName: string): string {
+    return this.isChineseLocale()
+      ? `第 2/3 步：选择语音 (${localeName})`
+      : `Step 2/3: Select Voice for ${localeName}`;
+  }
+
+  private static getSelectVoiceStyleStepTitle(): string {
+    return this.isChineseLocale() ? '第 3/3 步：选择语音风格' : 'Step 3/3: Select Voice Style';
+  }
+
+  private static getSelectStylePlaceholder(voiceDisplayName: string): string {
+    return this.isChineseLocale()
+      ? `选择 ${voiceDisplayName} 的语音风格`
+      : `Select style for ${voiceDisplayName}`;
+  }
+
+  private static getVoiceCountDetail(count: number): string {
+    return this.isChineseLocale() ? `共 ${count} 个语音可选` : `${count} voices available`;
+  }
+
+  private static getVoiceStylesDetail(styles: string[]): string {
+    return this.isChineseLocale()
+      ? `支持风格：${styles.join(', ')}`
+      : `Styles: ${styles.join(', ')}`;
+  }
+
+  private static getDefaultStyleOnlyDetail(): string {
+    return this.isChineseLocale() ? '仅默认风格' : 'Default style only';
+  }
+
+  private static isChineseLocale(): boolean {
+    return vscode.env.language.toLowerCase().startsWith('zh');
+  }
+
+  private static getExtensionContextNotInitializedMessage(): string {
+    return this.isChineseLocale()
+      ? 'Speechify 扩展上下文尚未初始化。'
+      : 'Speechify extension context is not initialized.';
   }
 }

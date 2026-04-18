@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
+import * as vscode from 'vscode';
 import { QwenTtsConfig, SpeechSynthesisResult } from '../types';
 import { SpeechTextUtils } from '../utils/speechText';
 import { ReferenceMediaService } from './referenceMediaService';
@@ -67,23 +68,23 @@ export class QwenTtsService {
 
   private static validateConfig(config: QwenTtsConfig): void {
     if (!config.pythonPath.trim()) {
-      throw new Error('Qwen3-TTS Python path is not configured.');
+      throw new Error(this.getPythonPathNotConfiguredMessage());
     }
 
     if (!fs.existsSync(config.pythonPath)) {
-      throw new Error(`Qwen3-TTS Python runtime not found: ${config.pythonPath}`);
+      throw new Error(this.getPythonRuntimeNotFoundMessage(config.pythonPath));
     }
 
     if (!config.model.trim()) {
-      throw new Error('Qwen3-TTS model is not configured.');
+      throw new Error(this.getModelNotConfiguredMessage());
     }
 
     if (!config.promptAudioPath.trim()) {
-      throw new Error('Qwen3-TTS reference audio path is not configured.');
+      throw new Error(this.getReferenceAudioPathNotConfiguredMessage());
     }
 
     if (!fs.existsSync(config.promptAudioPath)) {
-      throw new Error(`Qwen3-TTS reference audio file not found: ${config.promptAudioPath}`);
+      throw new Error(this.getReferenceAudioFileNotFoundMessage(config.promptAudioPath));
     }
   }
 
@@ -218,5 +219,39 @@ export class QwenTtsService {
       sampleRate?: number;
       frameCount?: number;
     };
+  }
+
+  private static getPythonPathNotConfiguredMessage(): string {
+    return this.isChineseLocale()
+      ? '还没有配置 Qwen3-TTS 的 Python 路径。'
+      : 'Qwen3-TTS Python path is not configured.';
+  }
+
+  private static getPythonRuntimeNotFoundMessage(pythonPath: string): string {
+    return this.isChineseLocale()
+      ? `找不到 Qwen3-TTS 的 Python 运行时：${pythonPath}`
+      : `Qwen3-TTS Python runtime not found: ${pythonPath}`;
+  }
+
+  private static getModelNotConfiguredMessage(): string {
+    return this.isChineseLocale()
+      ? '还没有配置 Qwen3-TTS 的模型。'
+      : 'Qwen3-TTS model is not configured.';
+  }
+
+  private static getReferenceAudioPathNotConfiguredMessage(): string {
+    return this.isChineseLocale()
+      ? '还没有配置 Qwen3-TTS 的参考音频路径。'
+      : 'Qwen3-TTS reference audio path is not configured.';
+  }
+
+  private static getReferenceAudioFileNotFoundMessage(promptAudioPath: string): string {
+    return this.isChineseLocale()
+      ? `找不到 Qwen3-TTS 的参考音频文件：${promptAudioPath}`
+      : `Qwen3-TTS reference audio file not found: ${promptAudioPath}`;
+  }
+
+  private static isChineseLocale(): boolean {
+    return vscode.env.language.toLowerCase().startsWith('zh');
   }
 }

@@ -11,6 +11,7 @@ const originalModuleLoad = ModuleInternals._load;
 
 interface MockState {
   quickPickItems?: Array<{ label: string; description?: string }>;
+  quickPickOptions?: { title?: string; placeHolder?: string } | undefined;
   inputBoxOptions?: { value?: string; placeHolder?: string; prompt?: string };
 }
 
@@ -50,8 +51,12 @@ async function withVscodeMock<T>(
     },
     window: {
       showInformationMessage: async () => undefined,
-      showQuickPick: async (items: Array<{ label: string; description?: string }>) => {
+      showQuickPick: async (
+        items: Array<{ label: string; description?: string }>,
+        quickPickOptions?: { title?: string; placeHolder?: string }
+      ) => {
         state && (state.quickPickItems = items);
+        state && (state.quickPickOptions = quickPickOptions);
         return items.find(item => item.label === 'Finish' || item.label === '完成');
       },
       showInputBox: async (inputOptions: { value?: string; placeHolder?: string; prompt?: string }) => {
@@ -254,5 +259,55 @@ suite('Voice Configuration Service Provider Routing', () => {
     } finally {
       fs.rmSync(workspaceRoot, { recursive: true, force: true });
     }
+  });
+
+  test('should localize the speech backend picker in Chinese', async () => {
+    const state: MockState = {};
+
+    await withVscodeMock(async () => {
+      delete require.cache[require.resolve('../../services/voiceConfigurationService')];
+      delete require.cache[require.resolve('../../utils/config')];
+      const { VoiceConfigurationService } = require('../../services/voiceConfigurationService') as typeof import('../../services/voiceConfigurationService');
+
+      await VoiceConfigurationService.configureAzureSettings();
+
+      assert.strictEqual(state.quickPickOptions?.title, '选择语音后端');
+      assert.strictEqual(state.quickPickOptions?.placeHolder, '选择要配置的语音后端');
+      assert.deepStrictEqual(
+        state.quickPickItems?.map(item => item.label),
+        ['Azure Speech', 'CosyVoice（本地）', 'Qwen3-TTS + MLX-Audio（本地）']
+      );
+    }, {
+      language: 'zh-cn',
+      configValues: new Map<string, unknown>([['provider', 'azure']]),
+      state
+    });
+  });
+
+  test('should localize Azure voice selection helpers in Chinese', async () => {
+    await withVscodeMock(async () => {
+      delete require.cache[require.resolve('../../services/voiceConfigurationService')];
+      const { VoiceConfigurationService } = require('../../services/voiceConfigurationService') as typeof import('../../services/voiceConfigurationService');
+
+      const serviceStub = VoiceConfigurationService as unknown as {
+        getSelectLanguageStepTitle: () => string;
+        getSelectVoiceStepTitle: (localeName: string) => string;
+        getSelectVoiceStyleStepTitle: () => string;
+        getSelectStylePlaceholder: (voiceDisplayName: string) => string;
+        getVoiceCountDetail: (count: number) => string;
+        getVoiceStylesDetail: (styles: string[]) => string;
+        getDefaultStyleOnlyDetail: () => string;
+        getStyleDescription: (style: string) => string;
+      };
+
+      assert.strictEqual(serviceStub.getSelectLanguageStepTitle(), '第 1/3 步：选择语言');
+      assert.strictEqual(serviceStub.getSelectVoiceStepTitle('zh-CN'), '第 2/3 步：选择语音 (zh-CN)');
+      assert.strictEqual(serviceStub.getSelectVoiceStyleStepTitle(), '第 3/3 步：选择语音风格');
+      assert.strictEqual(serviceStub.getSelectStylePlaceholder('Xiaoxiao'), '选择 Xiaoxiao 的语音风格');
+      assert.strictEqual(serviceStub.getVoiceCountDetail(12), '共 12 个语音可选');
+      assert.strictEqual(serviceStub.getVoiceStylesDetail(['cheerful', 'sad']), '支持风格：cheerful, sad');
+      assert.strictEqual(serviceStub.getDefaultStyleOnlyDetail(), '仅默认风格');
+      assert.strictEqual(serviceStub.getStyleDescription('cheerful'), '轻快愉悦');
+    }, { language: 'zh-cn' });
   });
 });

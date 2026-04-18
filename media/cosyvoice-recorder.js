@@ -7,7 +7,6 @@
   const stopBtn = document.getElementById('stopBtn');
   const retryBtn = document.getElementById('retryBtn');
   const saveBtn = document.getElementById('saveBtn');
-  const closeBtn = document.getElementById('closeBtn');
   const statusBadge = document.getElementById('statusBadge');
   const durationEl = document.getElementById('duration');
   const previewAudio = document.getElementById('previewAudio');
@@ -121,11 +120,6 @@
       type: 'save-recording',
       referenceText: referenceText.value
     });
-  });
-
-  closeBtn.addEventListener('click', () => {
-    stopTimer();
-    vscode.postMessage({ type: 'cancel' });
   });
 
   referenceText.addEventListener('input', () => {

@@ -356,7 +356,9 @@ async function maybeRecoverQwenRuntimeResolution(
 
 function isQwenRuntimeResolutionError(errorMessage: string): boolean {
     return errorMessage.includes('Qwen3-TTS Python runtime not found:') ||
-        errorMessage.includes('Qwen3-TTS Python path is not configured.');
+        errorMessage.includes('Qwen3-TTS Python path is not configured.') ||
+        errorMessage.includes('找不到 Qwen3-TTS 的 Python 运行时：') ||
+        errorMessage.includes('还没有配置 Qwen3-TTS 的 Python 路径。');
 }
 
 function getQwenSelectPythonPathActionLabel(): string {

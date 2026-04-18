@@ -21,7 +21,6 @@ interface RecorderLabels {
   stop: string;
   retry: string;
   save: string;
-  close: string;
   preview: string;
   scriptLabel: string;
   scriptHint: string;
@@ -199,11 +198,15 @@ export class CosyVoiceRecorderPanel {
     const normalized = message.toLowerCase();
 
     if (normalized.includes('operation not permitted') || normalized.includes('permission denied')) {
-      return `麦克风权限被 ${hostAppName} 或其录音后端拒绝。请确认“系统设置 -> 隐私与安全性 -> 麦克风”里允许 ${hostAppName}，然后完全退出并重开应用后再试。`;
+      return vscode.env.language.toLowerCase().startsWith('zh')
+        ? `麦克风权限被 ${hostAppName} 或其录音后端拒绝。请确认“系统设置 -> 隐私与安全性 -> 麦克风”里允许 ${hostAppName}，然后完全退出并重开应用后再试。`
+        : `Microphone access was denied for ${hostAppName} or its recording backend. Allow ${hostAppName} in System Settings -> Privacy & Security -> Microphone, then fully restart the app and try again.`;
     }
 
     if (normalized.includes('input/output error') || normalized.includes('not found')) {
-      return '没有拿到可用的麦克风输入设备。请确认系统默认输入设备可用后再试。';
+      return vscode.env.language.toLowerCase().startsWith('zh')
+        ? '没有拿到可用的麦克风输入设备。请确认系统默认输入设备可用后再试。'
+        : 'No usable microphone input device was found. Check that your system default input device is available and try again.';
     }
 
     return message;
@@ -222,10 +225,10 @@ export class CosyVoiceRecorderPanel {
 
   private static getDefaultReferenceText(): string {
     if (vscode.env.language.toLowerCase().startsWith('zh')) {
-      return '你好，我正在使用 Speechify 在 VS Code 里录制参考音频。这段话会作为 CosyVoice 的声音克隆样本，请用自然、清晰、稳定的语速朗读。';
+      return '你好，这是一段参考录音。请用自然、清晰、稳定的语速朗读。';
     }
 
-    return 'Hello, I am recording a reference clip for Speechify inside VS Code. This sentence will be used as a CosyVoice voice cloning sample, so please read it clearly and at a steady pace.';
+    return 'Hello. This is a reference recording. Please read it clearly and at a steady pace.';
   }
 
   private static getLabels(): RecorderLabels {
@@ -242,7 +245,6 @@ export class CosyVoiceRecorderPanel {
         stop: '停止录音',
         retry: '重新录制',
         save: '保存为参考音频',
-        close: '关闭',
         preview: '录音预览',
         scriptLabel: '参考朗读文案',
         scriptHint: '建议直接朗读这段文字；也可以先改成你想读的内容。',
@@ -263,7 +265,6 @@ export class CosyVoiceRecorderPanel {
       stop: 'Stop Recording',
       retry: 'Record Again',
       save: 'Save as Reference Audio',
-      close: 'Close',
       preview: 'Preview',
       scriptLabel: 'Reference Script',
       scriptHint: 'Read this text as-is, or edit it before you start recording.',
@@ -336,8 +337,6 @@ export class CosyVoiceRecorderPanel {
 
       <div class="permission-hint">${initState.labels.permissionHint}</div>
     </div>
-
-    <button id="closeBtn" class="link-btn">${initState.labels.close}</button>
   </div>
 
   <script nonce="${nonce}">

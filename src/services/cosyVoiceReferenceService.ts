@@ -130,7 +130,7 @@ export class CosyVoiceReferenceService {
           const text = (payload.text || '').trim();
 
           if (!text) {
-            reject(new Error('Reference audio transcription returned empty text.'));
+            reject(new Error(this.getEmptyTranscriptionMessage()));
             return;
           }
 
@@ -141,12 +141,30 @@ export class CosyVoiceReferenceService {
         } catch (error) {
           reject(
             new Error(
-              `Failed to parse transcription output: ${error instanceof Error ? error.message : 'Unknown error'}`
+              this.getFailedToParseTranscriptionOutputMessage(
+                error instanceof Error ? error.message : this.getUnknownErrorLabel()
+              )
             )
           );
         }
       });
     });
+  }
+
+  private static getEmptyTranscriptionMessage(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? '参考音频转录结果为空。'
+      : 'Reference audio transcription returned empty text.';
+  }
+
+  private static getFailedToParseTranscriptionOutputMessage(message: string): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? `无法解析转录输出：${message}`
+      : `Failed to parse transcription output: ${message}`;
+  }
+
+  private static getUnknownErrorLabel(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh') ? '未知错误' : 'Unknown error';
   }
 
   private static resolvePythonPath(explicitPath?: string): string | null {

@@ -201,7 +201,7 @@ suite('Extension Command Routing', () => {
               processedChunks: 0,
               totalChunks: 1,
               outputPaths: [],
-              errors: ['Chunk 1: Qwen3-TTS Python runtime not found: /missing/python']
+              errors: ['Chunk 1: 找不到 Qwen3-TTS 的 Python 运行时：/missing/python']
             };
           }
 
@@ -262,7 +262,7 @@ suite('Extension Command Routing', () => {
       assert.strictEqual(selectPythonPathCalls, 1, 'runtime recovery should open the python picker once');
       assert.strictEqual(convertCalls.length, 2, 'generation should retry once after selecting a python path');
       assert.ok(
-        errorMessages.some(message => message.includes('errors.speechGenerationFailed:Chunk 1: Qwen3-TTS Python runtime not found: /missing/python')),
+        errorMessages.some(message => message.includes('errors.speechGenerationFailed:Chunk 1: 找不到 Qwen3-TTS 的 Python 运行时：/missing/python')),
         'the runtime resolution failure should be surfaced in the recovery prompt'
       );
     } finally {

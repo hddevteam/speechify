@@ -3,6 +3,7 @@ import * as http from 'http';
 import * as https from 'https';
 import * as os from 'os';
 import * as path from 'path';
+import * as vscode from 'vscode';
 import { AzureSpeechService } from '../utils/azure';
 import { ConfigManager } from '../utils/config';
 import {
@@ -182,15 +183,15 @@ export class SpeechProviderService {
 
   private static validateCosyVoiceConfig(config: CosyVoiceConfig): void {
     if (!config.baseUrl.trim()) {
-      throw new Error('CosyVoice base URL is not configured.');
+      throw new Error(this.getCosyVoiceBaseUrlNotConfiguredMessage());
     }
 
     if (!config.promptAudioPath.trim()) {
-      throw new Error('CosyVoice reference audio path is not configured.');
+      throw new Error(this.getCosyVoiceReferenceAudioPathNotConfiguredMessage());
     }
 
     if (!fs.existsSync(config.promptAudioPath)) {
-      throw new Error(`CosyVoice reference audio file not found: ${config.promptAudioPath}`);
+      throw new Error(this.getCosyVoiceReferenceAudioFileNotFoundMessage(config.promptAudioPath));
     }
   }
 
@@ -404,5 +405,23 @@ export class SpeechProviderService {
       ? Math.max(30, Math.round(config.requestTimeoutSeconds as number))
       : Math.round(this.DEFAULT_COSYVOICE_REQUEST_TIMEOUT_MS / 1000);
     return seconds * 1000;
+  }
+
+  private static getCosyVoiceBaseUrlNotConfiguredMessage(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? '还没有配置 CosyVoice 的服务地址。'
+      : 'CosyVoice base URL is not configured.';
+  }
+
+  private static getCosyVoiceReferenceAudioPathNotConfiguredMessage(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? '还没有配置 CosyVoice 的参考音频路径。'
+      : 'CosyVoice reference audio path is not configured.';
+  }
+
+  private static getCosyVoiceReferenceAudioFileNotFoundMessage(promptAudioPath: string): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? `找不到 CosyVoice 的参考音频文件：${promptAudioPath}`
+      : `CosyVoice reference audio file not found: ${promptAudioPath}`;
   }
 }

@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { spawn, ChildProcessByStdio } from 'child_process';
 import { Readable, Writable } from 'stream';
+import * as vscode from 'vscode';
 import { I18n } from '../i18n';
 import { COSYVOICE_MAX_PROMPT_DURATION_SEC } from '../utils/cosyVoiceAudio';
 
@@ -19,7 +20,7 @@ export class LocalAudioRecorderService {
 
   public static async startRecording(): Promise<string> {
     if (this.activeRecording) {
-      throw new Error('A recording is already in progress.');
+      throw new Error(this.getRecordingAlreadyInProgressMessage());
     }
 
     const outputPath = path.join(os.tmpdir(), `speechify-reference-${Date.now()}.wav`);
@@ -83,7 +84,7 @@ export class LocalAudioRecorderService {
   public static async stopRecording(): Promise<string> {
     const current = this.activeRecording;
     if (!current) {
-      throw new Error('No active recording.');
+      throw new Error(this.getNoActiveRecordingMessage());
     }
 
     this.activeRecording = null;
@@ -93,7 +94,7 @@ export class LocalAudioRecorderService {
     await current.closePromise;
 
     if (!fs.existsSync(current.outputPath)) {
-      throw new Error('Recorded audio file was not created.');
+      throw new Error(this.getRecordedAudioFileMissingMessage());
     }
 
     return current.outputPath;
@@ -193,5 +194,23 @@ export class LocalAudioRecorderService {
         reject(new Error(stderr.trim() || `ffmpeg exited with code ${code}`));
       });
     });
+  }
+
+  private static getRecordingAlreadyInProgressMessage(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? '已经有一个录音任务在进行中。'
+      : 'A recording is already in progress.';
+  }
+
+  private static getNoActiveRecordingMessage(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? '当前没有正在进行的录音。'
+      : 'No active recording.';
+  }
+
+  private static getRecordedAudioFileMissingMessage(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? '录音完成后没有生成音频文件。'
+      : 'Recorded audio file was not created.';
   }
 }
