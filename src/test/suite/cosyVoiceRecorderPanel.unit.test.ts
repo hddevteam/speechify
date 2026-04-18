@@ -118,6 +118,8 @@ suite('CosyVoice Recorder Panel Layout', () => {
 
       assert.ok(html.includes(`id="statusBadge" class="status-badge idle">${labels.idle}</div>`));
       assert.ok(!html.includes('id="closeBtn"'));
+      assert.ok(!html.includes('当前录音走 VS Code 宿主侧原生录音'));
+      assert.ok(!html.includes('Recording now uses a host-side native recorder'));
     });
   });
 
@@ -128,5 +130,6 @@ suite('CosyVoice Recorder Panel Layout', () => {
     assert.ok(css.includes('body {\n  margin: 0;\n  min-height: 100vh;\n  height: 100vh;\n  overflow: hidden;'));
     assert.ok(css.includes('.shell {\n  max-width: 880px;\n  margin: 0 auto;\n  min-height: 100vh;\n  height: 100vh;'));
     assert.ok(css.includes('.panel {\n  min-height: 0;\n  height: 100%;'));
+    assert.ok(css.includes('color: #fff4ea;'));
   });
 });

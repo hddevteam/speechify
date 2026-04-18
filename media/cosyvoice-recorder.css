@@ -117,10 +117,11 @@ body {
 }
 
 .status-badge.idle {
-  background: linear-gradient(135deg, rgba(255, 122, 24, 0.24), rgba(255, 157, 77, 0.18));
-  color: #ffe7d1;
-  border: 1px solid rgba(255, 157, 77, 0.44);
-  box-shadow: 0 10px 28px rgba(255, 122, 24, 0.12);
+  background: linear-gradient(135deg, rgba(255, 122, 24, 0.38), rgba(255, 157, 77, 0.28));
+  color: #fff4ea;
+  border: 1px solid rgba(255, 186, 120, 0.72);
+  box-shadow: 0 12px 32px rgba(255, 122, 24, 0.18);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.16);
 }
 
 .status-badge.recording {
@@ -149,7 +150,7 @@ body {
 }
 
 .duration.idle {
-  color: rgba(255, 231, 209, 0.96);
+  color: #fff1e5;
 }
 
 .duration.recording {
@@ -179,8 +180,8 @@ body {
 }
 
 .pulse.idle {
-  background: rgba(255, 157, 77, 0.9);
-  box-shadow: 0 0 0 8px rgba(255, 122, 24, 0.14);
+  background: #ff9d4d;
+  box-shadow: 0 0 0 10px rgba(255, 122, 24, 0.18);
 }
 
 .pulse.recording {
@@ -353,12 +354,6 @@ audio {
   width: 100%;
   min-height: 44px;
   filter: saturate(1.05);
-}
-
-.permission-hint {
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.55;
 }
 
 @keyframes pulse {

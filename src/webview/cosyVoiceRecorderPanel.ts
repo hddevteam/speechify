@@ -25,7 +25,6 @@ interface RecorderLabels {
   scriptLabel: string;
   scriptHint: string;
   scriptUpdated: string;
-  permissionHint: string;
   microphoneError: string;
 }
 
@@ -249,7 +248,6 @@ export class CosyVoiceRecorderPanel {
         scriptLabel: '参考朗读文案',
         scriptHint: '建议直接朗读这段文字；也可以先改成你想读的内容。',
         scriptUpdated: '参考文案已更新',
-        permissionHint: '当前录音走 VS Code 宿主侧原生录音，不再依赖 webview 麦克风权限。',
         microphoneError: '录制参考音频失败。请检查麦克风权限和默认输入设备后重试。'
       };
     }
@@ -269,7 +267,6 @@ export class CosyVoiceRecorderPanel {
       scriptLabel: 'Reference Script',
       scriptHint: 'Read this text as-is, or edit it before you start recording.',
       scriptUpdated: 'Reference script updated',
-      permissionHint: 'Recording now uses a host-side native recorder instead of webview microphone APIs.',
       microphoneError: 'Failed to record reference audio. Check microphone permission and the default input device.'
     };
   }
@@ -334,8 +331,6 @@ export class CosyVoiceRecorderPanel {
         <div class="preview-label">${initState.labels.preview}</div>
         <audio id="previewAudio" controls preload="none"></audio>
       </div>
-
-      <div class="permission-hint">${initState.labels.permissionHint}</div>
     </div>
   </div>
 
