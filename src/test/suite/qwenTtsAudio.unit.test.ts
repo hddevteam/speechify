@@ -22,6 +22,13 @@ async function withVscodeMock<T>(
         update: async () => undefined
       })
     },
+    window: {
+      withProgress: async <T>(_: unknown, task: (progress: { report: (_: unknown) => void }) => Promise<T>) =>
+        task({ report: () => undefined })
+    },
+    ProgressLocation: {
+      Notification: 15
+    },
     env: {
       language: 'en'
     }
@@ -67,16 +74,19 @@ suite('Qwen3-TTS Audio Contract', () => {
         process.nextTick(() => {
           const outputPath = path.join(os.tmpdir(), `speechify-qwen-test-${Date.now()}.wav`);
           fs.writeFileSync(outputPath, Buffer.from('FAKE_WAV_DATA'));
-          child.stdout.emit('data', Buffer.from(JSON.stringify({
-            audioPath: outputPath,
-            sampleRate: 24000,
-            frameCount: 48000
-          })));
+          child.stdout.emit('data', Buffer.from([
+            'Initializing Qwen3-TTS model...',
+            `SPEECHIFY_QWEN_RESULT=${JSON.stringify({
+              audioPath: outputPath,
+              sampleRate: 24000,
+              frameCount: 48000
+            })}`
+          ].join('\n')));
           child.emit('close', 0);
         });
 
         return child;
-      }) as typeof import('child_process').spawn
+      }) as unknown as typeof import('child_process').spawn
     };
 
     await withVscodeMock(async () => {
@@ -167,11 +177,11 @@ suite('Qwen3-TTS Audio Contract', () => {
         process.nextTick(() => {
           const outputPath = path.join(os.tmpdir(), `speechify-qwen-test-${Date.now()}.wav`);
           fs.writeFileSync(outputPath, Buffer.from('FAKE_WAV_DATA'));
-          child.stdout.emit('data', Buffer.from(JSON.stringify({
+          child.stdout.emit('data', Buffer.from(`SPEECHIFY_QWEN_RESULT=${JSON.stringify({
             audioPath: outputPath,
             sampleRate: 24000,
             frameCount: 24000
-          })));
+          })}`));
           child.emit('close', 0);
         });
 
@@ -232,6 +242,180 @@ suite('Qwen3-TTS Audio Contract', () => {
         assert.ok(spawnArgs, 'python synthesis should have been invoked');
         assert.strictEqual(spawnArgs?.[5], '', 'empty ref_text should be forwarded so the script can enable x_vector_only_mode');
         assert.ok(spawnArgs?.[1]?.includes('kwargs["x_vector_only_mode"] = True'));
+      } finally {
+        configStub.getQwenTtsConfig = originalGetQwenTtsConfig;
+        referenceStub.normalizePromptAudioToTemp = originalNormalizePromptAudioToTemp;
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
+    }, { child_process: childProcessMock });
+  });
+
+  test('should allow SpeechService local Qwen generation even when Azure-style preflight completeness is false', async () => {
+    await withVscodeMock(async () => {
+      delete require.cache[require.resolve('../../services/speechService')];
+      delete require.cache[require.resolve('../../services/speechProviderService')];
+      delete require.cache[require.resolve('../../utils/audio')];
+      delete require.cache[require.resolve('../../utils/config')];
+      const { SpeechService } = require('../../services/speechService') as typeof import('../../services/speechService');
+      const { SpeechProviderService } = require('../../services/speechProviderService') as typeof import('../../services/speechProviderService');
+      const { AudioUtils } = require('../../utils/audio') as typeof import('../../utils/audio');
+      const { ConfigManager } = require('../../utils/config') as typeof import('../../utils/config');
+
+      const configStub = ConfigManager as unknown as {
+        requiresPreflightConfiguration: (_?: string) => boolean;
+        isConfigurationComplete: (_?: string) => boolean;
+        getVoiceSettings: (_?: string) => { name: string; gender: string; style: string; locale: string };
+      };
+      const speechProviderStub = SpeechProviderService as unknown as {
+        extractTextFromMarkdown: (markdown: string) => string;
+        splitTextIntoChunks: (text: string, maxChunkSize: number) => string[];
+        synthesizeSpeech: (
+          text: string,
+          voice: { name: string; gender: string; style: string; locale: string },
+          options?: { providerOverride?: string }
+        ) => Promise<{ audioBuffer: Buffer; audioFormat: 'wav' }>;
+      };
+      const audioStub = AudioUtils as unknown as {
+        saveAudioFile: (audioBuffer: Buffer, filePath: string) => Promise<void>;
+      };
+
+      const originalRequiresPreflightConfiguration = configStub.requiresPreflightConfiguration;
+      const originalIsConfigurationComplete = configStub.isConfigurationComplete;
+      const originalGetVoiceSettings = configStub.getVoiceSettings;
+      const originalExtractTextFromMarkdown = speechProviderStub.extractTextFromMarkdown;
+      const originalSplitTextIntoChunks = speechProviderStub.splitTextIntoChunks;
+      const originalSynthesizeSpeech = speechProviderStub.synthesizeSpeech;
+      const originalSaveAudioFile = audioStub.saveAudioFile;
+      const savedPaths: string[] = [];
+
+      try {
+        configStub.requiresPreflightConfiguration = () => false;
+        configStub.isConfigurationComplete = () => false;
+        configStub.getVoiceSettings = () => ({
+          name: 'Qwen3-TTS Clone',
+          gender: 'Neutral',
+          style: 'general',
+          locale: 'zh-CN'
+        });
+        speechProviderStub.extractTextFromMarkdown = markdown => markdown;
+        speechProviderStub.splitTextIntoChunks = text => [text];
+        speechProviderStub.synthesizeSpeech = async (_text, _voice, options) => {
+          assert.strictEqual(options?.providerOverride, 'qwen3-tts');
+          return {
+            audioBuffer: Buffer.from('FAKE_WAV_DATA'),
+            audioFormat: 'wav'
+          };
+        };
+        audioStub.saveAudioFile = async (_audioBuffer, filePath) => {
+          savedPaths.push(filePath);
+        };
+
+        const result = await SpeechService.convertTextToSpeech(
+          '这是一个本地 Qwen 生成测试。',
+          '/tmp/qwen-local-test.md',
+          { providerOverride: 'qwen3-tts' }
+        );
+
+        assert.strictEqual(result.success, true);
+        assert.strictEqual(result.processedChunks, 1);
+        assert.strictEqual(result.errors.length, 0);
+        assert.strictEqual(savedPaths.length, 1);
+        assert.strictEqual(result.outputPaths.length, 1);
+      } finally {
+        configStub.requiresPreflightConfiguration = originalRequiresPreflightConfiguration;
+        configStub.isConfigurationComplete = originalIsConfigurationComplete;
+        configStub.getVoiceSettings = originalGetVoiceSettings;
+        speechProviderStub.extractTextFromMarkdown = originalExtractTextFromMarkdown;
+        speechProviderStub.splitTextIntoChunks = originalSplitTextIntoChunks;
+        speechProviderStub.synthesizeSpeech = originalSynthesizeSpeech;
+        audioStub.saveAudioFile = originalSaveAudioFile;
+      }
+    });
+  });
+
+  test('should still parse the final Qwen payload when stdout contains extra non-json logs', async () => {
+    const childProcessMock = {
+      spawn: ((...args: unknown[]) => {
+        void args;
+        const child = new EventEmitter() as EventEmitter & {
+          stdout: EventEmitter;
+          stderr: EventEmitter;
+          kill: () => void;
+        };
+        child.stdout = new EventEmitter();
+        child.stderr = new EventEmitter();
+        child.kill = () => undefined;
+
+        process.nextTick(() => {
+          const outputPath = path.join(os.tmpdir(), `speechify-qwen-test-${Date.now()}.wav`);
+          fs.writeFileSync(outputPath, Buffer.from('FAKE_WAV_DATA'));
+          child.stdout.emit('data', Buffer.from([
+            'Initialize tokenizer...',
+            'Initialize acoustic model...',
+            `SPEECHIFY_QWEN_RESULT=${JSON.stringify({
+              audioPath: outputPath,
+              sampleRate: 24000,
+              frameCount: 36000
+            })}`
+          ].join('\n')));
+          child.emit('close', 0);
+        });
+
+        return child as unknown as import('child_process').ChildProcessWithoutNullStreams;
+      }) as unknown as typeof import('child_process').spawn
+    };
+
+    await withVscodeMock(async () => {
+      delete require.cache[require.resolve('../../services/referenceMediaService')];
+      delete require.cache[require.resolve('../../services/qwenTtsService')];
+      delete require.cache[require.resolve('../../services/speechProviderService')];
+      delete require.cache[require.resolve('../../utils/config')];
+      const { ReferenceMediaService } = require('../../services/referenceMediaService') as typeof import('../../services/referenceMediaService');
+      const { SpeechProviderService } = require('../../services/speechProviderService') as typeof import('../../services/speechProviderService');
+      const { ConfigManager } = require('../../utils/config') as typeof import('../../utils/config');
+
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'speechify-qwen-tts-audio-'));
+      const originalPromptPath = path.join(tempDir, 'prompt-source.wav');
+      const normalizedPromptPath = path.join(tempDir, 'prompt-normalized.wav');
+      const fakePythonPath = path.join(tempDir, 'python');
+      fs.writeFileSync(originalPromptPath, Buffer.from('ORIGINAL_PROMPT'));
+      fs.writeFileSync(normalizedPromptPath, Buffer.from('NORMALIZED_PROMPT'));
+      fs.writeFileSync(fakePythonPath, '');
+
+      const configStub = ConfigManager as unknown as {
+        getQwenTtsConfig: () => {
+          pythonPath: string;
+          model: string;
+          promptAudioPath: string;
+          promptText: string;
+          requestTimeoutSeconds: number;
+        };
+      };
+      const referenceStub = ReferenceMediaService as unknown as {
+        normalizePromptAudioToTemp: (inputPath: string) => Promise<string>;
+      };
+
+      const originalGetQwenTtsConfig = configStub.getQwenTtsConfig;
+      const originalNormalizePromptAudioToTemp = referenceStub.normalizePromptAudioToTemp;
+
+      try {
+        configStub.getQwenTtsConfig = () => ({
+          pythonPath: fakePythonPath,
+          model: 'mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16',
+          promptAudioPath: originalPromptPath,
+          promptText: '参考文本',
+          requestTimeoutSeconds: 900
+        });
+        referenceStub.normalizePromptAudioToTemp = async () => normalizedPromptPath;
+
+        const result = await SpeechProviderService.synthesizeWithMetadata(
+          '即使 stdout 前面有初始化日志，也应该正常解析。',
+          { name: 'Qwen3-TTS Clone', gender: 'Neutral', style: 'general', locale: 'zh-CN' },
+          { providerOverride: 'qwen3-tts' }
+        );
+
+        assert.strictEqual(result.audioFormat, 'wav');
+        assert.ok(result.durationMs > 0);
       } finally {
         configStub.getQwenTtsConfig = originalGetQwenTtsConfig;
         referenceStub.normalizePromptAudioToTemp = originalNormalizePromptAudioToTemp;

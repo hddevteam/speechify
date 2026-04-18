@@ -8,6 +8,7 @@ import { ReferenceMediaService } from './referenceMediaService';
 export class QwenTtsService {
   private static readonly DEFAULT_REQUEST_TIMEOUT_MS = 900_000;
   private static readonly DEFAULT_SAMPLE_RATE = 24_000;
+  private static readonly RESULT_MARKER = 'SPEECHIFY_QWEN_RESULT=';
 
   public static async synthesize(text: string, config: QwenTtsConfig): Promise<SpeechSynthesisResult> {
     this.validateConfig(config);
@@ -124,7 +125,7 @@ export class QwenTtsService {
       '    wav_file.setsampwidth(2)',
       '    wav_file.setframerate(sample_rate)',
       '    wav_file.writeframes(pcm.tobytes())',
-      'print(json.dumps({"audioPath": output_path, "sampleRate": sample_rate, "frameCount": int(pcm.shape[0])}, ensure_ascii=False))'
+      `print("${this.RESULT_MARKER}" + json.dumps({"audioPath": output_path, "sampleRate": sample_rate, "frameCount": int(pcm.shape[0])}, ensure_ascii=False))`
     ].join('\n');
 
     return await new Promise<{ audioPath: string; sampleRate: number; frameCount: number }>((resolve, reject) => {
@@ -162,11 +163,7 @@ export class QwenTtsService {
         }
 
         try {
-          const payload = JSON.parse(stdout.trim()) as {
-            audioPath?: string;
-            sampleRate?: number;
-            frameCount?: number;
-          };
+          const payload = this.parseSynthesisPayload(stdout);
 
           if (!payload.audioPath || !fs.existsSync(payload.audioPath)) {
             reject(new Error('Qwen3-TTS did not produce an audio file.'));
@@ -187,5 +184,39 @@ export class QwenTtsService {
         }
       });
     });
+  }
+
+  private static parseSynthesisPayload(stdout: string): {
+    audioPath?: string;
+    sampleRate?: number;
+    frameCount?: number;
+  } {
+    const trimmed = stdout.trim();
+    const lines = trimmed
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    for (let i = lines.length - 1; i >= 0; i -= 1) {
+      const line = lines[i];
+      if (!line) {
+        continue;
+      }
+
+      if (line.startsWith(this.RESULT_MARKER)) {
+        return JSON.parse(line.slice(this.RESULT_MARKER.length)) as {
+          audioPath?: string;
+          sampleRate?: number;
+          frameCount?: number;
+        };
+      }
+    }
+
+    const fallbackLine = lines[lines.length - 1] || trimmed;
+    return JSON.parse(fallbackLine) as {
+      audioPath?: string;
+      sampleRate?: number;
+      frameCount?: number;
+    };
   }
 }

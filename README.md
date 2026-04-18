@@ -183,14 +183,21 @@ Notes:
 
 1. Create a dedicated Python 3.12 environment for MLX-Audio
 2. Install `mlx-audio` inside that environment
-3. Set `speechify.qwenTts.pythonPath` to that environment's Python executable
+3. By default Speechify uses `${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python`; only change `speechify.qwenTts.pythonPath` if your MLX-Audio environment lives somewhere else
 4. Set `speechify.qwenTts.model` to a Qwen3-TTS MLX model id or local model path
 
 Notes:
 - This local path does not require a persistent FastAPI server. Speechify invokes MLX-Audio directly through Python.
 - The recommended starting model is `mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16`.
 - Reference audio plus transcript gives the best voice cloning quality. If the transcript is empty, Speechify falls back to embedding-only cloning.
+- The upstream MLX-Audio voice-cloning docs require a reference audio sample plus transcript, but they do not currently document the same explicit 30-second hard cap that CosyVoice has. In Speechify today, Qwen reference media still goes through the shared local normalizer and is trimmed to 29.5 seconds before inference.
 - On macOS, reference-media transcription still prefers Whisper MLX first when available.
+
+#### Reference Audio Guidance By Provider
+
+- **CosyVoice**: treat 30 seconds as a real model-side ceiling. Speechify normalizes the selected reference media to mono 16 kHz WAV and trims it to 29.5 seconds as a safety margin.
+- **Qwen3-TTS + MLX-Audio**: prefer a short, clean reference clip with a matching transcript. Speechify currently trims the prompt clip to 29.5 seconds too, even though this is a shared implementation detail rather than a documented Qwen hard limit.
+- **Best practice for both**: use a representative 10 to 20 second sample with low background noise, stable volume, and a transcript that matches the spoken content as closely as possible.
 
 ### 2.1 Azure OpenAI Configuration (Vision)
 
@@ -304,13 +311,13 @@ Behavior notes:
 - `speechify.provider`
   Purpose: set this to `qwen3-tts` when you want Speechify to use the local Qwen3-TTS + MLX-Audio path.
 - `speechify.qwenTts.pythonPath`
-  Purpose: points to the Python executable in the environment where `mlx-audio` is installed.
+  Purpose: points to the Python executable in the environment where `mlx-audio` is installed. Default: `${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python`.
 - `speechify.qwenTts.model`
   Purpose: selects the Qwen3-TTS MLX model id or local model path. A good starting point is `mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16`.
 - `speechify.qwenTts.promptAudioPath`
-  Purpose: points to the reference audio file, or to audio extracted from a reference video, used for voice cloning.
+  Purpose: points to the reference audio file, or to audio extracted from a reference video, used for voice cloning. Speechify currently normalizes this media and trims it to 29.5 seconds before local Qwen inference.
 - `speechify.qwenTts.promptText`
-  Purpose: stores the transcript for the reference audio. Recommended for best cloning quality. If empty, Speechify falls back to embedding-only cloning.
+  Purpose: stores the transcript for the reference audio. Recommended for best cloning quality because upstream Qwen voice cloning expects the reference sample and its transcript. If empty, Speechify falls back to embedding-only cloning.
 - `speechify.qwenTts.requestTimeoutSeconds`
   Purpose: sets the local Qwen3-TTS request timeout. The default is `900`.
 
@@ -330,7 +337,8 @@ Recommended workspace settings example:
 Behavior notes:
 - Speechify invokes MLX-Audio directly through Python and saves the generated speech as `.wav`
 - Subtitle boundaries are still approximated from text and audio duration in this local path
-- If reference transcription auto-detection misses your runtime, set `speechify.qwenTts.pythonPath` explicitly
+- Speechify currently reuses the shared local reference-media normalizer here, so Qwen prompt media is converted to mono 16 kHz WAV and clipped to 29.5 seconds before inference
+- If your MLX-Audio environment is not under the standard `vendor/Qwen3-TTS/.venv312` path, set `speechify.qwenTts.pythonPath` explicitly
 
 ### File Output Settings
 - **Format**: Audio format (MP3, WAV, OGG)

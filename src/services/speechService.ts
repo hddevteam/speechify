@@ -23,7 +23,10 @@ export class SpeechService {
     options: SpeechExecutionOptions = {}
   ): Promise<ProcessingResult> {
     try {
-      if (!ConfigManager.isConfigurationComplete(options.providerOverride)) {
+      if (
+        ConfigManager.requiresPreflightConfiguration(options.providerOverride) &&
+        !ConfigManager.isConfigurationComplete(options.providerOverride)
+      ) {
         throw new Error(I18n.t('errors.configurationIncomplete'));
       }
 
@@ -218,6 +221,10 @@ export class SpeechService {
 
   public static async configureQwenTtsSettings(): Promise<void> {
     await VoiceConfigurationService.configureQwenTtsSettings();
+  }
+
+  public static async selectQwenTtsPythonPathFromDialog(): Promise<string | undefined> {
+    return await VoiceConfigurationService.selectQwenTtsPythonPathFromDialog();
   }
 
   public static async recordCosyVoiceReferenceAudio(): Promise<void> {

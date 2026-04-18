@@ -1,4 +1,7 @@
 import * as assert from 'assert';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import Module = require('module');
 
 const ModuleInternals = Module as typeof Module & {
@@ -6,20 +9,77 @@ const ModuleInternals = Module as typeof Module & {
 };
 const originalModuleLoad = ModuleInternals._load;
 
-async function withVscodeMock<T>(callback: () => Promise<T> | T): Promise<T> {
+interface MockState {
+  quickPickItems?: Array<{ label: string; description?: string }>;
+  inputBoxOptions?: { value?: string; placeHolder?: string; prompt?: string };
+}
+
+async function withVscodeMock<T>(
+  callback: () => Promise<T> | T,
+  options: {
+    language?: string;
+    workspaceRoot?: string;
+    configValues?: Map<string, unknown>;
+    state?: MockState;
+  } = {}
+): Promise<T> {
+  const configuredKeys = new Set((options.configValues || new Map<string, unknown>()).keys());
+  const workspaceRoot = options.workspaceRoot;
+  const state = options.state;
   const vscodeMock = {
     workspace: {
-      workspaceFolders: undefined,
+      workspaceFolders: workspaceRoot ? [{ uri: { fsPath: workspaceRoot } }] : undefined,
       getConfiguration: () => ({
-        get: <Value>(_: string, defaultValue: Value) => defaultValue,
+        get: <Value>(section: string, defaultValue: Value) =>
+          ((options.configValues || new Map<string, unknown>()).has(section)
+            ? (options.configValues || new Map<string, unknown>()).get(section)
+            : defaultValue) as Value,
+        inspect: (section: string): { workspaceValue?: unknown } | undefined =>
+          configuredKeys.has(section)
+            ? { workspaceValue: (options.configValues || new Map<string, unknown>()).get(section) }
+            : undefined,
         update: async () => undefined
-      })
+      }),
+      openTextDocument: async (filePath: string) => {
+        const text = fs.readFileSync(filePath, 'utf8');
+        return {
+          getText: () => text,
+          positionAt: () => ({ line: 0, character: 0 })
+        };
+      }
     },
     window: {
-      showInformationMessage: async () => undefined
+      showInformationMessage: async () => undefined,
+      showQuickPick: async (items: Array<{ label: string; description?: string }>) => {
+        state && (state.quickPickItems = items);
+        return items.find(item => item.label === 'Finish' || item.label === '完成');
+      },
+      showInputBox: async (inputOptions: { value?: string; placeHolder?: string; prompt?: string }) => {
+        state && (state.inputBoxOptions = inputOptions);
+        return undefined;
+      },
+      showTextDocument: async () => ({
+        selection: undefined,
+        revealRange: () => undefined
+      })
     },
     env: {
-      language: 'en'
+      language: options.language || 'en'
+    },
+    Position: class {
+      constructor(public line: number, public character: number) {}
+    },
+    Selection: class {
+      constructor(public anchor: unknown, public active: unknown) {}
+    },
+    Range: class {
+      constructor(public start: unknown, public end: unknown) {}
+    },
+    TextEditorRevealType: {
+      InCenter: 0
+    },
+    commands: {
+      executeCommand: async () => undefined
     }
   };
 
@@ -93,5 +153,106 @@ suite('Voice Configuration Service Provider Routing', () => {
         serviceStub.configureQwenTtsSettings = originalConfigureQwenTtsSettings;
       }
     });
+  });
+
+  test('should surface the auto-detected Qwen python path in the settings wizard', async () => {
+    const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'speechify-qwen-ui-'));
+    const detectedPythonPath = path.join(workspaceRoot, 'vendor', 'Qwen3-TTS', '.venv312', 'bin', 'python');
+    fs.mkdirSync(path.dirname(detectedPythonPath), { recursive: true });
+    fs.writeFileSync(detectedPythonPath, '');
+    const state: MockState = {};
+    const configValues = new Map<string, unknown>([
+      ['provider', 'qwen3-tts'],
+      ['qwenTts.pythonPath', '']
+    ]);
+
+    try {
+      await withVscodeMock(async () => {
+        delete require.cache[require.resolve('../../services/voiceConfigurationService')];
+        delete require.cache[require.resolve('../../utils/config')];
+        const { VoiceConfigurationService } = require('../../services/voiceConfigurationService') as typeof import('../../services/voiceConfigurationService');
+
+        await VoiceConfigurationService.configureQwenTtsSettings();
+
+        const pythonItem = state.quickPickItems?.find(item => item.label === 'Edit Python Path');
+        assert.ok(pythonItem, 'Qwen settings should expose the Python path action');
+        assert.strictEqual(
+          pythonItem?.description,
+          'Auto-detected: ${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python'
+        );
+      }, { workspaceRoot, configValues, state });
+    } finally {
+      fs.rmSync(workspaceRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('should prefill the Qwen python path input with the detected workspace runtime', async () => {
+    const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'speechify-qwen-input-'));
+    const detectedPythonPath = path.join(workspaceRoot, 'vendor', 'Qwen3-TTS', '.venv312', 'bin', 'python');
+    fs.mkdirSync(path.dirname(detectedPythonPath), { recursive: true });
+    fs.writeFileSync(detectedPythonPath, '');
+    const state: MockState = {};
+    const configValues = new Map<string, unknown>([
+      ['provider', 'qwen3-tts'],
+      ['qwenTts.pythonPath', '']
+    ]);
+
+    try {
+      await withVscodeMock(async () => {
+        delete require.cache[require.resolve('../../services/voiceConfigurationService')];
+        delete require.cache[require.resolve('../../utils/config')];
+        const { VoiceConfigurationService } = require('../../services/voiceConfigurationService') as typeof import('../../services/voiceConfigurationService');
+
+        const serviceStub = VoiceConfigurationService as unknown as {
+          editQwenTtsPythonPath: () => Promise<void>;
+        };
+
+        await serviceStub.editQwenTtsPythonPath();
+
+        assert.strictEqual(
+          state.inputBoxOptions?.value,
+          '${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python'
+        );
+        assert.strictEqual(
+          state.inputBoxOptions?.placeHolder,
+          '${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python'
+        );
+      }, { workspaceRoot, configValues, state });
+    } finally {
+      fs.rmSync(workspaceRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('should seed the detected Qwen python path into workspace settings json', async () => {
+    const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'speechify-qwen-seed-'));
+    const detectedPythonPath = path.join(workspaceRoot, 'vendor', 'Qwen3-TTS', '.venv312', 'bin', 'python');
+    fs.mkdirSync(path.dirname(detectedPythonPath), { recursive: true });
+    fs.writeFileSync(detectedPythonPath, '');
+    const configValues = new Map<string, unknown>([
+      ['provider', 'qwen3-tts'],
+      ['qwenTts.pythonPath', '']
+    ]);
+
+    try {
+      await withVscodeMock(async () => {
+        delete require.cache[require.resolve('../../services/voiceConfigurationService')];
+        delete require.cache[require.resolve('../../utils/config')];
+        const { VoiceConfigurationService } = require('../../services/voiceConfigurationService') as typeof import('../../services/voiceConfigurationService');
+
+        const serviceStub = VoiceConfigurationService as unknown as {
+          seedSpeechifyWorkspaceSettings: () => Promise<void>;
+        };
+
+        await serviceStub.seedSpeechifyWorkspaceSettings();
+
+        const settingsJson = fs.readFileSync(path.join(workspaceRoot, '.vscode', 'settings.json'), 'utf8');
+        assert.ok(
+          settingsJson.includes('"speechify.qwenTts.pythonPath": "${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python"'),
+          'workspace settings should surface the detected Qwen runtime instead of leaving it empty'
+        );
+      }, { workspaceRoot, configValues });
+    } finally {
+      fs.rmSync(workspaceRoot, { recursive: true, force: true });
+    }
   });
 });

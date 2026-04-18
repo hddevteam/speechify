@@ -202,7 +202,8 @@ async function convertTextToSpeech(uri?: vscode.Uri): Promise<void> {
 
 async function convertTextToSpeechWithProvider(
     providerOverride?: SpeechProviderType,
-    uri?: vscode.Uri
+    uri?: vscode.Uri,
+    recoveryAttempted = false
 ): Promise<void> {
     try {
         const editor = vscode.window.activeTextEditor;
@@ -246,7 +247,10 @@ async function convertTextToSpeechWithProvider(
         }
 
         // Check configuration
-        if (!ConfigManager.isConfigurationComplete(providerOverride)) {
+        if (
+            ConfigManager.requiresPreflightConfiguration(providerOverride) &&
+            !ConfigManager.isConfigurationComplete(providerOverride)
+        ) {
             await SpeechService.showConfigurationWizard(providerOverride);
             return;
         }
@@ -281,6 +285,17 @@ async function convertTextToSpeechWithProvider(
                 }
             }
         } else {
+            const combinedError = result.errors.length > 0 ? result.errors.join(', ') : 'Unknown error';
+            const recoveryAction = await maybeRecoverQwenRuntimeResolution(combinedError, providerOverride);
+            if (!recoveryAttempted && recoveryAction === 'retry') {
+                await convertTextToSpeechWithProvider(providerOverride, uri, true);
+                return;
+            }
+
+            if (recoveryAction === 'handled') {
+                return;
+            }
+
             const errorMessage = result.errors.length > 0 
                 ? I18n.t('errors.speechGenerationFailed', result.errors.join(', '))
                 : I18n.t('errors.speechGenerationFailed', 'Unknown error');
@@ -289,10 +304,71 @@ async function convertTextToSpeechWithProvider(
         }
     } catch (error) {
         console.error('Text to speech conversion failed:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const recoveryAction = await maybeRecoverQwenRuntimeResolution(errorMessage, providerOverride);
+        if (!recoveryAttempted && recoveryAction === 'retry') {
+            await convertTextToSpeechWithProvider(providerOverride, uri, true);
+            return;
+        }
+
+        if (recoveryAction === 'handled') {
+            return;
+        }
+
         vscode.window.showErrorMessage(
-            I18n.t('errors.speechGenerationFailed', error instanceof Error ? error.message : 'Unknown error')
+            I18n.t('errors.speechGenerationFailed', errorMessage)
         );
     }
+}
+
+async function maybeRecoverQwenRuntimeResolution(
+    errorMessage: string,
+    providerOverride?: SpeechProviderType
+): Promise<'retry' | 'handled' | 'unhandled'> {
+    if (providerOverride !== 'qwen3-tts') {
+        return 'unhandled';
+    }
+
+    if (!isQwenRuntimeResolutionError(errorMessage)) {
+        return 'unhandled';
+    }
+
+    const selectPathAction = getQwenSelectPythonPathActionLabel();
+    const openSettingsAction = getQwenOpenSettingsActionLabel();
+    const action = await vscode.window.showErrorMessage(
+        I18n.t('errors.speechGenerationFailed', errorMessage),
+        selectPathAction,
+        openSettingsAction
+    );
+
+    if (action === selectPathAction) {
+        const selectedPath = await SpeechService.selectQwenTtsPythonPathFromDialog();
+        return selectedPath ? 'retry' : 'handled';
+    }
+
+    if (action === openSettingsAction) {
+        await SpeechService.configureQwenTtsSettings();
+        return 'handled';
+    }
+
+    return 'unhandled';
+}
+
+function isQwenRuntimeResolutionError(errorMessage: string): boolean {
+    return errorMessage.includes('Qwen3-TTS Python runtime not found:') ||
+        errorMessage.includes('Qwen3-TTS Python path is not configured.');
+}
+
+function getQwenSelectPythonPathActionLabel(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+        ? '选择 Python 路径'
+        : 'Select Python Path';
+}
+
+function getQwenOpenSettingsActionLabel(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+        ? '打开 Qwen 设置'
+        : 'Open Qwen Settings';
 }
 
 function isTextLikeFile(uri: vscode.Uri): boolean {

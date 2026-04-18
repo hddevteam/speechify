@@ -35,7 +35,7 @@
   "speechify.configuration.cosyVoicePromptAudioPath": "Reference audio path used for CosyVoice zero-shot voice cloning",
   "speechify.configuration.cosyVoicePromptText": "Transcript of the CosyVoice reference audio (recommended for zero-shot mode)",
   "speechify.configuration.cosyVoiceRequestTimeoutSeconds": "Local CosyVoice request timeout in seconds (default 900; useful because zero-shot generation can take several minutes on slower machines)",
-  "speechify.configuration.qwenTtsPythonPath": "Optional local Python path used to run MLX-Audio for Qwen3-TTS (leave empty when using the standard vendor/Qwen3-TTS path)",
+  "speechify.configuration.qwenTtsPythonPath": "Local Python path used to run MLX-Audio for Qwen3-TTS. Default: ${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python",
   "speechify.configuration.qwenTtsModel": "Qwen3-TTS MLX model id or local model path",
   "speechify.configuration.qwenTtsPromptAudioPath": "Reference audio path used for Qwen3-TTS voice cloning",
   "speechify.configuration.qwenTtsPromptText": "Transcript of the Qwen3-TTS reference audio (recommended for best cloning quality)",

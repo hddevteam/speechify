@@ -103,7 +103,10 @@ export const SPEECHIFY_SETTING_DESCRIPTORS: SpeechifySettingDescriptor[] = [
     settingPath: 'speechify.qwenTts.pythonPath',
     legacySettingPaths: [],
     section: 'qwentts',
-    helpLines: ['Local Python path used to run MLX-Audio for Qwen3-TTS.', 'Point this to the Python environment where mlx-audio is installed.']
+    helpLines: [
+      'Local Python path used to run MLX-Audio for Qwen3-TTS.',
+      'Default: ${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python'
+    ]
   },
   {
     configKey: 'qwenTtsModel',

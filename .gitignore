@@ -26,3 +26,4 @@ test-config.json
 .vscode/settings.json
 scripts/__pycache__/
 vendor/
+.speechify/

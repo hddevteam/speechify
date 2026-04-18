@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
-import { SpeechProviderType, VoiceListItem } from '../types';
+import { SpeechProviderType, SpeechifyConfig, VoiceListItem } from '../types';
 import { ConfigManager } from '../utils/config';
 import { upsertSpeechifyWorkspaceSettingsJsonText } from '../utils/speechifySettings';
 import { I18n } from '../i18n';
@@ -286,7 +286,7 @@ export class VoiceConfigurationService {
           },
           {
             label: this.getQwenTtsEditPythonPathLabel(),
-            description: current.pythonPath || I18n.t('settings.no')
+            description: this.getQwenTtsPythonPathDescription()
           },
           {
             label: I18n.t('actions.finish'),
@@ -401,6 +401,26 @@ export class VoiceConfigurationService {
     }
 
     await this.updateQwenTtsReferenceAudio(saveUri.fsPath);
+  }
+
+  public static async selectQwenTtsPythonPathFromDialog(): Promise<string | undefined> {
+    const picked = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      openLabel: this.getQwenTtsSelectPythonPathOpenLabel(),
+      title: this.getQwenTtsSelectPythonPathTitle()
+    });
+
+    const selected = picked?.[0];
+    if (!selected) {
+      return undefined;
+    }
+
+    const selectedPath = selected.fsPath;
+    await ConfigManager.updateProjectConfig('qwenTtsPythonPath', this.toWorkspaceSettingPath(selectedPath));
+    vscode.window.showInformationMessage(I18n.t('notifications.success.azureSettingsUpdated'));
+    return selectedPath;
   }
 
   private static async selectCosyVoiceReferenceAudio(): Promise<void> {
@@ -613,11 +633,10 @@ export class VoiceConfigurationService {
   }
 
   private static async editQwenTtsPythonPath(): Promise<void> {
-    const current = ConfigManager.getQwenTtsConfig();
     const pythonPath = await vscode.window.showInputBox({
       prompt: this.getQwenTtsPythonPathPrompt(),
-      value: current.pythonPath || '',
-      placeHolder: '${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python'
+      value: this.getQwenTtsPythonPathInputValue(),
+      placeHolder: this.getQwenTtsDefaultPythonPathValue()
     });
 
     if (pythonPath === undefined) {
@@ -882,14 +901,26 @@ export class VoiceConfigurationService {
 
   private static getQwenTtsPythonPathPrompt(): string {
     return vscode.env.language.toLowerCase().startsWith('zh')
-      ? '请输入运行 MLX-Audio 的 Python 路径'
-      : 'Enter the Python path used to run MLX-Audio';
+      ? '请输入运行 MLX-Audio 的 Python 路径（可直接接受默认值）'
+      : 'Enter the Python path used to run MLX-Audio (you can accept the suggested default)';
   }
 
   private static getQwenTtsReferenceAudioUpdatedMessage(): string {
     return vscode.env.language.toLowerCase().startsWith('zh')
       ? 'Qwen3-TTS 参考音频已更新。'
       : 'Qwen3-TTS reference audio updated.';
+  }
+
+  private static getQwenTtsSelectPythonPathTitle(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? '选择 Qwen3-TTS 的 Python 可执行文件'
+      : 'Select the Python executable for Qwen3-TTS';
+  }
+
+  private static getQwenTtsSelectPythonPathOpenLabel(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? '选择 Python 路径'
+      : 'Select Python Path';
   }
 
   private static async openProjectSettingsAtKey(settingKey: string): Promise<void> {
@@ -941,10 +972,84 @@ export class VoiceConfigurationService {
       await fs.writeFile(settingsPath, currentText);
     }
 
-    const nextText = upsertSpeechifyWorkspaceSettingsJsonText(currentText, ConfigManager.getWorkspaceConfig());
+    const nextText = upsertSpeechifyWorkspaceSettingsJsonText(currentText, this.getSpeechifyWorkspaceSeedConfig());
     if (nextText !== currentText) {
       await fs.writeFile(settingsPath, nextText, 'utf8');
     }
+  }
+
+  private static getSpeechifyWorkspaceSeedConfig(): SpeechifyConfig {
+    const effectiveConfig = { ...ConfigManager.getWorkspaceConfig() };
+    if (!(effectiveConfig.qwenTtsPythonPath || '').trim()) {
+      effectiveConfig.qwenTtsPythonPath = this.getQwenTtsPythonPathInputValue();
+    }
+
+    return effectiveConfig;
+  }
+
+  private static getQwenTtsPythonPathDescription(): string {
+    const configuredPythonPath = this.getConfiguredQwenTtsPythonPath();
+    if (configuredPythonPath) {
+      return configuredPythonPath;
+    }
+
+    const detectedPythonPath = this.getDetectedQwenTtsPythonPath();
+    if (detectedPythonPath) {
+      return this.getQwenTtsAutoDetectedPythonPathLabel(detectedPythonPath);
+    }
+
+    return this.getQwenTtsDefaultPythonPathLabel(this.getQwenTtsDefaultPythonPathValue());
+  }
+
+  private static getQwenTtsPythonPathInputValue(): string {
+    const configuredPythonPath = this.getConfiguredQwenTtsPythonPath();
+    if (configuredPythonPath) {
+      return configuredPythonPath;
+    }
+
+    const detectedPythonPath = this.getDetectedQwenTtsPythonPath();
+    if (detectedPythonPath) {
+      return detectedPythonPath;
+    }
+
+    return this.getQwenTtsDefaultPythonPathValue();
+  }
+
+  private static getConfiguredQwenTtsPythonPath(): string {
+    const configuredPythonPath = (ConfigManager.getWorkspaceConfig().qwenTtsPythonPath || '').trim();
+    if (!configuredPythonPath) {
+      return '';
+    }
+
+    if (configuredPythonPath === ConfigManager.getDefaultQwenTtsPythonPathSetting()) {
+      const fsSync = require('fs') as typeof import('fs');
+      if (!fsSync.existsSync(ConfigManager.getResolvedDefaultQwenTtsPythonPath())) {
+        return '';
+      }
+    }
+
+    return configuredPythonPath;
+  }
+
+  private static getDetectedQwenTtsPythonPath(): string {
+    const detectedPythonPath = ConfigManager.getDetectedQwenTtsPythonPath();
+    return detectedPythonPath ? this.toWorkspaceSettingPath(detectedPythonPath) : '';
+  }
+
+  private static getQwenTtsDefaultPythonPathValue(): string {
+    return ConfigManager.getDefaultQwenTtsPythonPathSetting();
+  }
+
+  private static getQwenTtsAutoDetectedPythonPathLabel(pythonPath: string): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? `自动探测: ${pythonPath}`
+      : `Auto-detected: ${pythonPath}`;
+  }
+
+  private static getQwenTtsDefaultPythonPathLabel(pythonPath: string): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? `默认建议: ${pythonPath}`
+      : `Suggested default: ${pythonPath}`;
   }
 
   public static async configureVisionSettings(): Promise<void> {
