@@ -1,0 +1,322 @@
+:root {
+  --bg: var(--vscode-editor-background);
+  --fg: var(--vscode-editor-foreground);
+  --muted: var(--vscode-descriptionForeground);
+  --border: var(--vscode-settings-focusedRowBorder, var(--vscode-panel-border, rgba(128, 128, 128, 0.35)));
+  --panel: var(--vscode-editorWidget-background);
+  --btn-bg: var(--vscode-button-background);
+  --btn-fg: var(--vscode-button-foreground);
+  --btn-hover: var(--vscode-button-hoverBackground);
+  --btn-secondary-bg: var(--vscode-button-secondaryBackground, rgba(130, 130, 130, 0.2));
+  --btn-secondary-fg: var(--vscode-button-secondaryForeground, var(--fg));
+  --btn-secondary-hover: var(--vscode-button-secondaryHoverBackground, rgba(130, 130, 130, 0.3));
+  --input-bg: var(--vscode-input-background);
+  --input-fg: var(--vscode-input-foreground);
+  --input-border: var(--vscode-input-border, var(--border));
+  --focus-border: var(--vscode-focusBorder);
+  
+  --danger: var(--vscode-errorForeground, #ef4444);
+  --success: var(--vscode-testing-iconPassed, #22c55e);
+  --processing: var(--vscode-progressBar-background, #3b82f6);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  font-size: var(--vscode-font-size, 13px);
+  line-height: 1.4;
+}
+
+.shell {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.hero {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 20px;
+  min-height: 0;
+}
+
+.eyebrow {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.hero h1 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--fg);
+}
+
+.hero p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.status-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 4px 8px;
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge.idle {
+  background-color: var(--btn-bg);
+  color: var(--btn-fg);
+}
+
+.status-badge.recording {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.status-badge.processing {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: var(--processing);
+  border: 1px solid var(--processing);
+}
+
+.status-badge.ready {
+  background-color: rgba(34, 197, 94, 0.15);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+.duration {
+  font-size: 32px;
+  font-weight: 300;
+  color: var(--fg);
+}
+
+.duration.recording {
+  color: var(--danger);
+}
+
+.duration.processing {
+  color: var(--processing);
+}
+
+.duration.ready {
+  color: var(--success);
+}
+
+.pulse-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+}
+
+.pulse {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+
+.pulse.idle {
+  background-color: var(--btn-bg);
+}
+
+.pulse.recording {
+  background-color: var(--danger);
+  animation: pulse 1.2s infinite;
+}
+
+.pulse.processing {
+  background-color: var(--processing);
+  animation: drift 1.3s ease-in-out infinite;
+}
+
+.pulse.ready {
+  background-color: var(--success);
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.btn {
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.1s ease, border-color 0.1s ease, opacity 0.1s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  font-weight: normal;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-primary, .btn-secondary, .btn-danger, .btn-accent {
+  background-color: var(--btn-secondary-bg);
+  color: var(--btn-secondary-fg);
+}
+
+.btn-primary:not(:disabled):hover, .btn-secondary:not(:disabled):hover, .btn-danger:not(:disabled):hover, .btn-accent:not(:disabled):hover {
+  background-color: var(--btn-secondary-hover);
+}
+
+.btn-primary.is-active:not(:disabled) {
+  background-color: var(--btn-bg);
+  color: var(--btn-fg);
+}
+
+.btn-danger.is-active:not(:disabled) {
+  background-color: var(--danger);
+  color: #fff;
+}
+
+.btn-accent.is-active:not(:disabled) {
+  background-color: var(--success);
+  color: #fff;
+}
+
+.preview-card {
+  padding: 16px;
+  border-radius: 4px;
+  background-color: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.script-card {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  border-radius: 4px;
+  background-color: var(--panel);
+  border: 1px solid var(--border);
+  gap: 12px;
+}
+
+.script-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.script-state {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.script-state.dirty {
+  color: var(--vscode-editorWarning-foreground, #fdba74);
+}
+
+.script-textarea {
+  flex: 1;
+  width: 100%;
+  min-height: 100px;
+  resize: none;
+  padding: 8px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 2px;
+  background-color: var(--input-bg);
+  color: var(--input-fg);
+  font: inherit;
+  line-height: inherit;
+}
+
+.script-textarea:focus {
+  outline: none;
+  border-color: var(--focus-border);
+}
+
+.script-hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.preview-label {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+audio {
+  width: 100%;
+  min-height: 40px;
+  outline: none;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+@keyframes drift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@media (max-width: 600px) {
+  .shell {
+    padding: 16px;
+  }
+  .actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .script-textarea {
+    min-height: 120px;
+  }
+}

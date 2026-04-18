@@ -3,7 +3,7 @@
   "displayName": "%speechify.displayName%",
   "description": "%speechify.description%",
   "icon": "images/icon-128.png",
-  "version": "3.0.8",
+  "version": "3.1.0",
   "engines": {
     "vscode": "^1.82.0"
   },
@@ -36,9 +36,22 @@
   "publisher": "luckyXmobile",
   "activationEvents": [
     "onCommand:extension.speechify",
+    "onCommand:extension.generateAzureAudio",
+    "onCommand:extension.generateLocalAudio",
+    "onCommand:extension.generateQwenAudio",
     "onCommand:extension.showSpeechifyVoiceSettings",
     "onCommand:extension.configureSpeechifyVoiceSettings",
     "onCommand:extension.configureSpeechifyAzureSettings",
+    "onCommand:extension.configureSpeechifyCosyVoiceSettings",
+    "onCommand:extension.configureSpeechifyQwenTtsSettings",
+    "onCommand:extension.openSpeechifySettingsJson",
+    "onCommand:extension.openSpeechifyLocalReferenceWorkbench",
+    "onCommand:extension.recordSpeechifyLocalReference",
+    "onCommand:extension.selectSpeechifyLocalReference",
+    "onCommand:extension.autoTranscribeSpeechifyLocalReference",
+    "onCommand:extension.editSpeechifyLocalReferenceText",
+    "onCommand:extension.recordSpeechifyCosyVoiceReference",
+    "onCommand:extension.recordSpeechifyQwenTtsReference",
     "onCommand:extension.configureSpeechifyVisionSettings",
     "onCommand:extension.selectSpeechifyVoiceStyle",
     "onCommand:extension.selectSpeechifyVoiceRole",
@@ -69,6 +82,18 @@
         "title": "%speechify.command.speechify%"
       },
       {
+        "command": "extension.generateAzureAudio",
+        "title": "%speechify.command.generateAzureAudio%"
+      },
+      {
+        "command": "extension.generateLocalAudio",
+        "title": "%speechify.command.generateLocalAudio%"
+      },
+      {
+        "command": "extension.generateQwenAudio",
+        "title": "%speechify.command.generateQwenAudio%"
+      },
+      {
         "command": "extension.showSpeechifyVoiceSettings",
         "title": "%speechify.command.voiceSettings%"
       },
@@ -79,6 +104,46 @@
       {
         "command": "extension.configureSpeechifyAzureSettings",
         "title": "%speechify.command.configureAzure%"
+      },
+      {
+        "command": "extension.configureSpeechifyCosyVoiceSettings",
+        "title": "%speechify.command.configureCosyVoice%"
+      },
+      {
+        "command": "extension.configureSpeechifyQwenTtsSettings",
+        "title": "%speechify.command.configureQwenTts%"
+      },
+      {
+        "command": "extension.openSpeechifySettingsJson",
+        "title": "%speechify.command.openSettingsJson%"
+      },
+      {
+        "command": "extension.openSpeechifyLocalReferenceWorkbench",
+        "title": "%speechify.command.openLocalReferenceWorkbench%"
+      },
+      {
+        "command": "extension.recordSpeechifyLocalReference",
+        "title": "%speechify.command.recordLocalReference%"
+      },
+      {
+        "command": "extension.selectSpeechifyLocalReference",
+        "title": "%speechify.command.selectLocalReference%"
+      },
+      {
+        "command": "extension.autoTranscribeSpeechifyLocalReference",
+        "title": "%speechify.command.autoTranscribeLocalReference%"
+      },
+      {
+        "command": "extension.editSpeechifyLocalReferenceText",
+        "title": "%speechify.command.editLocalReferenceText%"
+      },
+      {
+        "command": "extension.recordSpeechifyCosyVoiceReference",
+        "title": "%speechify.command.recordCosyVoice%"
+      },
+      {
+        "command": "extension.recordSpeechifyQwenTtsReference",
+        "title": "%speechify.command.recordQwenTts%"
       },
       {
         "command": "extension.configureSpeechifyVisionSettings",
@@ -109,6 +174,14 @@
       {
         "id": "speechify.submenu",
         "label": "Speechify"
+      },
+      {
+        "id": "speechify.azureSubmenu",
+        "label": "%speechify.menu.azure%"
+      },
+      {
+        "id": "speechify.localModelsSubmenu",
+        "label": "%speechify.menu.localModels%"
       }
     ],
     "menus": {
@@ -139,13 +212,13 @@
       ],
       "speechify.submenu": [
         {
-          "command": "extension.speechify",
-          "group": "1_core@1",
+          "submenu": "speechify.azureSubmenu",
+          "group": "1_audio@1",
           "when": "editorTextFocus || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
         },
         {
-          "command": "extension.convertToVideo",
-          "group": "2_video@1",
+          "submenu": "speechify.localModelsSubmenu",
+          "group": "1_audio@2",
           "when": "editorTextFocus || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown"
         },
         {
@@ -159,28 +232,67 @@
           "when": "resourceExtname == .mp4 || resourceExtname == .mov || (resourceExtname == .json && editorTextFocus && speechify.activeEditorCanSynthesizeTimingJson) || (resourceExtname == .json && !editorTextFocus && resourceFilename == 'timing.json')"
         },
         {
-          "command": "extension.selectSpeechifyVoiceStyle",
+          "command": "extension.openSpeechifySettingsJson",
           "group": "3_settings@1",
+          "when": "editorTextFocus || resourceExtname == .txt || resourceExtname == .md || resourceExtname == .markdown || resourceExtname == .mp4 || resourceExtname == .mov || resourceExtname == .json"
+        }
+      ],
+      "speechify.azureSubmenu": [
+        {
+          "command": "extension.generateAzureAudio",
+          "group": "1_generate@1",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.convertToVideo",
+          "group": "1_generate@2",
           "when": "editorTextFocus"
         },
         {
           "command": "extension.configureSpeechifyVoiceSettings",
-          "group": "3_settings@2",
+          "group": "2_settings@1",
           "when": "editorTextFocus"
         },
         {
-          "command": "extension.configureSpeechifyVisionSettings",
-          "group": "3_settings@2.5",
+          "command": "extension.selectSpeechifyVoiceStyle",
+          "group": "2_settings@2",
           "when": "editorTextFocus"
         },
         {
           "command": "extension.selectSpeechifyVoiceRole",
-          "group": "3_settings@3",
+          "group": "2_settings@3",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.configureSpeechifyAzureSettings",
+          "group": "2_settings@4",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.configureSpeechifyVisionSettings",
+          "group": "2_settings@5",
           "when": "editorTextFocus"
         },
         {
           "command": "extension.showSpeechifyVoiceSettings",
-          "group": "3_settings@4",
+          "group": "2_settings@6",
+          "when": "editorTextFocus"
+        }
+      ],
+      "speechify.localModelsSubmenu": [
+        {
+          "command": "extension.generateLocalAudio",
+          "group": "1_generate@1",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.generateQwenAudio",
+          "group": "1_generate@2",
+          "when": "editorTextFocus"
+        },
+        {
+          "command": "extension.openSpeechifyLocalReferenceWorkbench",
+          "group": "2_settings@1",
           "when": "editorTextFocus"
         }
       ]
@@ -188,35 +300,97 @@
     "configuration": {
       "title": "%speechify.configuration.title%",
       "properties": {
-        "speechify.azureSpeechServicesKey": {
+        "speechify.provider": {
+          "type": "string",
+          "default": "azure",
+          "enum": [
+            "azure",
+            "cosyvoice",
+            "qwen3-tts"
+          ],
+          "description": "%speechify.configuration.speechProvider%"
+        },
+        "speechify.azure.speechServicesKey": {
           "type": "string",
           "default": "",
           "description": "%speechify.configuration.azureSpeechServicesKey%"
         },
-        "speechify.speechServicesRegion": {
+        "speechify.azure.region": {
           "type": "string",
           "default": "eastus",
           "description": "%speechify.configuration.speechServicesRegion%"
         },
-        "speechify.voiceName": {
+        "speechify.azure.voiceName": {
           "type": "string",
           "default": "zh-CN-YunyangNeural",
           "description": "%speechify.configuration.voiceName%"
         },
-        "speechify.voiceGender": {
+        "speechify.azure.voiceGender": {
           "type": "string",
           "default": "Male",
           "description": "%speechify.configuration.voiceGender%"
         },
-        "speechify.voiceStyle": {
+        "speechify.azure.voiceStyle": {
           "type": "string",
           "default": "friendly",
           "description": "%speechify.configuration.voiceStyle%"
         },
-        "speechify.voiceRole": {
+        "speechify.azure.voiceRole": {
           "type": "string",
           "default": "",
           "description": "%speechify.configuration.voiceRole%"
+        },
+        "speechify.cosyVoice.baseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:50000",
+          "description": "%speechify.configuration.cosyVoiceBaseUrl%"
+        },
+        "speechify.cosyVoice.pythonPath": {
+          "type": "string",
+          "default": "",
+          "description": "%speechify.configuration.cosyVoicePythonPath%"
+        },
+        "speechify.cosyVoice.promptAudioPath": {
+          "type": "string",
+          "default": "",
+          "description": "%speechify.configuration.cosyVoicePromptAudioPath%"
+        },
+        "speechify.cosyVoice.promptText": {
+          "type": "string",
+          "default": "",
+          "description": "%speechify.configuration.cosyVoicePromptText%"
+        },
+        "speechify.cosyVoice.requestTimeoutSeconds": {
+          "type": "number",
+          "default": 900,
+          "minimum": 30,
+          "description": "%speechify.configuration.cosyVoiceRequestTimeoutSeconds%"
+        },
+        "speechify.qwenTts.pythonPath": {
+          "type": "string",
+          "default": "${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python",
+          "description": "%speechify.configuration.qwenTtsPythonPath%"
+        },
+        "speechify.qwenTts.model": {
+          "type": "string",
+          "default": "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16",
+          "description": "%speechify.configuration.qwenTtsModel%"
+        },
+        "speechify.qwenTts.promptAudioPath": {
+          "type": "string",
+          "default": "",
+          "description": "%speechify.configuration.qwenTtsPromptAudioPath%"
+        },
+        "speechify.qwenTts.promptText": {
+          "type": "string",
+          "default": "",
+          "description": "%speechify.configuration.qwenTtsPromptText%"
+        },
+        "speechify.qwenTts.requestTimeoutSeconds": {
+          "type": "number",
+          "default": 900,
+          "minimum": 30,
+          "description": "%speechify.configuration.qwenTtsRequestTimeoutSeconds%"
         },
         "speechify.enableTransitions": {
           "type": "boolean",
@@ -238,24 +412,121 @@
           "default": true,
           "description": "%speechify.configuration.autoTrimVideo%"
         },
+        "speechify.vision.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "%speechify.configuration.visionApiKey%"
+        },
+        "speechify.vision.endpoint": {
+          "type": "string",
+          "default": "",
+          "description": "%speechify.configuration.visionEndpoint%"
+        },
+        "speechify.vision.deployment": {
+          "type": "string",
+          "default": "gpt-5.2",
+          "description": "%speechify.configuration.visionDeployment%"
+        },
+        "speechify.vision.refinementDeployment": {
+          "type": "string",
+          "default": "gpt-5.2",
+          "description": "%speechify.configuration.refinementDeployment%"
+        },
+        "speechify.speechProvider": {
+          "type": "string",
+          "default": "azure",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.provider`.",
+          "description": "%speechify.configuration.speechProvider%"
+        },
+        "speechify.azureSpeechServicesKey": {
+          "type": "string",
+          "default": "",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.azure.speechServicesKey`.",
+          "description": "%speechify.configuration.azureSpeechServicesKey%"
+        },
+        "speechify.speechServicesRegion": {
+          "type": "string",
+          "default": "eastus",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.azure.region`.",
+          "description": "%speechify.configuration.speechServicesRegion%"
+        },
+        "speechify.voiceName": {
+          "type": "string",
+          "default": "zh-CN-YunyangNeural",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.azure.voiceName`.",
+          "description": "%speechify.configuration.voiceName%"
+        },
+        "speechify.voiceGender": {
+          "type": "string",
+          "default": "Male",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.azure.voiceGender`.",
+          "description": "%speechify.configuration.voiceGender%"
+        },
+        "speechify.voiceStyle": {
+          "type": "string",
+          "default": "friendly",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.azure.voiceStyle`.",
+          "description": "%speechify.configuration.voiceStyle%"
+        },
+        "speechify.voiceRole": {
+          "type": "string",
+          "default": "",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.azure.voiceRole`.",
+          "description": "%speechify.configuration.voiceRole%"
+        },
+        "speechify.cosyVoiceBaseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:50000",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.cosyVoice.baseUrl`.",
+          "description": "%speechify.configuration.cosyVoiceBaseUrl%"
+        },
+        "speechify.cosyVoicePythonPath": {
+          "type": "string",
+          "default": "",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.cosyVoice.pythonPath`.",
+          "description": "%speechify.configuration.cosyVoicePythonPath%"
+        },
+        "speechify.cosyVoicePromptAudioPath": {
+          "type": "string",
+          "default": "",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.cosyVoice.promptAudioPath`.",
+          "description": "%speechify.configuration.cosyVoicePromptAudioPath%"
+        },
+        "speechify.cosyVoicePromptText": {
+          "type": "string",
+          "default": "",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.cosyVoice.promptText`.",
+          "description": "%speechify.configuration.cosyVoicePromptText%"
+        },
+        "speechify.cosyVoiceRequestTimeoutSeconds": {
+          "type": "number",
+          "default": 900,
+          "minimum": 30,
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.cosyVoice.requestTimeoutSeconds`.",
+          "description": "%speechify.configuration.cosyVoiceRequestTimeoutSeconds%"
+        },
         "speechify.visionApiKey": {
           "type": "string",
           "default": "",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.vision.apiKey`.",
           "description": "%speechify.configuration.visionApiKey%"
         },
         "speechify.visionEndpoint": {
           "type": "string",
           "default": "",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.vision.endpoint`.",
           "description": "%speechify.configuration.visionEndpoint%"
         },
         "speechify.visionDeployment": {
           "type": "string",
           "default": "gpt-5.2",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.vision.deployment`.",
           "description": "%speechify.configuration.visionDeployment%"
         },
         "speechify.refinementDeployment": {
           "type": "string",
           "default": "gpt-5.2",
+          "markdownDeprecationMessage": "Deprecated. Use `speechify.vision.refinementDeployment`.",
           "description": "%speechify.configuration.refinementDeployment%"
         }
       }
@@ -266,6 +537,7 @@
     "compile": "webpack",
     "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
+    "cosyvoice:start": "bash scripts/run-cosyvoice-server.sh",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
@@ -273,7 +545,7 @@
     "test": "node ./scripts/test-runner.js",
     "test:stable": "node ./scripts/test-runner.js",
     "test:full": "SPEECHIFY_TEST_PROFILE=full node ./scripts/test-runner.js",
-    "test:unit": "npm run compile-tests && mocha --ui tdd \"out/test/suite/refineScript.unit.test.js\" \"out/test/suite/speechServiceRefactor.unit.test.js\" \"out/test/suite/textSource.test.js\"",
+    "test:unit": "npm run compile-tests && mocha --ui tdd \"out/test/suite/refineScript.unit.test.js\" \"out/test/suite/speechServiceRefactor.unit.test.js\" \"out/test/suite/cosyVoiceStartup.unit.test.js\" \"out/test/suite/cosyVoiceServer.unit.test.js\" \"out/test/suite/cosyVoiceAudio.unit.test.js\" \"out/test/suite/cosyVoiceRecorderPanel.unit.test.js\" \"out/test/suite/localReferenceWorkbenchPanel.unit.test.js\" \"out/test/suite/qwenTtsAudio.unit.test.js\" \"out/test/suite/extensionCommandRouting.unit.test.js\" \"out/test/suite/configManager.unit.test.js\" \"out/test/suite/voiceConfigurationService.unit.test.js\" \"out/test/suite/speechifySettings.unit.test.js\" \"out/test/suite/packageManifest.unit.test.js\" \"out/test/suite/releaseMetadata.unit.test.js\" \"out/test/suite/textSource.test.js\"",
     "test:integration": "node ./scripts/test-runner.js",
     "test:local": "node ./out/test/runTest.js"
   },

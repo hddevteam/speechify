@@ -177,12 +177,16 @@ For development testing, create a `test-config.json` file (NOT committed to repo
 
 ## Configuration Schema
 The extension contributes the following configuration options:
-- `speechify.azureSpeechServicesKey` - Azure Speech Services subscription key
-- `speechify.speechServicesRegion` - Azure region (default: eastus)
-- `speechify.voiceName` - Selected voice for speech synthesis
-- `speechify.voiceGender` - Voice gender preference
-- `speechify.voiceStyle` - Speaking style preference
-- `speechify.voiceRole` - Roleplay character selection (for supported voices)
+- `speechify.provider` - Active speech backend (`azure` or `cosyvoice`)
+- `speechify.azure.speechServicesKey` - Azure Speech Services subscription key
+- `speechify.azure.region` - Azure region (default: eastus)
+- `speechify.azure.voiceName` - Selected Azure voice for speech synthesis
+- `speechify.azure.voiceGender` - Azure voice gender preference
+- `speechify.azure.voiceStyle` - Azure speaking style preference
+- `speechify.azure.voiceRole` - Azure roleplay character selection (for supported voices)
+- `speechify.cosyVoice.baseUrl` - Local CosyVoice FastAPI endpoint
+- `speechify.cosyVoice.promptAudioPath` - Reference media path for local voice cloning
+- `speechify.cosyVoice.promptText` - Transcript paired with the reference media
 
 ## Command Palette Integration
 - `extension.speechify` - Convert selected text or document to speech

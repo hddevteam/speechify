@@ -1,13 +1,14 @@
 import * as vscode from 'vscode';
-import { AzureConfig, ProcessingResult, VideoProcessingResult, VoiceListItem, VoiceSettings } from '../types';
+import { ProcessingResult, SpeechExecutionOptions, VideoProcessingResult, VoiceListItem } from '../types';
 import { ConfigManager } from '../utils/config';
-import { AzureSpeechService } from '../utils/azure';
 import { AudioUtils } from '../utils/audio';
 import { SubtitleUtils } from '../utils/subtitle';
 import { VideoMuxer } from '../utils/videoMuxer';
 import { I18n } from '../i18n';
 import { PipelineStep, VisionPipelineService } from './visionPipelineService';
 import { VoiceConfigurationService } from './voiceConfigurationService';
+import { SpeechProviderService } from './speechProviderService';
+import { CosyVoiceReferenceService } from './cosyVoiceReferenceService';
 
 /**
  * Main speech synthesis service facade
@@ -16,22 +17,27 @@ export class SpeechService {
   private static readonly MAX_CHUNK_SIZE = 3000;
   private static readonly PROCESSING_DELAY = 500;
 
-  public static async convertTextToSpeech(text: string, sourceFilePath: string): Promise<ProcessingResult> {
+  public static async convertTextToSpeech(
+    text: string,
+    sourceFilePath: string,
+    options: SpeechExecutionOptions = {}
+  ): Promise<ProcessingResult> {
     try {
-      if (!ConfigManager.isConfigurationComplete()) {
+      if (
+        ConfigManager.requiresPreflightConfiguration(options.providerOverride) &&
+        !ConfigManager.isConfigurationComplete(options.providerOverride)
+      ) {
         throw new Error(I18n.t('errors.configurationIncomplete'));
       }
 
-      const azureConfig = ConfigManager.getAzureConfigForTesting();
-      const voiceSettings = ConfigManager.getVoiceSettings();
-      const cleanText = AzureSpeechService.extractTextFromMarkdown(text);
+      const cleanText = SpeechProviderService.extractTextFromMarkdown(text);
 
       if (!cleanText.trim()) {
         throw new Error(I18n.t('errors.noTextContent'));
       }
 
-      const chunks = AzureSpeechService.splitTextIntoChunks(cleanText, this.MAX_CHUNK_SIZE);
-      return await this.processTextChunks(chunks, sourceFilePath, voiceSettings, azureConfig);
+      const chunks = SpeechProviderService.splitTextIntoChunks(cleanText, this.MAX_CHUNK_SIZE);
+      return await this.processTextChunks(chunks, sourceFilePath, options);
     } catch (error) {
       console.error('Speech conversion failed:', error);
       throw error;
@@ -48,18 +54,17 @@ export class SpeechService {
         throw new Error(I18n.t('errors.configurationIncomplete'));
       }
 
-      const azureConfig = ConfigManager.getAzureConfigForTesting();
-      const voiceSettings = ConfigManager.getVoiceSettings();
-      const cleanText = AzureSpeechService.extractTextFromMarkdown(text);
+      const cleanText = SpeechProviderService.extractTextFromMarkdown(text);
+      const outputFormat = SpeechProviderService.getPreferredOutputFormat();
 
-      const audioOutputPath = AudioUtils.generateOutputPath(sourceFilePath, undefined, 1);
-      const srtOutputPath = audioOutputPath.replace(/\.mp3$/, '.srt');
-      const videoOutputPath = audioOutputPath.replace(/\.mp3$/, '_speechify.mp4');
+      const audioOutputPath = AudioUtils.generateOutputPath(sourceFilePath, undefined, 1, outputFormat);
+      const audioExtension = `.${outputFormat}`;
+      const srtOutputPath = audioOutputPath.replace(new RegExp(`${audioExtension.replace('.', '\\.')}$`), '.srt');
+      const videoOutputPath = audioOutputPath.replace(new RegExp(`${audioExtension.replace('.', '\\.')}$`), '_speechify.mp4');
 
-      const { audioBuffer, boundaries } = await AzureSpeechService.synthesizeWithBoundaries(
+      const { audioBuffer, boundaries } = await SpeechProviderService.synthesizeWithMetadata(
         cleanText,
-        voiceSettings,
-        azureConfig
+        ConfigManager.getVoiceSettings()
       );
 
       await AudioUtils.saveAudioFile(audioBuffer, audioOutputPath);
@@ -107,8 +112,7 @@ export class SpeechService {
   private static async processTextChunks(
     chunks: string[],
     sourceFilePath: string,
-    voiceSettings: VoiceSettings,
-    azureConfig: AzureConfig
+    options: SpeechExecutionOptions = {}
   ): Promise<ProcessingResult> {
     const result: ProcessingResult = {
       success: false,
@@ -135,13 +139,16 @@ export class SpeechService {
           });
 
           try {
+            const voiceSettings = ConfigManager.getVoiceSettings(options.providerOverride);
+            const outputFormat = SpeechProviderService.getPreferredOutputFormat(options);
             const outputPath = AudioUtils.generateOutputPath(
               sourceFilePath,
               chunks.length > 1 ? i : undefined,
-              chunks.length
+              chunks.length,
+              outputFormat
             );
 
-            const audioBuffer = await AzureSpeechService.synthesizeSpeech(chunk, voiceSettings, azureConfig);
+            const { audioBuffer } = await SpeechProviderService.synthesizeSpeech(chunk, voiceSettings, options);
             await AudioUtils.saveAudioFile(audioBuffer, outputPath);
 
             result.outputPaths.push(outputPath);
@@ -165,6 +172,7 @@ export class SpeechService {
   public static setExtensionContext(context: vscode.ExtensionContext): void {
     VisionPipelineService.setExtensionContext(context);
     VoiceConfigurationService.setExtensionContext(context);
+    CosyVoiceReferenceService.setExtensionContext(context);
   }
 
   public static async openAlignmentEditorForVideo(inputPath: string): Promise<void> {
@@ -199,12 +207,56 @@ export class SpeechService {
     return VoiceConfigurationService.createVoiceQuickPickItems(voiceList, attribute, defaultValue);
   }
 
-  public static async showConfigurationWizard(): Promise<void> {
-    await VoiceConfigurationService.showConfigurationWizard();
+  public static async showConfigurationWizard(providerOverride?: SpeechExecutionOptions['providerOverride']): Promise<void> {
+    await VoiceConfigurationService.showConfigurationWizard(providerOverride);
   }
 
   public static async configureAzureSettings(): Promise<void> {
     await VoiceConfigurationService.configureAzureSettings();
+  }
+
+  public static async configureCosyVoiceSettings(): Promise<void> {
+    await VoiceConfigurationService.configureCosyVoiceSettings();
+  }
+
+  public static async configureQwenTtsSettings(): Promise<void> {
+    await VoiceConfigurationService.configureQwenTtsSettings();
+  }
+
+  public static async selectQwenTtsPythonPathFromDialog(): Promise<string | undefined> {
+    return await VoiceConfigurationService.selectQwenTtsPythonPathFromDialog();
+  }
+
+  public static async recordCosyVoiceReferenceAudio(): Promise<void> {
+    await VoiceConfigurationService.recordCosyVoiceReferenceAudio();
+  }
+
+  public static async recordQwenTtsReferenceAudio(): Promise<void> {
+    await VoiceConfigurationService.recordQwenTtsReferenceAudio();
+  }
+
+  public static async recordLocalReferenceAudio(): Promise<void> {
+    await VoiceConfigurationService.recordLocalReferenceAudio();
+  }
+
+  public static async openLocalReferenceWorkbench(): Promise<void> {
+    await VoiceConfigurationService.openLocalReferenceWorkbench();
+  }
+
+  public static async selectLocalReferenceAudio(): Promise<void> {
+    await VoiceConfigurationService.selectLocalReferenceAudio();
+  }
+
+  public static async autoTranscribeLocalReferenceAudio(): Promise<void> {
+    await VoiceConfigurationService.autoTranscribeLocalReferenceAudio();
+  }
+
+  public static async openLocalReferenceTextSettings(): Promise<void> {
+    await VoiceConfigurationService.openLocalReferenceTextSettings();
+  }
+
+  public static async openSpeechifySettingsJson(): Promise<void> {
+    await VoiceConfigurationService.openSpeechifySettingsJson();
   }
 
   public static async configureVisionSettings(): Promise<void> {

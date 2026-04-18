@@ -3,12 +3,14 @@ import * as fs from 'fs';
 
 export class SubtitleUtils {
   private static readonly STRONG_BREAK_PUNCTUATION = /[。！？!?]/;
+  private static readonly WEAK_BREAK_PUNCTUATION = /[，,；;]/;
   private static readonly SENTENCE_END_PUNCTUATION = /[。！？!?]/;
   private static readonly DROP_DISPLAY_PUNCTUATION = /[，。；、,.;]/g;
   private static readonly PUNCTUATION_SPACE_PLACEHOLDER = '\uE000';
   private static readonly CHINESE_CHAR = /[\u4e00-\u9fff]/;
   private static readonly MAX_WORDS_PER_SUBTITLE = 40;
   private static readonly MAX_GAP_MS = 1000;
+  private static readonly MIN_WORDS_BEFORE_WEAK_BREAK = 4;
 
   /**
    * Merge boundaries from multiple segments and enforce a hard break between segments
@@ -109,6 +111,10 @@ export class SubtitleUtils {
 
   private static shouldBreakAtPunctuation(token: string, chunkLength: number, wordsPerSubtitle: number): boolean {
     if (this.STRONG_BREAK_PUNCTUATION.test(token)) {
+      return true;
+    }
+
+    if (this.WEAK_BREAK_PUNCTUATION.test(token) && chunkLength >= this.MIN_WORDS_BEFORE_WEAK_BREAK) {
       return true;
     }
 

@@ -1,0 +1,25 @@
+# Retrospective: Menu and Settings IA
+
+## What worked
+
+- Provider-based settings grouping (`azure`, `cosyVoice`, `vision`) reduced ambiguity immediately.
+- Manifest-level unit tests caught menu placement and command-label regressions cheaply.
+- Treating `Open Speechify Settings (JSON)` as the migration entrypoint kept runtime compatibility simple.
+
+## What almost went wrong
+
+- Flat legacy keys were still referenced in a few direct `vscode` reads outside `ConfigManager`.
+- Relying on VS Code config updates alone would not have shown default or empty keys in `settings.json`, which is exactly what the user was checking.
+- Azure-related actions were split between the top-level Speechify menu and Azure submenu, which made the information architecture inconsistent.
+
+## Rule to carry forward
+
+- When a repo feature is split by backend/provider, enforce the split in all three places together:
+  - setting namespaces
+  - menu grouping
+  - command wording
+- For provider submenus, do not leave action-tier commands buried in settings-tier groups. If the user mentally sees it as “generate with this backend”, it should sit near the generation action.
+- Global settings shortcuts should stay single-homed at the top-level menu. Duplicating them inside provider submenus makes the IA feel repetitive instead of helpful.
+- Command wording must match workflow scope. Once local reference setup includes media selection and in-editor recording, `参考音频` is too narrow for the top-level command label.
+- Command-label refactors are incomplete unless docs and GitHub Pages are updated in the same sprint; otherwise the user immediately sees two different product vocabularies.
+- A JSON settings escape hatch is only usable if it is self-describing. If the template lacks inline examples, provider hints, and recommended values, the user still experiences it as “go search docs and guess”.

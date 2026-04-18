@@ -3,6 +3,7 @@ import * as path from 'path';
 import { SpeechService } from './services/speechService';
 import { ConfigManager } from './utils/config';
 import { I18n } from './i18n';
+import { SpeechProviderType } from './types';
 import { resolveSpeechText } from './utils/textSource';
 
 const TIMING_JSON_MAX_CHARS = 2_000_000;
@@ -142,9 +143,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     // Register commands
     const commands = [
         vscode.commands.registerCommand('extension.speechify', convertTextToSpeech),
+        vscode.commands.registerCommand('extension.generateAzureAudio', () => convertTextToSpeechWithProvider('azure')),
+        vscode.commands.registerCommand('extension.generateLocalAudio', () => convertTextToSpeechWithProvider('cosyvoice')),
+        vscode.commands.registerCommand('extension.generateQwenAudio', () => convertTextToSpeechWithProvider('qwen3-tts')),
         vscode.commands.registerCommand('extension.showSpeechifyVoiceSettings', showVoiceSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyVoiceSettings', configureSpeechifyVoiceSettings),
         vscode.commands.registerCommand('extension.configureSpeechifyAzureSettings', configureSpeechifyAzureSettings),
+        vscode.commands.registerCommand('extension.configureSpeechifyCosyVoiceSettings', configureSpeechifyCosyVoiceSettings),
+        vscode.commands.registerCommand('extension.configureSpeechifyQwenTtsSettings', configureSpeechifyQwenTtsSettings),
+        vscode.commands.registerCommand('extension.openSpeechifySettingsJson', openSpeechifySettingsJson),
+        vscode.commands.registerCommand('extension.openSpeechifyLocalReferenceWorkbench', openSpeechifyLocalReferenceWorkbench),
+        vscode.commands.registerCommand('extension.recordSpeechifyLocalReference', recordSpeechifyLocalReference),
+        vscode.commands.registerCommand('extension.selectSpeechifyLocalReference', selectSpeechifyLocalReference),
+        vscode.commands.registerCommand('extension.autoTranscribeSpeechifyLocalReference', autoTranscribeSpeechifyLocalReference),
+        vscode.commands.registerCommand('extension.editSpeechifyLocalReferenceText', editSpeechifyLocalReferenceText),
+        vscode.commands.registerCommand('extension.recordSpeechifyCosyVoiceReference', recordSpeechifyCosyVoiceReference),
+        vscode.commands.registerCommand('extension.recordSpeechifyQwenTtsReference', recordSpeechifyQwenTtsReference),
         vscode.commands.registerCommand('extension.configureSpeechifyVisionSettings', configureSpeechifyVisionSettings),
         vscode.commands.registerCommand('extension.selectSpeechifyVoiceStyle', selectVoiceStyle),
         vscode.commands.registerCommand('extension.selectSpeechifyVoiceRole', selectVoiceRole),
@@ -188,6 +202,14 @@ export function deactivate(): void {
  * Convert selected text to speech
  */
 async function convertTextToSpeech(uri?: vscode.Uri): Promise<void> {
+    await convertTextToSpeechWithProvider(undefined, uri);
+}
+
+async function convertTextToSpeechWithProvider(
+    providerOverride?: SpeechProviderType,
+    uri?: vscode.Uri,
+    recoveryAttempted = false
+): Promise<void> {
     try {
         const editor = vscode.window.activeTextEditor;
 
@@ -230,13 +252,20 @@ async function convertTextToSpeech(uri?: vscode.Uri): Promise<void> {
         }
 
         // Check configuration
-        if (!ConfigManager.isConfigurationComplete()) {
-            await SpeechService.showConfigurationWizard();
+        if (
+            ConfigManager.requiresPreflightConfiguration(providerOverride) &&
+            !ConfigManager.isConfigurationComplete(providerOverride)
+        ) {
+            await SpeechService.showConfigurationWizard(providerOverride);
             return;
         }
 
         // Convert text to speech
-        const result = await SpeechService.convertTextToSpeech(selectedText, sourceFilePath);
+        const result = await SpeechService.convertTextToSpeech(
+            selectedText,
+            sourceFilePath,
+            providerOverride ? { providerOverride } : {}
+        );
         
         if (result.success) {
             const message = result.processedChunks === 1 
@@ -261,6 +290,17 @@ async function convertTextToSpeech(uri?: vscode.Uri): Promise<void> {
                 }
             }
         } else {
+            const combinedError = result.errors.length > 0 ? result.errors.join(', ') : 'Unknown error';
+            const recoveryAction = await maybeRecoverQwenRuntimeResolution(combinedError, providerOverride);
+            if (!recoveryAttempted && recoveryAction === 'retry') {
+                await convertTextToSpeechWithProvider(providerOverride, uri, true);
+                return;
+            }
+
+            if (recoveryAction === 'handled') {
+                return;
+            }
+
             const errorMessage = result.errors.length > 0 
                 ? I18n.t('errors.speechGenerationFailed', result.errors.join(', '))
                 : I18n.t('errors.speechGenerationFailed', 'Unknown error');
@@ -269,10 +309,73 @@ async function convertTextToSpeech(uri?: vscode.Uri): Promise<void> {
         }
     } catch (error) {
         console.error('Text to speech conversion failed:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const recoveryAction = await maybeRecoverQwenRuntimeResolution(errorMessage, providerOverride);
+        if (!recoveryAttempted && recoveryAction === 'retry') {
+            await convertTextToSpeechWithProvider(providerOverride, uri, true);
+            return;
+        }
+
+        if (recoveryAction === 'handled') {
+            return;
+        }
+
         vscode.window.showErrorMessage(
-            I18n.t('errors.speechGenerationFailed', error instanceof Error ? error.message : 'Unknown error')
+            I18n.t('errors.speechGenerationFailed', errorMessage)
         );
     }
+}
+
+async function maybeRecoverQwenRuntimeResolution(
+    errorMessage: string,
+    providerOverride?: SpeechProviderType
+): Promise<'retry' | 'handled' | 'unhandled'> {
+    if (providerOverride !== 'qwen3-tts') {
+        return 'unhandled';
+    }
+
+    if (!isQwenRuntimeResolutionError(errorMessage)) {
+        return 'unhandled';
+    }
+
+    const selectPathAction = getQwenSelectPythonPathActionLabel();
+    const openSettingsAction = getQwenOpenSettingsActionLabel();
+    const action = await vscode.window.showErrorMessage(
+        I18n.t('errors.speechGenerationFailed', errorMessage),
+        selectPathAction,
+        openSettingsAction
+    );
+
+    if (action === selectPathAction) {
+        const selectedPath = await SpeechService.selectQwenTtsPythonPathFromDialog();
+        return selectedPath ? 'retry' : 'handled';
+    }
+
+    if (action === openSettingsAction) {
+        await SpeechService.configureQwenTtsSettings();
+        return 'handled';
+    }
+
+    return 'unhandled';
+}
+
+function isQwenRuntimeResolutionError(errorMessage: string): boolean {
+    return errorMessage.includes('Qwen3-TTS Python runtime not found:') ||
+        errorMessage.includes('Qwen3-TTS Python path is not configured.') ||
+        errorMessage.includes('找不到 Qwen3-TTS 的 Python 运行时：') ||
+        errorMessage.includes('还没有配置 Qwen3-TTS 的 Python 路径。');
+}
+
+function getQwenSelectPythonPathActionLabel(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+        ? '选择 Python 路径'
+        : 'Select Python Path';
+}
+
+function getQwenOpenSettingsActionLabel(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+        ? '打开 Qwen 设置'
+        : 'Open Qwen Settings';
 }
 
 function isTextLikeFile(uri: vscode.Uri): boolean {
@@ -294,7 +397,7 @@ async function showVoiceSettings(): Promise<void> {
             `${I18n.t('settings.voiceStyle')}: ${voiceSettings.style}`,
             `${I18n.t('settings.region')}: ${config.speechServicesRegion}`,
             `${I18n.t('settings.hasApiKey')}: ${config.azureSpeechServicesKey ? I18n.t('settings.yes') : I18n.t('settings.no')}`
-        ].join('\\n');
+        ].join('\n');
         
         const action = await vscode.window.showInformationMessage(
             I18n.t('messages.currentSettings', settingsInfo),
@@ -334,6 +437,112 @@ async function configureSpeechifyAzureSettings(): Promise<void> {
     } catch (error) {
         console.error('Failed to configure Azure settings:', error);
         vscode.window.showErrorMessage(I18n.t('errors.failedToConfigureAzure'));
+    }
+}
+
+async function configureSpeechifyCosyVoiceSettings(): Promise<void> {
+    try {
+        await SpeechService.configureCosyVoiceSettings();
+    } catch (error) {
+        console.error('Failed to configure CosyVoice settings:', error);
+        vscode.window.showErrorMessage(I18n.t('errors.failedToConfigureVoice'));
+    }
+}
+
+async function configureSpeechifyQwenTtsSettings(): Promise<void> {
+    try {
+        await SpeechService.configureQwenTtsSettings();
+    } catch (error) {
+        console.error('Failed to configure Qwen3-TTS settings:', error);
+        vscode.window.showErrorMessage(I18n.t('errors.failedToConfigureVoice'));
+    }
+}
+
+async function openSpeechifySettingsJson(): Promise<void> {
+    try {
+        await SpeechService.openSpeechifySettingsJson();
+    } catch (error) {
+        console.error('Failed to open Speechify settings JSON:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
+        );
+    }
+}
+
+async function openSpeechifyLocalReferenceWorkbench(): Promise<void> {
+    try {
+        await SpeechService.openLocalReferenceWorkbench();
+    } catch (error) {
+        console.error('Failed to open the local reference workbench:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
+        );
+    }
+}
+
+async function recordSpeechifyLocalReference(): Promise<void> {
+    try {
+        await SpeechService.recordLocalReferenceAudio();
+    } catch (error) {
+        console.error('Failed to record shared local reference audio:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
+        );
+    }
+}
+
+async function selectSpeechifyLocalReference(): Promise<void> {
+    try {
+        await SpeechService.selectLocalReferenceAudio();
+    } catch (error) {
+        console.error('Failed to select shared local reference media:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
+        );
+    }
+}
+
+async function autoTranscribeSpeechifyLocalReference(): Promise<void> {
+    try {
+        await SpeechService.autoTranscribeLocalReferenceAudio();
+    } catch (error) {
+        console.error('Failed to auto-transcribe shared local reference media:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
+        );
+    }
+}
+
+async function editSpeechifyLocalReferenceText(): Promise<void> {
+    try {
+        await SpeechService.openLocalReferenceTextSettings();
+    } catch (error) {
+        console.error('Failed to open shared local reference text settings:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
+        );
+    }
+}
+
+async function recordSpeechifyCosyVoiceReference(): Promise<void> {
+    try {
+        await SpeechService.recordCosyVoiceReferenceAudio();
+    } catch (error) {
+        console.error('Failed to record CosyVoice reference audio:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
+        );
+    }
+}
+
+async function recordSpeechifyQwenTtsReference(): Promise<void> {
+    try {
+        await SpeechService.recordQwenTtsReferenceAudio();
+    } catch (error) {
+        console.error('Failed to record Qwen3-TTS reference audio:', error);
+        vscode.window.showErrorMessage(
+            error instanceof Error ? error.message : I18n.t('errors.failedToConfigureVoice')
+        );
     }
 }
 

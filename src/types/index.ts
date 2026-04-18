@@ -7,6 +7,25 @@ export interface AzureConfig {
   region?: string;
 }
 
+export const SPEECH_PROVIDERS = ['azure', 'cosyvoice', 'qwen3-tts'] as const;
+export type SpeechProviderType = typeof SPEECH_PROVIDERS[number];
+
+export interface CosyVoiceConfig {
+  baseUrl: string;
+  promptAudioPath: string;
+  promptText?: string;
+  pythonPath?: string;
+  requestTimeoutSeconds?: number;
+}
+
+export interface QwenTtsConfig {
+  pythonPath: string;
+  model: string;
+  promptAudioPath: string;
+  promptText?: string;
+  requestTimeoutSeconds?: number;
+}
+
 export interface VoiceSettings {
   name: string;
   gender: string;
@@ -36,12 +55,23 @@ export interface VoiceListItem {
  * Extension configuration types
  */
 export interface SpeechifyConfig {
+  speechProvider?: SpeechProviderType;
   azureSpeechServicesKey: string;
   speechServicesRegion: string;
   voiceName: string;
   voiceGender: string;
   voiceStyle: string;
   voiceRole?: string;  // Optional role for roleplay voices
+  cosyVoiceBaseUrl?: string;
+  cosyVoicePythonPath?: string;
+  cosyVoicePromptAudioPath?: string;
+  cosyVoicePromptText?: string;
+  cosyVoiceRequestTimeoutSeconds?: number;
+  qwenTtsPythonPath?: string;
+  qwenTtsModel?: string;
+  qwenTtsPromptAudioPath?: string;
+  qwenTtsPromptText?: string;
+  qwenTtsRequestTimeoutSeconds?: number;
   enableTransitions?: boolean;
   transitionType?: string;
   autoTrimVideo?: boolean;
@@ -75,11 +105,24 @@ export interface SpeechRequest {
   outputPath: string;
 }
 
+export interface SpeechExecutionOptions {
+  providerOverride?: SpeechProviderType;
+}
+
 export interface SpeechResponse {
   success: boolean;
   audioPath?: string;
   error?: string;
   duration?: number;
+}
+
+export interface SpeechSynthesisResult {
+  audioBuffer: Buffer;
+  audioFormat: AudioFormat;
+  boundaries: WordBoundary[];
+  durationMs: number;
+  debugArtifactExtension: 'ssml' | 'txt';
+  debugArtifactContent: string;
 }
 
 /**

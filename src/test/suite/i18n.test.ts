@@ -117,6 +117,13 @@ suite('Internationalization Tests', () => {
         assert.ok(region, 'Settings label should be translated');
     });
 
+    test('should render current settings message with real newlines instead of literal backslash n', () => {
+        const message = I18n.t('messages.currentSettings', 'Line1\nLine2');
+
+        assert.ok(message.includes('\n'), 'Current settings message should contain actual newline characters');
+        assert.ok(!message.includes('\\n'), 'Current settings message should not contain literal backslash n');
+    });
+
     test('should handle complex interpolation scenarios', () => {
         // Test with multiple placeholders
         const message = I18n.t('progress.processingChunk', '1', '5');

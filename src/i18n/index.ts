@@ -33,6 +33,8 @@ export interface Messages {
   'notifications.success.alignmentSaved': string;
   'notifications.info.noStylesAvailable': string;
   'notifications.info.noRolesAvailable': string;
+  'notifications.success.referenceAudioUpdated': string;
+  'notifications.success.referenceTranscriptUpdated': string;
   
   // Errors
   'errors.noActiveEditor': string;
@@ -73,6 +75,8 @@ export interface Messages {
   'errors.visionHttp401': string;
   'errors.visionHttp404': string;
   'errors.visionHttp429': string;
+  'errors.failedToTranscribeReferenceAudio': string;
+  'errors.referenceAudioNotConfigured': string;
   
   // Configuration
   'config.prompts.subscriptionKey': string;
@@ -96,6 +100,13 @@ export interface Messages {
   'config.prompts.visionDeploymentPlaceholder': string;
   'config.prompts.refinementDeployment': string;
   'config.prompts.refinementDeploymentPlaceholder': string;
+  'config.prompts.cosyVoiceBaseUrl': string;
+  'config.prompts.cosyVoiceBaseUrlPlaceholder': string;
+  'config.prompts.cosyVoiceReferenceTranscript': string;
+  'config.prompts.cosyVoiceReferenceTranscriptPlaceholder': string;
+  'config.prompts.cosyVoiceSelectAction': string;
+  'config.prompts.cosyVoiceSelectReferenceAudio': string;
+  'config.prompts.cosyVoiceSelectTranscriptionLanguage': string;
   
   // Progress
   'progress.convertingToSpeech': string;
@@ -108,6 +119,7 @@ export interface Messages {
   'progress.configuringSettings': string;
   'progress.muxingVideo': string;
   'progress.startingSynthesis': string;
+  'progress.transcribingReferenceAudio': string;
   
   // Actions
   'actions.later': string;
@@ -127,11 +139,20 @@ export interface Messages {
   'actions.resetToAi': string;
   'actions.restoreOriginal': string;
   'actions.restoring': string;
+  'actions.selectReferenceAudio': string;
+  'actions.autoTranscribeReference': string;
+  'actions.editReferenceTranscript': string;
+  'actions.editBackendUrl': string;
+  'actions.finish': string;
   
   // Settings
   'settings.voiceName': string;
   'settings.voiceGender': string;
   'settings.voiceStyle': string;
+  'settings.provider': string;
+  'settings.backendUrl': string;
+  'settings.referenceAudio': string;
+  'settings.referenceText': string;
   'settings.region': string;
   'settings.hasApiKey': string;
   'settings.current': string;

@@ -3,8 +3,8 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { TimingSegment, VideoAnalyzer } from '../utils/videoAnalyzer';
 import { I18n } from '../i18n';
-import { AzureSpeechService } from '../utils/azure';
 import { ConfigManager } from '../utils/config';
+import { SpeechProviderService } from '../services/speechProviderService';
 
 interface AlignmentEditorLabels {
   title: string;
@@ -89,8 +89,7 @@ export class AlignmentEditor {
     const styleUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'media', 'alignment-editor.css')));
     const scriptUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath, 'media', 'alignment-editor.js')));
 
-    const config = vscode.workspace.getConfiguration('speechify');
-    const voiceName = config.get<string>('voiceName') || 'zh-CN-YunyangNeural';
+    const voiceName = ConfigManager.getVoiceSettings().name || 'Speechify Narrator';
 
     const initState: AlignmentEditorInitState = {
       videoSrc: videoUri,
@@ -247,8 +246,7 @@ export class AlignmentEditor {
         if (message?.type === 'configure-voice') {
           vscode.commands.executeCommand('extension.configureSpeechifyVoiceSettings').then(() => {
             // Update the display after configuration
-            const newConfig = vscode.workspace.getConfiguration('speechify');
-            const newVoice = newConfig.get<string>('voiceName') || 'zh-CN-YunyangNeural';
+            const newVoice = ConfigManager.getVoiceSettings().name || 'Speechify Narrator';
             panel.webview.postMessage({ type: 'update-voice', voiceName: newVoice });
           });
         }
@@ -311,12 +309,10 @@ export class AlignmentEditor {
 
         if (message?.type === 'preview-voice') {
           const { text } = message;
-          
-          const azureConfig = ConfigManager.getAzureConfigForTesting();
           const voiceSettings = ConfigManager.getVoiceSettings();
-          
-          AzureSpeechService.synthesizeWithBoundaries(text, voiceSettings, azureConfig)
-            .then(({ audioBuffer, boundaries }: { audioBuffer: Buffer, boundaries: { audioOffset: number; duration?: number }[] }) => {
+
+          SpeechProviderService.synthesizeWithMetadata(text, voiceSettings)
+            .then(({ audioBuffer, boundaries }) => {
               const base64Audio = audioBuffer.toString('base64');
               
               let duration = 0;

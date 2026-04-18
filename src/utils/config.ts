@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
-import { SpeechifyConfig, VoiceSettings, AzureConfig, TestConfig } from '../types';
+import { AzureConfig, CosyVoiceConfig, QwenTtsConfig, SpeechProviderType, SpeechifyConfig, TestConfig, VoiceSettings } from '../types';
+import { getSpeechifyPrimaryRelativeKey, readSpeechifySettingValue } from './speechifySettings';
 
 export interface VisionConfigValidationResult {
   isValid: boolean;
@@ -22,6 +24,8 @@ export class ConfigManager {
   private static readonly CONFIG_SECTION = 'speechify';
   private static readonly TEST_CONFIG_FILE = 'test-config.json';
   private static readonly AZURE_OPENAI_HOST_SUFFIX = 'openai.azure.com';
+  private static readonly DEFAULT_QWEN_MODEL = 'mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16';
+  private static readonly DEFAULT_QWEN_PYTHON_PATH_SETTING = '${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python';
 
   /**
    * Get VS Code workspace configuration
@@ -30,41 +34,96 @@ export class ConfigManager {
     const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
     
     return {
-      azureSpeechServicesKey: config.get<string>('azureSpeechServicesKey', ''),
-      speechServicesRegion: config.get<string>('speechServicesRegion', 'eastus'),
-      voiceName: config.get<string>('voiceName', 'zh-CN-YunyangNeural'),
-      voiceGender: config.get<string>('voiceGender', 'Male'),
-      voiceStyle: config.get<string>('voiceStyle', 'friendly'),
-      voiceRole: config.get<string>('voiceRole', ''),
-      visionApiKey: config.get<string>('visionApiKey', ''),
-      visionEndpoint: config.get<string>('visionEndpoint', ''),
-      visionDeployment: config.get<string>('visionDeployment', 'gpt-5.2'),
-      refinementDeployment: config.get<string>('refinementDeployment', 'gpt-5.2'),
-      enableTransitions: config.get<boolean>('enableTransitions', true),
-      transitionType: config.get<string>('transitionType', 'fade'),
-      autoTrimVideo: config.get<boolean>('autoTrimVideo', true)
+      speechProvider: readSpeechifySettingValue<SpeechProviderType>(config, 'speechProvider', 'azure'),
+      azureSpeechServicesKey: readSpeechifySettingValue<string>(config, 'azureSpeechServicesKey', ''),
+      speechServicesRegion: readSpeechifySettingValue<string>(config, 'speechServicesRegion', 'eastus'),
+      voiceName: readSpeechifySettingValue<string>(config, 'voiceName', 'zh-CN-YunyangNeural'),
+      voiceGender: readSpeechifySettingValue<string>(config, 'voiceGender', 'Male'),
+      voiceStyle: readSpeechifySettingValue<string>(config, 'voiceStyle', 'friendly'),
+      voiceRole: readSpeechifySettingValue<string>(config, 'voiceRole', ''),
+      cosyVoiceBaseUrl: readSpeechifySettingValue<string>(config, 'cosyVoiceBaseUrl', 'http://127.0.0.1:50000'),
+      cosyVoicePythonPath: readSpeechifySettingValue<string>(config, 'cosyVoicePythonPath', ''),
+      cosyVoicePromptAudioPath: readSpeechifySettingValue<string>(config, 'cosyVoicePromptAudioPath', ''),
+      cosyVoicePromptText: readSpeechifySettingValue<string>(config, 'cosyVoicePromptText', ''),
+      cosyVoiceRequestTimeoutSeconds: readSpeechifySettingValue<number>(config, 'cosyVoiceRequestTimeoutSeconds', 900),
+      qwenTtsPythonPath: readSpeechifySettingValue<string>(
+        config,
+        'qwenTtsPythonPath',
+        this.DEFAULT_QWEN_PYTHON_PATH_SETTING
+      ),
+      qwenTtsModel: readSpeechifySettingValue<string>(config, 'qwenTtsModel', 'mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16'),
+      qwenTtsPromptAudioPath: readSpeechifySettingValue<string>(config, 'qwenTtsPromptAudioPath', ''),
+      qwenTtsPromptText: readSpeechifySettingValue<string>(config, 'qwenTtsPromptText', ''),
+      qwenTtsRequestTimeoutSeconds: readSpeechifySettingValue<number>(config, 'qwenTtsRequestTimeoutSeconds', 900),
+      visionApiKey: readSpeechifySettingValue<string>(config, 'visionApiKey', ''),
+      visionEndpoint: readSpeechifySettingValue<string>(config, 'visionEndpoint', ''),
+      visionDeployment: readSpeechifySettingValue<string>(config, 'visionDeployment', 'gpt-5.2'),
+      refinementDeployment: readSpeechifySettingValue<string>(config, 'refinementDeployment', 'gpt-5.2'),
+      enableTransitions: readSpeechifySettingValue<boolean>(config, 'enableTransitions', true),
+      transitionType: readSpeechifySettingValue<string>(config, 'transitionType', 'fade'),
+      autoTrimVideo: readSpeechifySettingValue<boolean>(config, 'autoTrimVideo', true)
     };
   }
 
   /**
    * Update VS Code workspace configuration
    */
-  public static async updateWorkspaceConfig(key: keyof SpeechifyConfig, value: string): Promise<void> {
+  public static async updateWorkspaceConfig<K extends keyof SpeechifyConfig>(
+    key: K,
+    value: SpeechifyConfig[K]
+  ): Promise<void> {
     const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
-    await config.update(key, value, vscode.ConfigurationTarget.Global);
+    await config.update(getSpeechifyPrimaryRelativeKey(key), value, vscode.ConfigurationTarget.Global);
+  }
+
+  public static async updateProjectConfig<K extends keyof SpeechifyConfig>(
+    key: K,
+    value: SpeechifyConfig[K]
+  ): Promise<void> {
+    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
+    const target = vscode.workspace.workspaceFolders?.length ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global;
+    await config.update(getSpeechifyPrimaryRelativeKey(key), value, target);
+  }
+
+  public static getSpeechProvider(providerOverride?: SpeechProviderType): SpeechProviderType {
+    return providerOverride || this.getWorkspaceConfig().speechProvider || 'azure';
   }
 
   /**
    * Get voice settings from configuration
    */
-  public static getVoiceSettings(): VoiceSettings {
+  public static getVoiceSettings(providerOverride?: SpeechProviderType): VoiceSettings {
     const config = this.getWorkspaceConfig();
-    
+
+    const activeProvider = this.getSpeechProvider(providerOverride);
+
+    if (activeProvider === 'cosyvoice') {
+      const promptPath = config.cosyVoicePromptAudioPath || '';
+      const inferredName = promptPath ? path.basename(promptPath, path.extname(promptPath)) : 'CosyVoice Clone';
+      return {
+        name: inferredName,
+        gender: 'Neutral',
+        style: 'general',
+        locale: 'zh-CN'
+      };
+    }
+
+    if (activeProvider === 'qwen3-tts') {
+      const promptPath = config.qwenTtsPromptAudioPath || '';
+      const inferredName = promptPath ? path.basename(promptPath, path.extname(promptPath)) : 'Qwen3-TTS Clone';
+      return {
+        name: inferredName,
+        gender: 'Neutral',
+        style: 'general',
+        locale: 'zh-CN'
+      };
+    }
+
     const settings: VoiceSettings = {
       name: config.voiceName,
       gender: config.voiceGender,
       style: config.voiceStyle,
-      locale: 'zh-CN' // Extract locale from voice name or use default
+      locale: 'zh-CN'
     };
 
     // Only add role if it's set
@@ -86,6 +145,152 @@ export class ConfigManager {
       endpoint: `https://${config.speechServicesRegion}.tts.speech.microsoft.com/cognitiveservices/v1`,
       region: config.speechServicesRegion
     };
+  }
+
+  public static getCosyVoiceConfig(): CosyVoiceConfig {
+    const config = this.getWorkspaceConfig();
+    const promptAudioPath = this.resolveWorkspacePath((config.cosyVoicePromptAudioPath || '').trim());
+    return {
+      baseUrl: (config.cosyVoiceBaseUrl || '').trim(),
+      pythonPath: this.resolveWorkspacePath((config.cosyVoicePythonPath || '').trim()),
+      promptAudioPath,
+      promptText: (config.cosyVoicePromptText || '').trim(),
+      requestTimeoutSeconds: this.normalizeCosyVoiceRequestTimeoutSeconds(config.cosyVoiceRequestTimeoutSeconds)
+    };
+  }
+
+  public static getQwenTtsConfig(): QwenTtsConfig {
+    const config = this.getWorkspaceConfig();
+    const promptAudioPath = this.resolveWorkspacePath((config.qwenTtsPromptAudioPath || '').trim());
+    const configuredPythonPath = this.resolveWorkspacePath((config.qwenTtsPythonPath || '').trim());
+    const detectedPythonPath = this.getDetectedQwenTtsPythonPath() || '';
+    const defaultPythonPath = this.getResolvedDefaultQwenTtsPythonPath();
+    const pythonPath = this.pickExistingPath(configuredPythonPath, detectedPythonPath, defaultPythonPath)
+      || configuredPythonPath
+      || detectedPythonPath
+      || defaultPythonPath;
+
+    return {
+      pythonPath,
+      model: (config.qwenTtsModel || '').trim() || this.DEFAULT_QWEN_MODEL,
+      promptAudioPath,
+      promptText: (config.qwenTtsPromptText || '').trim(),
+      requestTimeoutSeconds: this.normalizeQwenTtsRequestTimeoutSeconds(config.qwenTtsRequestTimeoutSeconds)
+    };
+  }
+
+  public static getDetectedQwenTtsPythonPath(): string | null {
+    for (const candidate of this.getQwenTtsPythonCandidates()) {
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
+  public static getDefaultQwenTtsPythonPathSetting(): string {
+    return this.DEFAULT_QWEN_PYTHON_PATH_SETTING;
+  }
+
+  public static getResolvedDefaultQwenTtsPythonPath(): string {
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (workspaceRoot) {
+      return path.join(workspaceRoot, 'vendor/Qwen3-TTS/.venv312/bin/python');
+    }
+
+    return path.resolve(process.cwd(), 'vendor/Qwen3-TTS/.venv312/bin/python');
+  }
+
+  private static pickExistingPath(...candidates: string[]): string {
+    for (const candidate of candidates) {
+      if (candidate && fs.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+
+    return '';
+  }
+
+  private static normalizeCosyVoiceRequestTimeoutSeconds(value: number | undefined): number {
+    const normalized = Number.isFinite(value) ? Math.round(value as number) : 900;
+    return Math.max(30, normalized);
+  }
+
+  private static normalizeQwenTtsRequestTimeoutSeconds(value: number | undefined): number {
+    const normalized = Number.isFinite(value) ? Math.round(value as number) : 900;
+    return Math.max(30, normalized);
+  }
+
+  private static resolveWorkspacePath(inputPath: string): string {
+    if (!inputPath) {
+      return '';
+    }
+
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!workspaceRoot) {
+      return inputPath;
+    }
+
+    const expandedPath = inputPath.replace(/\$\{workspaceFolder\}/g, workspaceRoot);
+    if (path.isAbsolute(expandedPath)) {
+      return expandedPath;
+    }
+
+    return path.resolve(workspaceRoot, expandedPath);
+  }
+
+  private static getQwenTtsPythonCandidates(): string[] {
+    const workspaceRoots = vscode.workspace.workspaceFolders?.map(folder => folder.uri.fsPath) || [];
+    const roots = [
+      ...workspaceRoots,
+      ...this.getCommonQwenRuntimeRoots(),
+      process.cwd(),
+      path.resolve(__dirname, '../../'),
+      path.resolve(__dirname, '../../../'),
+      path.resolve(__dirname, '../../../../')
+    ];
+
+    const uniqueRoots = [...new Set(roots)];
+    const candidates = uniqueRoots.flatMap(root => [
+      path.join(root, 'vendor/Qwen3-TTS/.venv312/bin/python'),
+      path.join(root, 'vendor/Qwen3-TTS/.venv311/bin/python'),
+      path.join(root, 'vendor/Qwen3-TTS/.venv310/bin/python'),
+      path.join(root, 'vendor/Qwen3-TTS/.venv/bin/python'),
+      path.join(root, 'vendor/Qwen3TTS/.venv312/bin/python'),
+      path.join(root, 'vendor/Qwen3TTS/.venv311/bin/python'),
+      path.join(root, 'vendor/Qwen3TTS/.venv310/bin/python'),
+      path.join(root, 'vendor/Qwen3TTS/.venv/bin/python'),
+      path.join(root, '.venv312/bin/python'),
+      path.join(root, '.venv311/bin/python'),
+      path.join(root, '.venv310/bin/python'),
+      path.join(root, '.venv/bin/python')
+    ]);
+
+    return [...new Set(candidates)];
+  }
+
+  private static getCommonQwenRuntimeRoots(): string[] {
+    const homeDir = os.homedir();
+    if (!homeDir) {
+      return [];
+    }
+
+    const commonCodeDirs = [
+      path.join(homeDir, 'projects'),
+      path.join(homeDir, 'code'),
+      path.join(homeDir, 'workspace'),
+      path.join(homeDir, 'work'),
+      path.join(homeDir, 'src'),
+      path.join(homeDir, 'repos'),
+      path.join(homeDir, 'git'),
+      path.join(homeDir, 'Documents', 'GitHub')
+    ];
+
+    return commonCodeDirs.flatMap(baseDir => [
+      path.join(baseDir, 'speechify'),
+      path.join(baseDir, 'Speechify')
+    ]);
   }
 
   /**
@@ -253,28 +458,68 @@ export class ConfigManager {
   /**
    * Validate configuration
    */
-  public static validateConfig(config: AzureConfig): boolean {
+  public static validateAzureConfig(config: AzureConfig): boolean {
     return !!(config.subscriptionKey && config.endpoint);
+  }
+
+  public static validateConfig(config: AzureConfig): boolean {
+    return this.validateAzureConfig(config);
+  }
+
+  public static validateCosyVoiceConfig(config: CosyVoiceConfig): boolean {
+    return !!(config.baseUrl && config.promptAudioPath);
+  }
+
+  public static validateQwenTtsConfig(config: QwenTtsConfig): boolean {
+    return !!(config.pythonPath && config.model && config.promptAudioPath);
   }
 
   /**
    * Check if configuration is complete
    */
-  public static isConfigurationComplete(): boolean {
+  public static isConfigurationComplete(providerOverride?: SpeechProviderType): boolean {
+    const provider = this.getSpeechProvider(providerOverride);
+
+    if (provider === 'cosyvoice') {
+      return this.validateCosyVoiceConfig(this.getCosyVoiceConfig());
+    }
+
+    if (provider === 'qwen3-tts') {
+      return this.validateQwenTtsConfig(this.getQwenTtsConfig());
+    }
+
     const config = this.getAzureConfigForTesting();
-    return this.validateConfig(config);
+    return this.validateAzureConfig(config);
+  }
+
+  public static requiresPreflightConfiguration(providerOverride?: SpeechProviderType): boolean {
+    return this.getSpeechProvider(providerOverride) === 'azure';
   }
 
   /**
    * Reset configuration to defaults
    */
   public static async resetConfiguration(): Promise<void> {
-    const config = vscode.workspace.getConfiguration(this.CONFIG_SECTION);
-    
-    await config.update('azureSpeechServicesKey', '', vscode.ConfigurationTarget.Global);
-    await config.update('speechServicesRegion', 'eastus', vscode.ConfigurationTarget.Global);
-    await config.update('voiceName', 'zh-CN-YunyangNeural', vscode.ConfigurationTarget.Global);
-    await config.update('voiceGender', 'Male', vscode.ConfigurationTarget.Global);
-    await config.update('voiceStyle', 'friendly', vscode.ConfigurationTarget.Global);
+    await this.updateWorkspaceConfig('speechProvider', 'azure');
+    await this.updateWorkspaceConfig('azureSpeechServicesKey', '');
+    await this.updateWorkspaceConfig('speechServicesRegion', 'eastus');
+    await this.updateWorkspaceConfig('voiceName', 'zh-CN-YunyangNeural');
+    await this.updateWorkspaceConfig('voiceGender', 'Male');
+    await this.updateWorkspaceConfig('voiceStyle', 'friendly');
+    await this.updateWorkspaceConfig('voiceRole', '');
+    await this.updateWorkspaceConfig('cosyVoiceBaseUrl', 'http://127.0.0.1:50000');
+    await this.updateWorkspaceConfig('cosyVoicePythonPath', '');
+    await this.updateWorkspaceConfig('cosyVoicePromptAudioPath', '');
+    await this.updateWorkspaceConfig('cosyVoicePromptText', '');
+    await this.updateWorkspaceConfig('cosyVoiceRequestTimeoutSeconds', 900);
+    await this.updateWorkspaceConfig('qwenTtsPythonPath', this.DEFAULT_QWEN_PYTHON_PATH_SETTING);
+    await this.updateWorkspaceConfig('qwenTtsModel', this.DEFAULT_QWEN_MODEL);
+    await this.updateWorkspaceConfig('qwenTtsPromptAudioPath', '');
+    await this.updateWorkspaceConfig('qwenTtsPromptText', '');
+    await this.updateWorkspaceConfig('qwenTtsRequestTimeoutSeconds', 900);
+    await this.updateWorkspaceConfig('visionApiKey', '');
+    await this.updateWorkspaceConfig('visionEndpoint', '');
+    await this.updateWorkspaceConfig('visionDeployment', 'gpt-5.2');
+    await this.updateWorkspaceConfig('refinementDeployment', 'gpt-5.2');
   }
 }

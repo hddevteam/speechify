@@ -136,7 +136,14 @@ While there are many video editors (CapCut, Premiere Pro, etc.), Speechify is de
 ### 1. Installation
 Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=luckyXmobile.speechify) or search for "Speechify" in VS Code Extensions.
 
-### 2. Azure Setup
+### 2. Speech Backend Setup
+
+Speechify now supports two speech backends:
+- **Azure Speech**: cloud TTS with full Azure voice catalog and accurate word boundaries
+- **CosyVoice (Local)**: local FastAPI backend for zero-shot voice cloning, better suited for private/local Chinese workflows
+- **Qwen3-TTS + MLX-Audio (Local)**: local Apple Silicon-friendly voice cloning without a long-running backend server
+
+#### Azure Setup
 
 🔒 **Security Best Practice**: Never commit your Azure subscription keys to version control. Always store them securely in VS Code settings or environment variables.
 
@@ -150,18 +157,60 @@ Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/item
 - The `test-config.json` file is automatically ignored by Git for security
 - Our CI pipeline includes automated security checks to prevent accidental key exposure
 
+#### Local CosyVoice Setup
+
+1. Clone the bundled upstream dependency:
+   ```bash
+   git clone --recursive https://github.com/FunAudioLLM/CosyVoice.git vendor/CosyVoice
+   ```
+2. Install Python 3.10, then create a dedicated virtual environment in `vendor/CosyVoice/.venv310`
+3. Install CosyVoice dependencies inside that virtual environment
+4. Start the FastAPI server from this repo:
+   ```bash
+   npm run cosyvoice:start
+   ```
+
+Notes:
+- The startup script now defaults to `iic/CosyVoice-300M`, which is the correct ModelScope ID for the official FastAPI server path.
+- If `vendor/CosyVoice/pretrained_models/CosyVoice-300M` already exists, the script will prefer that fully local model directory.
+- Override the model manually with `COSYVOICE_MODEL_DIR=/path/to/model npm run cosyvoice:start`
+- A quick local smoke-test reference clip is available at `vendor/CosyVoice/asset/zero_shot_prompt.wav`
+- Example prompt transcript: `希望你以后能够做的比我还好呦。`
+- CosyVoice zero-shot prompt audio must stay within 30 seconds. Speechify normalizes selected reference media to mono 16 kHz WAV and trims it to a safe length before local synthesis.
+- If the backend still reports that the prompt audio is too long, re-save or re-select the reference media once so Speechify can refresh the normalized cache.
+
+#### Local Qwen3-TTS + MLX-Audio Setup
+
+1. Create a dedicated Python 3.12 environment for MLX-Audio
+2. Install `mlx-audio` inside that environment
+3. By default Speechify uses `${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python`; only change `speechify.qwenTts.pythonPath` if your MLX-Audio environment lives somewhere else
+4. Set `speechify.qwenTts.model` to a Qwen3-TTS MLX model id or local model path
+
+Notes:
+- This local path does not require a persistent FastAPI server. Speechify invokes MLX-Audio directly through Python.
+- The recommended starting model is `mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16`.
+- Reference audio plus transcript gives the best voice cloning quality. If the transcript is empty, Speechify falls back to embedding-only cloning.
+- The upstream MLX-Audio voice-cloning docs require a reference audio sample plus transcript, but they do not currently document the same explicit 30-second hard cap that CosyVoice has. In Speechify today, Qwen reference media still goes through the shared local normalizer and is trimmed to 29.5 seconds before inference.
+- On macOS, reference-media transcription still prefers Whisper MLX first when available.
+
+#### Reference Audio Guidance By Provider
+
+- **CosyVoice**: treat 30 seconds as a real model-side ceiling. Speechify normalizes the selected reference media to mono 16 kHz WAV and trims it to 29.5 seconds as a safety margin.
+- **Qwen3-TTS + MLX-Audio**: prefer a short, clean reference clip with a matching transcript. Speechify currently trims the prompt clip to 29.5 seconds too, even though this is a shared implementation detail rather than a documented Qwen hard limit.
+- **Best practice for both**: use a representative 10 to 20 second sample with low background noise, stable volume, and a transcript that matches the spoken content as closely as possible.
+
 ### 2.1 Azure OpenAI Configuration (Vision)
 
-Speechify's AI Vision alignment requires Azure OpenAI settings in VS Code (`speechify.visionApiKey`, `speechify.visionEndpoint`, `speechify.visionDeployment`, `speechify.refinementDeployment`).
+Speechify's AI Vision alignment requires Azure OpenAI settings in VS Code (`speechify.vision.apiKey`, `speechify.vision.endpoint`, `speechify.vision.deployment`, `speechify.vision.refinementDeployment`).
 
 Fastest setup path:
 1. Create or open an **Azure OpenAI** resource.
 2. In Azure Portal, open **Keys and Endpoint** and copy:
-  - Key → `speechify.visionApiKey`
-  - Endpoint (example: `https://<resource>.openai.azure.com`) → `speechify.visionEndpoint`
+  - Key → `speechify.vision.apiKey`
+  - Endpoint (example: `https://<resource>.openai.azure.com`) → `speechify.vision.endpoint`
 3. In Azure AI Foundry/Studio, open **Deployments** and copy deployment names:
-  - Vision analysis model → `speechify.visionDeployment`
-  - Script refinement model → `speechify.refinementDeployment`
+  - Vision analysis model → `speechify.vision.deployment`
+  - Script refinement model → `speechify.vision.refinementDeployment`
 4. Paste values into VS Code Settings (`Speechify`).
 
 Recommended model strategies:
@@ -219,6 +268,77 @@ Convert entire markdown documents, code comments, or any text-based content into
 - **Voice Gender**: Male or Female preference
 - **Voice Style**: Speaking style (friendly, newscast, cheerful, etc.)
 - **Voice Role**: Character role for roleplay-enabled voices
+
+### Shared Local Provider Selection
+- `speechify.provider`
+  Purpose: selects the speech backend. Set it to `cosyvoice` for the local CosyVoice pipeline or `qwen3-tts` for the local Qwen3-TTS + MLX-Audio pipeline.
+
+### CosyVoice Settings
+- `speechify.provider`
+  Purpose: set this to `cosyvoice` when you want Speechify to use the local CosyVoice path.
+- `speechify.cosyVoice.baseUrl`
+  Purpose: points to your local CosyVoice FastAPI server. The default value is `http://127.0.0.1:50000`.
+- `speechify.cosyVoice.promptAudioPath`
+  Purpose: points to the reference audio file, or to the audio extracted from a reference video. CosyVoice uses this clip for voice cloning.
+- `speechify.cosyVoice.promptText`
+  Purpose: stores the transcript for the reference audio. When present, Speechify uses zero-shot cloning; when empty, it falls back to the audio-only path.
+- `speechify.cosyVoice.pythonPath`
+  Purpose: optional override for the local Python runtime path, mainly used by reference-media transcription when auto-detection is not enough.
+- `speechify.cosyVoice.requestTimeoutSeconds`
+  Purpose: sets the local CosyVoice request timeout. The default is `900`, because zero-shot generation on a local machine can take several minutes before the first audio chunk appears, especially on slower hardware.
+
+Recommended workspace settings example:
+
+```json
+{
+  "speechify.provider": "cosyvoice",
+  "speechify.cosyVoice.baseUrl": "http://127.0.0.1:50000",
+  "speechify.cosyVoice.promptAudioPath": "${workspaceFolder}/.speechify/reference-audio/my-voice.wav",
+  "speechify.cosyVoice.promptText": "This is my local CosyVoice reference transcript.",
+  "speechify.cosyVoice.pythonPath": "${workspaceFolder}/vendor/CosyVoice/.venv310/bin/python",
+  "speechify.cosyVoice.requestTimeoutSeconds": 900
+}
+```
+
+Behavior notes:
+- If a reference transcript is configured, Speechify uses CosyVoice `inference_zero_shot`
+- If the transcript is left empty, Speechify falls back to `inference_cross_lingual`
+- CosyVoice returns raw PCM audio, so Speechify wraps it as `.wav`
+- CosyVoice does not provide Azure-style word timestamps in this path; subtitle boundaries are approximated from text and audio duration
+- Local zero-shot generation can exceed two minutes on some machines. If you still see request timeouts, raise `speechify.cosyVoice.requestTimeoutSeconds` before assuming the text chunk is too long.
+
+### Qwen3-TTS + MLX-Audio Settings
+- `speechify.provider`
+  Purpose: set this to `qwen3-tts` when you want Speechify to use the local Qwen3-TTS + MLX-Audio path.
+- `speechify.qwenTts.pythonPath`
+  Purpose: points to the Python executable in the environment where `mlx-audio` is installed. Default: `${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python`.
+- `speechify.qwenTts.model`
+  Purpose: selects the Qwen3-TTS MLX model id or local model path. A good starting point is `mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16`.
+- `speechify.qwenTts.promptAudioPath`
+  Purpose: points to the reference audio file, or to audio extracted from a reference video, used for voice cloning. Speechify currently normalizes this media and trims it to 29.5 seconds before local Qwen inference.
+- `speechify.qwenTts.promptText`
+  Purpose: stores the transcript for the reference audio. Recommended for best cloning quality because upstream Qwen voice cloning expects the reference sample and its transcript. If empty, Speechify falls back to embedding-only cloning.
+- `speechify.qwenTts.requestTimeoutSeconds`
+  Purpose: sets the local Qwen3-TTS request timeout. The default is `900`.
+
+Recommended workspace settings example:
+
+```json
+{
+  "speechify.provider": "qwen3-tts",
+  "speechify.qwenTts.pythonPath": "${workspaceFolder}/vendor/Qwen3-TTS/.venv312/bin/python",
+  "speechify.qwenTts.model": "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16",
+  "speechify.qwenTts.promptAudioPath": "${workspaceFolder}/.speechify/reference-audio/my-voice.wav",
+  "speechify.qwenTts.promptText": "This is my local Qwen3-TTS reference transcript.",
+  "speechify.qwenTts.requestTimeoutSeconds": 900
+}
+```
+
+Behavior notes:
+- Speechify invokes MLX-Audio directly through Python and saves the generated speech as `.wav`
+- Subtitle boundaries are still approximated from text and audio duration in this local path
+- Speechify currently reuses the shared local reference-media normalizer here, so Qwen prompt media is converted to mono 16 kHz WAV and clipped to 29.5 seconds before inference
+- If your MLX-Audio environment is not under the standard `vendor/Qwen3-TTS/.venv312` path, set `speechify.qwenTts.pythonPath` explicitly
 
 ### File Output Settings
 - **Format**: Audio format (MP3, WAV, OGG)

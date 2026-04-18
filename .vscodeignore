@@ -1,6 +1,8 @@
 # VS Code specific files
 .vscode/**
 .vscode-test/**
+.codex/**
+.husky/**
 
 # Test files
 test/**
@@ -37,6 +39,7 @@ MIGRATION_REPORT.md
 
 # Node.js dependencies (should not be included)
 node_modules/**
+vendor/**
 
 # Build artifacts - keep only bundled dist
 src/**
