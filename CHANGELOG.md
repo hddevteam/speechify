@@ -5,6 +5,13 @@ All notable changes to the **Speechify** extension will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.1] - 2026-04-19
+
+### 🔧 Improved
+- **Local Model Benchmarks**: Updated Local Model Workbench subtitle with real measured performance data on Apple M3 Max 64GB: Qwen3-TTS 0.6B ~58–75 ms/char (peak RAM ~2.9 GB, avg CPU ~50% via MLX/ANE); CosyVoice-300M+MPS ~64–93 ms/char (resident RAM ~7.4 GB, avg CPU ~450% with LLM on CPU).
+- **CosyVoice MPS Acceleration**: Applied split-device patch to CosyVoice-300M — Flow/HiFT models run on Apple Silicon GPU (MPS) while LLM autoregressive sampling stays on CPU, delivering 3–4x speedup over CPU-only baseline.
+- **Voice Cloning Clarification**: Corrected subtitle to accurately reflect that both Qwen3-TTS and CosyVoice support voice cloning via reference audio.
+
 ## [3.2.0] - 2026-04-18
 
 ### ✨ Added
