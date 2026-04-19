@@ -1676,7 +1676,7 @@ export class VoiceConfigurationService {
     if (this.isChineseLocale()) {
       return {
         title: '配置本地模型',
-        subtitle: '在同一控制台里配置 CosyVoice 与 Qwen3-TTS 的关键参数，并统一管理录音、参考音频和参考文本。',
+        subtitle: '在同一控制台里配置 CosyVoice 与 Qwen3-TTS 的关键参数，并统一管理录音、参考音频和参考文本。基准测试（Apple M3 Max 64GB）：Qwen3-TTS 0.6B 约 58–75 ms/字符（自包含，无需服务器）；CosyVoice-300M 约 205–289 ms/字符（需本地服务器，支持声音克隆）。',
         providerLabel: '本地模型配置',
         record: '录制参考音频',
         stopRecording: '停止录制',
@@ -1698,7 +1698,7 @@ export class VoiceConfigurationService {
 
     return {
       title: 'Configure Local Models',
-      subtitle: 'Configure CosyVoice and Qwen3-TTS in one place, while managing recording, reference audio, and reference text.',
+      subtitle: 'Configure CosyVoice and Qwen3-TTS in one place. Benchmark (Apple M3 Max 64GB): Qwen3-TTS 0.6B ~58–75 ms/char, self-contained (no server needed); CosyVoice-300M ~205–289 ms/char, requires a local server but supports voice cloning.',
       providerLabel: 'Local Model Settings',
       record: 'Record',
       stopRecording: 'Stop',
