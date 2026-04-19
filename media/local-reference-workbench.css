@@ -184,6 +184,23 @@ button:disabled {
   margin: 0;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-repo-link {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--accent);
+  text-decoration: none;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+.card-repo-link:hover {
+  opacity: 1;
+  text-decoration: underline;
 }
 
 /* Form Fields */

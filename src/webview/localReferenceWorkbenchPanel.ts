@@ -21,7 +21,9 @@ export interface LocalReferenceWorkbenchEditableField {
 export interface LocalReferenceWorkbenchProviderState {
   id: 'cosyvoice' | 'qwen3-tts';
   title: string;
+  repoUrl: string;
   promptAudioPath: string;
+  promptAudioWebviewUri?: string;
   promptText: string;
   defaultReferenceText: string;
   editableFields: LocalReferenceWorkbenchEditableField[];
@@ -108,7 +110,9 @@ export class LocalReferenceWorkbenchPanel {
         retainContextWhenHidden: true,
         localResourceRoots: [
           vscode.Uri.file(path.join(context.extensionPath, 'media')),
-          vscode.Uri.file(os.tmpdir())
+          vscode.Uri.file(os.tmpdir()),
+          vscode.Uri.file(os.homedir()),
+          ...(vscode.workspace.workspaceFolders?.map(f => f.uri) ?? [])
         ]
       }
     );
@@ -358,6 +362,20 @@ export class LocalReferenceWorkbenchPanel {
 
   private async refresh(): Promise<void> {
     const state = await this.handlersRef.getState();
+
+    // Resolve reference audio paths to webview-accessible URIs using the panel's webview.
+    for (const provider of state.providers) {
+      if (provider.promptAudioPath) {
+        try {
+          provider.promptAudioWebviewUri = this.panel.webview.asWebviewUri(
+            vscode.Uri.file(provider.promptAudioPath)
+          ).toString();
+        } catch {
+          // Path not resolvable — skip preview
+        }
+      }
+    }
+
     this.panel.title = state.labels.title;
     await this.panel.webview.postMessage({
       type: 'state',

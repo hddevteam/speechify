@@ -102,7 +102,7 @@
     if (isProcessing) {
       [startBtn, stopBtn, retryBtn, saveBtn].forEach(b => { if (b) { b.disabled = true; } });
     }
-    if (previewWrap) { previewWrap.hidden = !isReady; }
+    if (previewWrap) { previewWrap.hidden = !isReady && !previewWrap.dataset.existingAudio; }
   };
 
   const resetRecorder = (providerId) => {
@@ -112,7 +112,11 @@
     rec.hasRecording = false;
     setDuration(providerId, 0);
     const preview = document.querySelector(`[data-preview="${providerId}"]`);
-    if (preview) { preview.removeAttribute('src'); preview.load(); }
+    if (preview) {
+      const existingAudio = previewWrap?.dataset.existingAudio;
+      if (existingAudio) { preview.src = existingAudio; preview.load(); }
+      else { preview.removeAttribute('src'); preview.load(); }
+    }
     updateRecorderUI(providerId);
   };
 
@@ -125,7 +129,10 @@
 
     providerCardsEl.innerHTML = state.providers.map(provider => `
       <article class="card" data-card="${provider.id}">
-        <div class="card-title">${escapeHtml(provider.title)}</div>
+        <div class="card-title">
+          ${escapeHtml(provider.title)}
+          ${provider.repoUrl ? `<a class="card-repo-link" href="${provider.repoUrl}" title="GitHub Repository" target="_blank">GitHub ↗</a>` : ''}
+        </div>
 
         <div class="recorder">
           <div class="recorder-header">
@@ -143,9 +150,9 @@
             <button class="btn btn-secondary" data-select="${provider.id}">${escapeHtml(labels.selectMedia)}</button>
             <button class="btn btn-secondary" data-transcribe="${provider.id}">${escapeHtml(labels.transcribe)}</button>
           </div>
-          <div class="preview-card" data-preview-wrap="${provider.id}" hidden>
+          <div class="preview-card" data-preview-wrap="${provider.id}"${provider.promptAudioWebviewUri ? ` data-existing-audio="${provider.promptAudioWebviewUri}"` : ' hidden'}>
             <div class="preview-label">${escapeHtml(labels.preview)}</div>
-            <audio controls data-preview="${provider.id}"></audio>
+            <audio controls data-preview="${provider.id}"${provider.promptAudioWebviewUri ? ` src="${provider.promptAudioWebviewUri}"` : ''}></audio>
           </div>
         </div>
 
@@ -172,6 +179,8 @@
             ? `<code class="audio-path-value">${escapeHtml(provider.promptAudioPath)}</code>`
             : escapeHtml(labels.noAudioConfigured)}
         </div>
+
+
       </article>
     `).join('');
 

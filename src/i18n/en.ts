@@ -140,6 +140,7 @@ const englishMessages: Messages = {
   'actions.autoTranscribeReference': 'Auto-Transcribe Reference Audio',
   'actions.editReferenceTranscript': 'Edit Reference Transcript',
   'actions.editBackendUrl': 'Edit Backend URL',
+  'actions.openGitHubRepo': 'Open GitHub Repository',
   'actions.finish': 'Finish',
   
   // Settings

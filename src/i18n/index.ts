@@ -143,6 +143,7 @@ export interface Messages {
   'actions.autoTranscribeReference': string;
   'actions.editReferenceTranscript': string;
   'actions.editBackendUrl': string;
+  'actions.openGitHubRepo': string;
   'actions.finish': string;
   
   // Settings

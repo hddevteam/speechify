@@ -140,6 +140,7 @@ const chineseMessages: Messages = {
   'actions.autoTranscribeReference': '自动转录参考音频',
   'actions.editReferenceTranscript': '编辑参考文本',
   'actions.editBackendUrl': '编辑后端地址',
+  'actions.openGitHubRepo': '查看 GitHub 仓库',
   'actions.finish': '完成',
   
   // Settings

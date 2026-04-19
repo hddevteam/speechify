@@ -175,7 +175,46 @@ export class VoiceConfigurationService {
   }
 
   public static async configureCosyVoiceSettings(): Promise<void> {
-    await this.editCosyVoiceBackendUrl();
+    let isFinished = false;
+
+    while (!isFinished) {
+      const current = ConfigManager.getCosyVoiceConfig();
+      const action = await vscode.window.showQuickPick(
+        [
+          {
+            label: I18n.t('actions.editBackendUrl'),
+            description: current.baseUrl || 'http://127.0.0.1:50000'
+          },
+          {
+            label: I18n.t('actions.openGitHubRepo'),
+            description: 'https://github.com/FunAudioLLM/CosyVoice'
+          },
+          {
+            label: I18n.t('actions.finish'),
+            description: ''
+          }
+        ],
+        {
+          title: this.getCosyVoiceMenuTitle(),
+          placeHolder: this.getCosyVoiceSelectActionPlaceholder()
+        }
+      );
+
+      if (!action || action.label === I18n.t('actions.finish')) {
+        isFinished = true;
+        continue;
+      }
+
+      if (action.label === I18n.t('actions.editBackendUrl')) {
+        await this.editCosyVoiceBackendUrl();
+        continue;
+      }
+
+      if (action.label === I18n.t('actions.openGitHubRepo')) {
+        await this.openGitHubRepo('https://github.com/FunAudioLLM/CosyVoice');
+      }
+    }
+
     vscode.window.showInformationMessage(I18n.t('notifications.success.azureSettingsUpdated'));
   }
 
@@ -193,6 +232,10 @@ export class VoiceConfigurationService {
           {
             label: this.getQwenTtsEditPythonPathLabel(),
             description: this.getQwenTtsPythonPathDescription()
+          },
+          {
+            label: I18n.t('actions.openGitHubRepo'),
+            description: 'https://github.com/Blaizzy/mlx-audio'
           },
           {
             label: I18n.t('actions.finish'),
@@ -217,6 +260,11 @@ export class VoiceConfigurationService {
 
       if (action.label === this.getQwenTtsEditPythonPathLabel()) {
         await this.editQwenTtsPythonPath();
+        continue;
+      }
+
+      if (action.label === I18n.t('actions.openGitHubRepo')) {
+        await this.openGitHubRepo('https://github.com/Blaizzy/mlx-audio');
       }
     }
 
@@ -292,6 +340,7 @@ export class VoiceConfigurationService {
         {
           id: 'cosyvoice',
           title: 'CosyVoice',
+          repoUrl: 'https://github.com/FunAudioLLM/CosyVoice',
           promptAudioPath: cosyVoiceConfig.promptAudioPath || '',
           promptText: cosyVoiceConfig.promptText || '',
           defaultReferenceText,
@@ -309,6 +358,7 @@ export class VoiceConfigurationService {
         {
           id: 'qwen3-tts',
           title: 'Qwen3-TTS',
+          repoUrl: 'https://github.com/Blaizzy/mlx-audio',
           promptAudioPath: qwenTtsConfig.promptAudioPath || '',
           promptText: qwenTtsConfig.promptText || '',
           defaultReferenceText,
@@ -1013,10 +1063,20 @@ export class VoiceConfigurationService {
       : 'Edit Python Path';
   }
 
+  private static getCosyVoiceSelectActionPlaceholder(): string {
+    return vscode.env.language.toLowerCase().startsWith('zh')
+      ? '选择你要配置的 CosyVoice 本地项'
+      : 'Choose what to configure for your local CosyVoice setup';
+  }
+
   private static getQwenTtsSelectActionPlaceholder(): string {
     return vscode.env.language.toLowerCase().startsWith('zh')
       ? '选择你要配置的 Qwen3-TTS 本地项'
       : 'Choose what to configure for your local Qwen3-TTS setup';
+  }
+
+  private static async openGitHubRepo(url: string): Promise<void> {
+    await vscode.env.openExternal(vscode.Uri.parse(url));
   }
 
   private static getQwenTtsSelectTranscriptionLanguagePlaceholder(): string {
