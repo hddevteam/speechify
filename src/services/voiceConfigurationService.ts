@@ -1676,7 +1676,7 @@ export class VoiceConfigurationService {
     if (this.isChineseLocale()) {
       return {
         title: '配置本地模型',
-        subtitle: '两个模型均支持声音克隆，均需参考音频。基准测试（Apple M3 Max 64GB）：Qwen3-TTS 0.6B 约 58–75 ms/字符（自包含，无需服务器，MLX 原生加速）；CosyVoice-300M+MPS 约 64–93 ms/字符（需本地服务器，性能与 Qwen3-TTS 相当）。',
+        subtitle: '两个模型均支持声音克隆，均需参考音频。基准测试（Apple M3 Max 64GB）：Qwen3-TTS 0.6B 约 58–75 ms/字符，峰值内存 ~2.9 GB，CPU 均值 ~50%（MLX 原生，走 ANE/GPU，无需服务器）；CosyVoice-300M+MPS 约 64–93 ms/字符，常驻内存 ~7.4 GB，CPU 均值 ~450%（LLM 部分跑 CPU，需本地服务器）。',
         providerLabel: '本地模型配置',
         record: '录制参考音频',
         stopRecording: '停止录制',
@@ -1698,7 +1698,7 @@ export class VoiceConfigurationService {
 
     return {
       title: 'Configure Local Models',
-      subtitle: 'Both models support voice cloning via reference audio. Benchmark (Apple M3 Max 64GB): Qwen3-TTS 0.6B ~58–75 ms/char, self-contained (MLX-native, no server needed); CosyVoice-300M+MPS ~64–93 ms/char, requires a local server with comparable performance.',
+      subtitle: 'Both models support voice cloning via reference audio. Benchmark (Apple M3 Max 64GB): Qwen3-TTS 0.6B ~58–75 ms/char, peak RAM ~2.9 GB, avg CPU ~50% (MLX-native via ANE/GPU, no server needed); CosyVoice-300M+MPS ~64–93 ms/char, resident RAM ~7.4 GB, avg CPU ~450% (LLM runs on CPU, requires a local server).',
       providerLabel: 'Local Model Settings',
       record: 'Record',
       stopRecording: 'Stop',

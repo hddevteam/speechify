@@ -1,0 +1,18 @@
+{
+  "cosyvoice": {
+    "peak_ram_mb": 7561.296875,
+    "idle_ram_mb": 7561.296875,
+    "avg_cpu_pct": 445.9090909090907,
+    "peak_cpu_pct": 1231.0,
+    "samples": 77,
+    "wall_s": 23.137678623199463
+  },
+  "qwen3tts": {
+    "peak_ram_mb": 2917.796875,
+    "idle_ram_mb": 0.03125,
+    "avg_cpu_pct": 49.81269841269841,
+    "peak_cpu_pct": 94.3,
+    "samples": 63,
+    "wall_s": 19.148853063583374
+  }
+}
